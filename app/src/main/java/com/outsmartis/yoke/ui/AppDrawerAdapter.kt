@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.databinding.AdapterAppDrawerBinding
@@ -78,7 +79,7 @@ class AppDrawerAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return when (viewType) {
+        val holder = when (viewType) {
             VIEW_TYPE_PRIVATE_HEADER -> PrivateSpaceHeaderViewHolder(
                 AdapterPrivateSpaceHeaderBinding.inflate(
                     LayoutInflater.from(parent.context),
@@ -95,6 +96,8 @@ class AppDrawerAdapter(
                 )
             )
         }
+        ThemeApplier.apply(holder.itemView)
+        return holder
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {

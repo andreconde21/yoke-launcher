@@ -34,6 +34,8 @@ import com.outsmartis.yoke.helper.isTablet
 import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
+import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,6 +51,8 @@ class MainActivity : AppCompatActivity() {
     private var profileReceiver: BroadcastReceiver? = null
     private var launcherAppsCallback: LauncherApps.Callback? = null
     private var messageDialog: YokeDialog? = null
+    private var themeSignature: String? = null
+    private var themeObserver: ThemeStore.Registration? = null
 
 //    override fun onBackPressed() {
 //        if (navController.currentDestination?.id != R.id.mainFragment)
@@ -65,12 +69,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = Prefs(this)
         if (isEinkDisplay()) prefs.appTheme = AppCompatDelegate.MODE_NIGHT_NO
-        AppCompatDelegate.setDefaultNightMode(prefs.appTheme)
+        AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, prefs.appTheme))
+        themeSignature = ThemeStore.signature(this)
         super.onCreate(savedInstanceState)
         if (prefs.boldFont) theme.applyStyle(R.style.BoldFontOverlay, true)
         if (isEinkDisplay() || isSystemAnimationsDisabled()) theme.applyStyle(R.style.NoAnimationOverlay, true)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        ThemeApplier.applyWindow(this)
 
         navController = this.findNavController(R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
@@ -115,6 +121,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // The picker or a "next theme" gesture may have changed the theme while we were stopped.
+        if (ThemeStore.signature(this) != themeSignature) {
+            recreate()
+            return
+        }
+        themeObserver?.unregister()
+        themeObserver = ThemeStore.observeConductore(this) { recreate() }
         restartLauncherOrCheckTheme()
     }
 
@@ -155,6 +168,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        themeObserver?.unregister()
+        themeObserver = null
         isResumed = false
         backToHomeScreen()
         super.onStop()
@@ -176,7 +191,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        AppCompatDelegate.setDefaultNightMode(prefs.appTheme)
+        AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, prefs.appTheme))
     }
 
     private fun initObservers(viewModel: MainViewModel) {
@@ -250,8 +265,9 @@ class MainActivity : AppCompatActivity() {
         timerJob?.cancel()
         timerJob = lifecycleScope.launch {
             delay(200)
-            if ((prefs.appTheme == AppCompatDelegate.MODE_NIGHT_YES && getColorFromAttr(R.attr.primaryColor) != getColor(R.color.white))
-                || (prefs.appTheme == AppCompatDelegate.MODE_NIGHT_NO && getColorFromAttr(R.attr.primaryColor) != getColor(R.color.black))
+            val nightMode = ThemeStore.nightMode(this@MainActivity, prefs.appTheme)
+            if ((nightMode == AppCompatDelegate.MODE_NIGHT_YES && getColorFromAttr(R.attr.primaryColor) != getColor(R.color.white))
+                || (nightMode == AppCompatDelegate.MODE_NIGHT_NO && getColorFromAttr(R.attr.primaryColor) != getColor(R.color.black))
             )
                 restartLauncherOrCheckTheme(true)
         }

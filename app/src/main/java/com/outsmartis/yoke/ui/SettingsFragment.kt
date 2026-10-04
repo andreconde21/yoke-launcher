@@ -27,7 +27,10 @@ import com.outsmartis.yoke.databinding.DialogTextSizeBinding
 import com.outsmartis.yoke.databinding.FragmentSettingsBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.createDialog
-import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemePickerActivity
+import com.outsmartis.yoke.theme.ThemePrefs
+import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.helper.hideStatusBar
 import com.outsmartis.yoke.helper.isAccessServiceEnabled
 import com.outsmartis.yoke.helper.isTablet
@@ -76,6 +79,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateAppThemeText()
         populateTextSize()
         populateBoldFont()
+        populateFont()
         populateAlignment()
         populateStatusBar()
         populateDateTime()
@@ -98,9 +102,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.alignment -> showAlignmentMenu(view)
             R.id.statusBar -> toggleStatusBar()
             R.id.dateTime -> showDateTimeMenu(view)
-            R.id.appThemeText -> showAppThemeMenu(view, showSystem = false)
+            R.id.appThemeText -> ThemePickerActivity.open(requireContext())
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
+            R.id.fontText -> toggleFont()
 
             R.id.swipeLeftApp -> showAppListIfEnabled(Constants.FLAG_SET_SWIPE_LEFT_APP)
             R.id.swipeRightApp -> showAppListIfEnabled(Constants.FLAG_SET_SWIPE_RIGHT_APP)
@@ -143,6 +148,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.appThemeText.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
+        binding.fontText.setOnClickListener(this)
 
         binding.alignment.setOnLongClickListener(this)
         binding.appThemeText.setOnLongClickListener(this)
@@ -254,10 +260,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun toggleSwipeLeft() {
         prefs.swipeLeftEnabled = !prefs.swipeLeftEnabled
         if (prefs.swipeLeftEnabled) {
-            binding.swipeLeftApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColor))
+            binding.swipeLeftApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = false))
             requireContext().showToast(getString(R.string.swipe_left_app_enabled))
         } else {
-            binding.swipeLeftApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
+            binding.swipeLeftApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = true))
             requireContext().showToast(getString(R.string.swipe_left_app_disabled))
         }
     }
@@ -265,10 +271,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun toggleSwipeRight() {
         prefs.swipeRightEnabled = !prefs.swipeRightEnabled
         if (prefs.swipeRightEnabled) {
-            binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColor))
+            binding.swipeRightApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = false))
             requireContext().showToast(getString(R.string.swipe_right_app_enabled))
         } else {
-            binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
+            binding.swipeRightApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = true))
             requireContext().showToast(getString(R.string.swipe_right_app_disabled))
         }
     }
@@ -423,6 +429,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun populateAppThemeText(appTheme: Int = prefs.appTheme) {
+        val active = ThemeStore.current(requireContext())
+        if (active != null) {
+            binding.appThemeText.text = active.name
+            return
+        }
         when (appTheme) {
             AppCompatDelegate.MODE_NIGHT_YES -> binding.appThemeText.text = getString(R.string.dark)
             AppCompatDelegate.MODE_NIGHT_NO -> binding.appThemeText.text = getString(R.string.light)
@@ -438,6 +449,19 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         prefs.boldFont = !prefs.boldFont
         populateBoldFont()
         requireActivity().recreate()
+    }
+
+    private fun toggleFont() {
+        val themePrefs = ThemePrefs(requireContext())
+        themePrefs.jetBrainsMono = !themePrefs.jetBrainsMono
+        populateFont()
+        requireActivity().recreate()
+    }
+
+    private fun populateFont() {
+        binding.fontText.text = getString(
+            if (ThemePrefs(requireContext()).jetBrainsMono) R.string.font_jetbrains_mono else R.string.font_system
+        )
     }
 
     private fun populateBoldFont() {
@@ -509,9 +533,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.swipeLeftApp.text = prefs.appNameSwipeLeft
         binding.swipeRightApp.text = prefs.appNameSwipeRight
         if (!prefs.swipeLeftEnabled)
-            binding.swipeLeftApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
+            binding.swipeLeftApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = true))
         if (!prefs.swipeRightEnabled)
-            binding.swipeRightApp.setTextColor(requireContext().getColorFromAttr(R.attr.primaryColorTrans50))
+            binding.swipeRightApp.setTextColor(ThemeApplier.textColor(requireContext(), secondary = true))
     }
 
 //    private fun populateDigitalWellbeing() {

@@ -14,7 +14,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityQuickAddBinding
+import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeStore
+import com.outsmartis.yoke.theme.YokeTheme
+import androidx.appcompat.app.AppCompatDelegate
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
@@ -37,10 +42,17 @@ class QuickAddActivity : AppCompatActivity() {
 
     private val pickVault = 1
 
+    private var theme: YokeTheme? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Cold start from a share: the launcher activity has not set the night mode yet.
+        AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, Prefs(this).appTheme))
         super.onCreate(savedInstanceState)
         binding = ActivityQuickAddBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        theme = ThemeStore.current(this)
+        theme?.let { binding.card.setBackgroundColor(it.surface) }
+        ThemeApplier.apply(binding.card)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         prefs = CockpitPrefs(this)
 
@@ -97,6 +109,7 @@ class QuickAddActivity : AppCompatActivity() {
             chip.text = column.label
             chip.tag = column
             chip.setOnClickListener { select(column) }
+            ThemeApplier.apply(chip)
             if (defaultChipText == null) defaultChipText = chip.textColors
             binding.columns.addView(chip)
         }
@@ -106,14 +119,24 @@ class QuickAddActivity : AppCompatActivity() {
 
     private fun select(column: CockpitColumn) {
         selected = column
-        val accent = runCatching { Color.parseColor(column.color) }.getOrDefault(Color.GRAY)
+        // A column's own colour wins; without one the theme's accent stands in for the old grey.
+        val accent = runCatching { Color.parseColor(column.color) }.getOrNull()
+            ?: theme?.accent ?: Color.GRAY
+        val onAccent = if (theme != null) com.outsmartis.yoke.theme.ThemeContrast.onColor(accent) else Color.WHITE
         for (i in 0 until binding.columns.childCount) {
             val chip = binding.columns.getChildAt(i) as TextView
             val on = chip.tag == column
             chip.isSelected = on
-            chip.setBackgroundResource(if (on) R.drawable.bg_quick_add_chip_on else R.drawable.bg_quick_add_chip)
-            chip.backgroundTintList = if (on) ColorStateList.valueOf(accent) else null
-            if (on) chip.setTextColor(Color.WHITE) else chip.setTextColor(defaultChipText)
+            val t = theme
+            if (t != null) {
+                chip.background = if (on) ThemeApplier.roundedRect(this, 16f, accent)
+                else ThemeApplier.roundedRect(this, 16f, Color.TRANSPARENT, t.secondary)
+                chip.backgroundTintList = null
+            } else {
+                chip.setBackgroundResource(if (on) R.drawable.bg_quick_add_chip_on else R.drawable.bg_quick_add_chip)
+                chip.backgroundTintList = if (on) ColorStateList.valueOf(accent) else null
+            }
+            if (on) chip.setTextColor(onAccent) else chip.setTextColor(defaultChipText)
         }
     }
 
