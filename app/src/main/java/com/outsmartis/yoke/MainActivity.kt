@@ -338,6 +338,12 @@ class MainActivity : AppCompatActivity() {
                 if (resultCode == Activity.RESULT_OK)
                     resetLauncherViaFakeActivity()
             }
+
+            com.outsmartis.yoke.ui.WidgetPageFragment.REQUEST_CONFIGURE_WIDGET -> {
+                val host = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
+                    ?.childFragmentManager?.primaryNavigationFragment
+                (host as? com.outsmartis.yoke.ui.WidgetPageFragment)?.onConfigureResult(resultCode == Activity.RESULT_OK)
+            }
         }
     }
 }

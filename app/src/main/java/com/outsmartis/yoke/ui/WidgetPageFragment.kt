@@ -7,6 +7,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.Gravity
@@ -47,11 +48,6 @@ class WidgetPageFragment : BaseFragment() {
         val id = pendingId
         if (it.resultCode == Activity.RESULT_OK && id != -1) configureOrAdd(id) else discardPending()
     }
-    private val configureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        val id = pendingId
-        if (it.resultCode == Activity.RESULT_OK && id != -1) finishAdd(id) else discardPending()
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val ctx = requireContext()
         prefs = Prefs(ctx)
@@ -229,20 +225,26 @@ class WidgetPageFragment : BaseFragment() {
 
     private fun configureOrAdd(id: Int) {
         val info = manager.getAppWidgetInfo(id) ?: pendingInfo
-        if (info?.configure == null) {
+        val optional = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+            info != null && info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL != 0
+        if (info?.configure == null || optional) {
             finishAdd(id)
             return
         }
         try {
-            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE).apply {
-                component = info.configure
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
-            }
-            configureLauncher.launch(intent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            failAdd()
+            host.startAppWidgetConfigureActivityForResult(requireActivity(), id, 0, REQUEST_CONFIGURE_WIDGET, null)
+        } catch (e: ActivityNotFoundException) {
+            finishAdd(id)
+        } catch (e: SecurityException) {
+            finishAdd(id)
         }
+    }
+
+    /** Called by MainActivity.onActivityResult for [REQUEST_CONFIGURE_WIDGET]. */
+    fun onConfigureResult(ok: Boolean) {
+        val id = pendingId
+        if (id == -1) return
+        if (ok) finishAdd(id) else discardPending()
     }
 
     private fun finishAdd(id: Int) {
@@ -269,6 +271,8 @@ class WidgetPageFragment : BaseFragment() {
 
     companion object {
         /** Unique AppWidgetHost id for Yoke. Never change: bound widget ids belong to it. */
+        const val REQUEST_CONFIGURE_WIDGET = 0x5943
+
         const val HOST_ID = 0x59304B45
     }
 }
