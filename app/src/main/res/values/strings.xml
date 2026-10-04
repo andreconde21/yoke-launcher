@@ -142,4 +142,42 @@
     <string name="details_app_info">App info</string>
     <string name="details_replace">Replace…</string>
     <string name="details_conductore_missing">Conductore isn\'t installed</string>
+||||||| 2ab6285
+    <string name="widgets_empty">No widgets yet</string>
+    <string name="widgets_add">Add widget</string>
+    <string name="widgets_move_up">Move up</string>
+    <string name="widgets_move_down">Move down</string>
+    <string name="widgets_resize">Resize</string>
+    <string name="widgets_remove">Remove</string>
+    <string name="widgets_size_small">Small</string>
+    <string name="widgets_size_medium">Medium</string>
+    <string name="widgets_size_large">Large</string>
+    <string name="widgets_cannot_add">Could not add this widget</string>
+    <string name="auto_launch_single">Auto-launch single match</string>
+    <string name="web_links">Web links</string>
+    <string name="edit_links">Edit</string>
+    <string name="add_link">Add link</string>
+    <string name="edit_link">Edit link</string>
+    <string name="save">Save</string>
+    <string name="link_name">Name</string>
+    <string name="link_url">https://example.com</string>
+    <string name="link_invalid">Enter a name and a web address</string>
+    <string name="link_remove">Remove</string>
+    <string name="no_links">No links yet</string>
+    <string name="palette_hint">Command palette</string>
+    <string name="palette_settings">Settings</string>
+    <string name="palette_hint_calc">=  calculator</string>
+    <string name="palette_hint_actions">&gt;  Yoke actions</string>
+    <string name="palette_hint_shortcuts">/  app shortcuts</string>
+    <string name="palette_calc_empty">Type a sum, e.g. =2*(3+4)</string>
+    <string name="palette_calc_error">Can\'t calculate that</string>
+    <string name="palette_calc_div_zero">Division by zero</string>
+    <string name="palette_copied">Copied %1$s</string>
+    <string name="palette_no_actions">No matching action</string>
+    <string name="palette_no_shortcuts">No matching shortcuts</string>
+    <string name="palette_shortcuts_loading">Loading shortcuts…</string>
+    <string name="palette_shortcuts_need_default">Set Yoke as your default launcher to search app shortcuts</string>
+    <string name="palette_search_web">Search the web for \u201c%1$s\u201d</string>
+    <string name="palette_theme_picker">Theme picker</string>
+    <string name="palette_gestures">Gestures</string>
 </resources>

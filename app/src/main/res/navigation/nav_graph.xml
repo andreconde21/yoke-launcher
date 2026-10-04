@@ -24,7 +24,19 @@
             app:exitAnim="@anim/fade_exit"
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
+        <action
+            android:id="@+id/action_mainFragment_to_widgetPageFragment"
+            app:destination="@id/widgetPageFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
     </fragment>
+
+    <fragment
+        android:id="@+id/widgetPageFragment"
+        android:name="com.outsmartis.yoke.ui.WidgetPageFragment"
+        android:label="WidgetPageFragment" />
 
     <fragment
         android:id="@+id/appListFragment"

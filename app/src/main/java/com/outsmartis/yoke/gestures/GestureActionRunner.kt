@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
@@ -103,19 +104,18 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.ThemePicker -> themePicker()
                 GestureAction.GestureCheatSheet -> showGestureCheatSheet(activity, config())
                 GestureAction.Settings -> openSettings()
+                GestureAction.WidgetPage -> openWidgetPage()
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    // Hooks for features built elsewhere. Wire them at merge time; until then they show a toast
-    // (the command palette opens Settings so Settings stays reachable from long press).
+    // Hooks for features built elsewhere. Wire them at merge time; until then they show a toast.
 
     private fun conductoreSheet() = DetailsSheet.showConductore(activity)
 
-    // TODO(merge): open the command palette here and delete the Settings fallback.
-    private fun commandPalette() = openSettings()
+    private fun commandPalette() = CommandPalette.open(navController)
 
     private fun themePicker() = ThemePickerActivity.open(activity)
 
@@ -127,6 +127,14 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
             viewModel.firstOpen(false)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun openWidgetPage() {
+        try {
+            navController.navigate(R.id.action_mainFragment_to_widgetPageFragment)
+        } catch (e: Exception) {
+            navController.navigate(R.id.widgetPageFragment)
         }
     }
 

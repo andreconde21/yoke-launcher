@@ -28,6 +28,7 @@ import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.details.DetailsSheet
 import com.outsmartis.yoke.details.SheetAction
 import com.outsmartis.yoke.data.Constants
+import com.outsmartis.yoke.data.LinkEntry
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.FragmentHomeBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
@@ -355,6 +356,13 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         isShortcut: Boolean,
         shortcutId: String?,
     ): Boolean {
+        // A pinned web link has no package to check, only a stored link to look up
+        if (LinkEntry.idFromPinToken(packageName) != null) {
+            val exists = prefs.links.any { it.pinToken == packageName }
+            textView.text = if (exists) appName else ""
+            return exists
+        }
+
         // Get user handle for the app/shortcut
         val userHandle = getUserHandleFromString(requireContext(), userString)
 

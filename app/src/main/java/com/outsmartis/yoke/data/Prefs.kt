@@ -29,6 +29,8 @@ class Prefs(context: Context) {
     private val SWIPE_LEFT_ENABLED = "SWIPE_LEFT_ENABLED"
     private val SWIPE_RIGHT_ENABLED = "SWIPE_RIGHT_ENABLED"
     private val HIDDEN_APPS = "HIDDEN_APPS"
+    private val AUTO_LAUNCH_SINGLE = "AUTO_LAUNCH_SINGLE"
+    private val WEB_LINKS = "WEB_LINKS"
     private val HIDDEN_APPS_UPDATED = "HIDDEN_APPS_UPDATED"
     private val APP_THEME = "APP_THEME"
     private val TEXT_SIZE_SCALE = "TEXT_SIZE_SCALE"
@@ -112,6 +114,7 @@ class Prefs(context: Context) {
     private val SHORTCUT_ID_SWIPE_RIGHT = "SHORTCUT_ID_SWIPE_RIGHT"
     private val IS_SHORTCUT_SWIPE_RIGHT = "IS_SHORTCUT_SWIPE_RIGHT"
     private val GESTURES_JSON = "GESTURES_JSON"
+    private val WIDGETS_JSON = "WIDGETS_JSON"
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_FILENAME, 0)
 
@@ -147,6 +150,10 @@ class Prefs(context: Context) {
         return config
     }
 
+    var widgetsJson: String?
+        get() = prefs.getString(WIDGETS_JSON, null)
+        set(value) = prefs.edit { putString(WIDGETS_JSON, value) }
+
     fun saveGestures(config: GestureConfig) = prefs.edit { putString(GESTURES_JSON, config.toJson()) }
 
     private fun legacyGestureState(): LegacyGestureState {
@@ -171,6 +178,16 @@ class Prefs(context: Context) {
     var autoShowKeyboard: Boolean
         get() = prefs.getBoolean(AUTO_SHOW_KEYBOARD, true)
         set(value) = prefs.edit { putBoolean(AUTO_SHOW_KEYBOARD, value).apply() }
+
+    /** Launch the app straight away when a typed search narrows the drawer to exactly one match. */
+    var autoLaunchSingle: Boolean
+        get() = prefs.getBoolean(AUTO_LAUNCH_SINGLE, true)
+        set(value) = prefs.edit { putBoolean(AUTO_LAUNCH_SINGLE, value).apply() }
+
+    /** Web links shown in the drawer, stored as a JSON array, see [LinkEntry.toJson]. */
+    var links: List<LinkEntry>
+        get() = LinkEntry.listFromJson(prefs.getString(WEB_LINKS, null))
+        set(value) = prefs.edit { putString(WEB_LINKS, LinkEntry.toJson(value)) }
 
     var keyboardMessageShown: Boolean
         get() = prefs.getBoolean(KEYBOARD_MESSAGE, false)
@@ -632,4 +649,39 @@ class Prefs(context: Context) {
     fun getAppRenameLabel(appPackage: String): String = prefs.getString(appPackage, "").toString()
 
     fun setAppRenameLabel(appPackage: String, renameLabel: String) = prefs.edit { putString(appPackage, renameLabel) }
+
+    /**
+     * Keeps the names pinned on the home screen and swipe slots in sync with a rename,
+     * so the alias shows everywhere. Pinned shortcuts keep their own label.
+     */
+    fun applyRenameToPinnedApps(appPackage: String, label: String) {
+        prefs.edit {
+            for (i in 1..8) {
+                if (getAppPackage(i) == appPackage && !getIsShortcut(i)) putString("APP_NAME_$i", label)
+            }
+            if (appPackageSwipeLeft == appPackage && !isShortcutSwipeLeft) putString(APP_NAME_SWIPE_LEFT, label)
+            if (appPackageSwipeRight == appPackage && !isShortcutSwipeRight) putString(APP_NAME_SWIPE_RIGHT, label)
+        }
+    }
+
+    /** Writes every field of a home screen slot (1..8) in one go. */
+    fun setHomeSlot(
+        location: Int,
+        name: String,
+        appPackage: String,
+        user: String,
+        activityClassName: String?,
+        isShortcut: Boolean,
+        shortcutId: String,
+    ) {
+        if (location !in 1..8) return
+        prefs.edit {
+            putString("APP_NAME_$location", name)
+            putString("APP_PACKAGE_$location", appPackage)
+            putString("APP_USER_$location", user)
+            putString("APP_ACTIVITY_CLASS_NAME_$location", activityClassName)
+            putBoolean("IS_SHORTCUT_$location", isShortcut)
+            putString("SHORTCUT_ID_$location", shortcutId)
+        }
+    }
 }
