@@ -26,6 +26,7 @@ import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
+import com.outsmartis.yoke.details.DetailsSheet
 import com.outsmartis.yoke.helper.MyAccessibilityService
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.expandNotificationDrawer
@@ -111,8 +112,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
     // Hooks for features built elsewhere. Wire them at merge time; until then they show a toast
     // (the command palette opens Settings so Settings stays reachable from long press).
 
-    // TODO(merge): open the Conductore sheet here.
-    private fun conductoreSheet() = comingSoon()
+    private fun conductoreSheet() = DetailsSheet.showConductore(activity)
 
     // TODO(merge): open the command palette here and delete the Settings fallback.
     private fun commandPalette() = openSettings()

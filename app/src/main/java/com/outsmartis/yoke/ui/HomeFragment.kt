@@ -25,6 +25,8 @@ import com.outsmartis.yoke.MainActivity
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.AppModel
+import com.outsmartis.yoke.details.DetailsSheet
+import com.outsmartis.yoke.details.SheetAction
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.FragmentHomeBinding
@@ -101,14 +103,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     override fun onLongClick(view: View): Boolean {
         when (view.id) {
-            R.id.homeApp1 -> showAppList(Constants.FLAG_SET_HOME_APP_1, prefs.appName1.isNotEmpty(), true)
-            R.id.homeApp2 -> showAppList(Constants.FLAG_SET_HOME_APP_2, prefs.appName2.isNotEmpty(), true)
-            R.id.homeApp3 -> showAppList(Constants.FLAG_SET_HOME_APP_3, prefs.appName3.isNotEmpty(), true)
-            R.id.homeApp4 -> showAppList(Constants.FLAG_SET_HOME_APP_4, prefs.appName4.isNotEmpty(), true)
-            R.id.homeApp5 -> showAppList(Constants.FLAG_SET_HOME_APP_5, prefs.appName5.isNotEmpty(), true)
-            R.id.homeApp6 -> showAppList(Constants.FLAG_SET_HOME_APP_6, prefs.appName6.isNotEmpty(), true)
-            R.id.homeApp7 -> showAppList(Constants.FLAG_SET_HOME_APP_7, prefs.appName7.isNotEmpty(), true)
-            R.id.homeApp8 -> showAppList(Constants.FLAG_SET_HOME_APP_8, prefs.appName8.isNotEmpty(), true)
+            R.id.homeApp1 -> homeAppLongPressed(1, Constants.FLAG_SET_HOME_APP_1)
+            R.id.homeApp2 -> homeAppLongPressed(2, Constants.FLAG_SET_HOME_APP_2)
+            R.id.homeApp3 -> homeAppLongPressed(3, Constants.FLAG_SET_HOME_APP_3)
+            R.id.homeApp4 -> homeAppLongPressed(4, Constants.FLAG_SET_HOME_APP_4)
+            R.id.homeApp5 -> homeAppLongPressed(5, Constants.FLAG_SET_HOME_APP_5)
+            R.id.homeApp6 -> homeAppLongPressed(6, Constants.FLAG_SET_HOME_APP_6)
+            R.id.homeApp7 -> homeAppLongPressed(7, Constants.FLAG_SET_HOME_APP_7)
+            R.id.homeApp8 -> homeAppLongPressed(8, Constants.FLAG_SET_HOME_APP_8)
             R.id.clock -> {
                 showAppList(Constants.FLAG_SET_CLOCK_APP)
                 prefs.clockAppPackage = ""
@@ -545,6 +547,20 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 e.printStackTrace()
             }
         }
+    }
+
+    /** Long press on a home slot: the details sheet, with "Replace..." keeping the old pick-an-app flow. */
+    private fun homeAppLongPressed(location: Int, flag: Int) {
+        val pkg = prefs.getAppPackage(location)
+        val name = prefs.getAppName(location)
+        if (pkg.isEmpty() || name.isEmpty()) {
+            showAppList(flag, name.isNotEmpty(), true)
+            return
+        }
+        DetailsSheet.show(
+            requireContext(), pkg, getUserHandleFromString(requireContext(), prefs.getAppUser(location)), name,
+            listOf(SheetAction(getString(R.string.details_replace)) { showAppList(flag, true, true) }),
+        )
     }
 
     private fun showLongPressToast() = requireContext().showToast(getString(R.string.long_press_to_select_app))

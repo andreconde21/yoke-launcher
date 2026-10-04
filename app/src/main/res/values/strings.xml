@@ -134,4 +134,12 @@
     <string name="font_row">Font</string>
     <string name="font_system">System</string>
     <string name="font_jetbrains_mono">JetBrains Mono</string>
+    <string name="details_not_watching">Conductore isn\'t watching any machine right now. Open it to start.</string>
+    <string name="details_no_agents">No agents running</string>
+    <string name="details_needs_android_12">Needs Android 12+</string>
+    <string name="details_update_conductore">Update Conductore to share agent status</string>
+    <string name="details_open_app">Open %1$s</string>
+    <string name="details_app_info">App info</string>
+    <string name="details_replace">Replace…</string>
+    <string name="details_conductore_missing">Conductore isn\'t installed</string>
 </resources>

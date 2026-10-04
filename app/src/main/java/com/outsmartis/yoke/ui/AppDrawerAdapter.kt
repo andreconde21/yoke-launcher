@@ -19,6 +19,8 @@ import com.outsmartis.yoke.R
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
+import com.outsmartis.yoke.details.DetailsSheet
+import com.outsmartis.yoke.details.SheetAction
 import com.outsmartis.yoke.databinding.AdapterAppDrawerBinding
 import com.outsmartis.yoke.databinding.AdapterPrivateSpaceHeaderBinding
 import com.outsmartis.yoke.helper.hideKeyboard
@@ -251,26 +253,20 @@ class AppDrawerAdapter(
 
             appTitle.setOnClickListener { clickListener(appModel) }
 
+            // Long press: the details sheet; the old inline menu actions live in it as footer actions
             appTitle.setOnLongClickListener {
                 if (appModel.appPackage.isNotEmpty()) {
-                    appDelete.alpha = when (
-                        appModel is AppModel.PinnedShortcut || !root.context.isSystemApp(appModel.appPackage, appModel.user)
-                    ) {
-                        true -> 1.0f
-                        false -> 0.5f
+                    val ctx = root.context
+                    val actions = buildList {
+                        if (flag != Constants.FLAG_HIDDEN_APPS) add(SheetAction(ctx.getString(R.string.rename)) { appRename.performClick() })
+                        add(
+                            SheetAction(
+                                ctx.getString(if (flag == Constants.FLAG_HIDDEN_APPS) R.string.adapter_show else R.string.adapter_hide)
+                            ) { appHideListener(appModel, bindingAdapterPosition) }
+                        )
+                        add(SheetAction(ctx.getString(R.string.delete)) { appDeleteListener(appModel) })
                     }
-                    appHide.text = if (flag == Constants.FLAG_HIDDEN_APPS)
-                        root.context.getString(R.string.adapter_show)
-                    else
-                        root.context.getString(R.string.adapter_hide)
-                    appTitle.visibility = View.INVISIBLE
-                    appHide.alpha = when (appModel is AppModel.PinnedShortcut) {
-                        true -> 0.5f
-                        false -> 1.0f
-                    }
-                    appHideLayout.visibility = View.VISIBLE
-                    // Only allow renaming non hidden apps
-                    appRename.isVisible = flag != Constants.FLAG_HIDDEN_APPS
+                    DetailsSheet.show(ctx, appModel.appPackage, appModel.user, appModel.appLabel, actions)
                 }
                 true
             }
