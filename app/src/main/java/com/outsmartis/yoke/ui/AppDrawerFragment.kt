@@ -1,5 +1,7 @@
 package com.outsmartis.yoke.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +16,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -36,6 +39,18 @@ import com.outsmartis.yoke.helper.openUrl
 import com.outsmartis.yoke.helper.showKeyboard
 import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.helper.uninstall
+import com.outsmartis.yoke.palette.Calculator
+import com.outsmartis.yoke.palette.CommandPalette
+import com.outsmartis.yoke.palette.DefaultPaletteActions
+import com.outsmartis.yoke.palette.PaletteActions
+import com.outsmartis.yoke.palette.PaletteContext
+import com.outsmartis.yoke.palette.PaletteMode
+import com.outsmartis.yoke.palette.PaletteQuery
+import com.outsmartis.yoke.palette.ShortcutHit
+import com.outsmartis.yoke.palette.ShortcutSearch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.Collator
 
 class AppDrawerFragment : BaseFragment() {
@@ -46,8 +61,15 @@ class AppDrawerFragment : BaseFragment() {
     private var searchTextView: TextView? = null
     private var cachedIsCjkKeyboard: Boolean? = null
 
+    companion object {
+        private const val MAX_SHORTCUT_ROWS = 50
+    }
+
     private var flag = Constants.FLAG_LAUNCH_APP
     private var canRename = false
+    private var paletteMode = false
+    private var shortcutHits: List<ShortcutHit>? = null
+    private var shortcutsLoading = false
     private var currentAppList: List<AppModel>? = null
     private var currentPrivateSpaceApps: List<AppModel>? = null
     private var currentPrivateSpaceLocked: Boolean = true
@@ -72,7 +94,10 @@ class AppDrawerFragment : BaseFragment() {
         arguments?.let {
             flag = it.getInt(Constants.Key.FLAG, Constants.FLAG_LAUNCH_APP)
             canRename = it.getBoolean(Constants.Key.RENAME, false)
+            paletteMode = it.getBoolean(CommandPalette.ARG_PALETTE, false)
         }
+        if (flag == Constants.FLAG_LAUNCH_APP) DefaultPaletteActions.register(requireContext())
+        if (paletteMode && viewModel.appList.value == null) viewModel.getAppList()
 
         initViews()
         initSearch()
@@ -86,6 +111,8 @@ class AppDrawerFragment : BaseFragment() {
             binding.search.queryHint = getString(R.string.hidden_apps)
         else if (flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_CALENDAR_APP)
             binding.search.queryHint = "Please select an app"
+        else if (paletteMode)
+            binding.search.queryHint = getString(R.string.palette_hint)
         try {
             searchTextView = binding.search.findViewById(R.id.search_src_text)
             searchTextView?.gravity = prefs.appLabelAlignment
@@ -109,7 +136,7 @@ class AppDrawerFragment : BaseFragment() {
             override fun onQueryTextChange(newText: String): Boolean {
                 try {
                     adapter.allowAutoLaunch = !isSearchComposing()
-                    adapter.filter.filter(newText)
+                    applyQuery(newText)
                     binding.appRename.visibility =
                         if (canRename && newText.isNotBlank()) View.VISIBLE else View.GONE
                     return true
@@ -119,6 +146,125 @@ class AppDrawerFragment : BaseFragment() {
                 return false
             }
         })
+    }
+
+    /** Routes the typed text: palette prefixes get their own rows, anything else filters apps and links. */
+    private fun applyQuery(text: CharSequence?) {
+        val raw = text?.toString().orEmpty()
+        if (flag == Constants.FLAG_LAUNCH_APP) {
+            val query = PaletteQuery.parse(raw)
+            if (query.mode != PaletteMode.APPS) {
+                adapter.showResults(paletteRows(query))
+                return
+            }
+            if (paletteMode && raw.isBlank()) {
+                adapter.showResults(hintRows())
+                return
+            }
+        }
+        adapter.clearResults()
+        adapter.filter.filter(raw)
+    }
+
+    private fun paletteContext() = PaletteContext(
+        requireContext(), findNavController(), viewModel, reload = ::updateCombinedAppList
+    )
+
+    private fun infoRow(id: String, label: String) =
+        AppModel.PaletteResult(id = id, appLabel = label, closeDrawer = false)
+
+    private fun hintRows(): List<AppModel> = listOf(
+        PaletteMode.CALC to R.string.palette_hint_calc,
+        PaletteMode.ACTIONS to R.string.palette_hint_actions,
+        PaletteMode.SHORTCUTS to R.string.palette_hint_shortcuts,
+    ).map { (mode, label) ->
+        AppModel.PaletteResult(
+            id = "hint_${mode.name}",
+            appLabel = getString(label),
+            closeDrawer = false,
+            run = { binding.search.setQuery(mode.prefix.toString(), false) },
+        )
+    }
+
+    private fun paletteRows(query: PaletteQuery): List<AppModel> = when (query.mode) {
+        PaletteMode.CALC -> calcRows(query.text)
+        PaletteMode.ACTIONS -> PaletteActions.search(query.text).map { action ->
+            AppModel.PaletteResult(
+                id = "action_${action.id}",
+                appLabel = action.label,
+                closeDrawer = action.closeDrawer,
+                run = { action.run(paletteContext()) },
+            )
+        }.ifEmpty { listOf(infoRow("no_actions", getString(R.string.palette_no_actions))) }
+
+        PaletteMode.SHORTCUTS -> shortcutRows(query.text)
+        PaletteMode.APPS -> emptyList()
+    }
+
+    private fun calcRows(expression: String): List<AppModel> {
+        return when (val result = Calculator.evaluate(expression)) {
+            is Calculator.Result.Value -> listOf(
+                AppModel.PaletteResult(
+                    id = "calc",
+                    appLabel = "= ${result.text}",
+                    closeDrawer = false,
+                    run = {
+                        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("result", result.text))
+                        requireContext().showToast(getString(R.string.palette_copied, result.text))
+                    },
+                )
+            )
+
+            is Calculator.Result.Error -> listOf(
+                infoRow(
+                    "calc_error",
+                    getString(
+                        when (result.reason) {
+                            Calculator.Reason.EMPTY -> R.string.palette_calc_empty
+                            Calculator.Reason.DIVISION_BY_ZERO -> R.string.palette_calc_div_zero
+                            else -> R.string.palette_calc_error
+                        }
+                    )
+                )
+            )
+        }
+    }
+
+    private fun shortcutRows(text: String): List<AppModel> {
+        val context = requireContext()
+        if (!ShortcutSearch.canQuery(context))
+            return listOf(infoRow("shortcuts_need_default", getString(R.string.palette_shortcuts_need_default)))
+        val hits = shortcutHits
+        if (hits == null) {
+            loadShortcuts()
+            return listOf(infoRow("shortcuts_loading", getString(R.string.palette_shortcuts_loading)))
+        }
+        return ShortcutSearch.filter(hits, text).take(MAX_SHORTCUT_ROWS).map { hit ->
+            AppModel.PaletteResult(
+                id = "shortcut_${hit.info.`package`}_${hit.info.id}_${hit.info.userHandle}",
+                appLabel = "${hit.label} · ${hit.appLabel}",
+                run = {
+                    try {
+                        ShortcutSearch.start(requireContext(), hit)
+                    } catch (_: Exception) {
+                        requireContext().showToast(getString(R.string.unable_to_open_shortcut))
+                    }
+                },
+            )
+        }.ifEmpty { listOf(infoRow("no_shortcuts", getString(R.string.palette_no_shortcuts))) }
+    }
+
+    private fun loadShortcuts() {
+        if (shortcutsLoading) return
+        shortcutsLoading = true
+        val appContext = requireContext().applicationContext
+        viewLifecycleOwner.lifecycleScope.launch {
+            val loaded = withContext(Dispatchers.IO) { ShortcutSearch.loadAll(appContext) }
+            shortcutsLoading = false
+            shortcutHits = loaded
+            if (_binding != null) applyQuery(binding.search.query)
+        }
     }
 
     private fun isSearchComposing(): Boolean {
@@ -251,6 +397,15 @@ class AppDrawerFragment : BaseFragment() {
         )
 
         adapter.autoLaunchSingle = prefs.autoLaunchSingle
+        if (flag == Constants.FLAG_LAUNCH_APP) {
+            adapter.noMatchRow = { query ->
+                AppModel.PaletteResult(
+                    id = "web_search",
+                    appLabel = getString(R.string.palette_search_web, query),
+                    run = { requireContext().openUrl(PaletteQuery.webSearchUrl(query)) },
+                )
+            }
+        }
 
         linearLayoutManager = object : LinearLayoutManager(requireContext()) {
             override fun scrollVerticallyBy(
@@ -329,7 +484,7 @@ class AppDrawerFragment : BaseFragment() {
         }
 
         adapter.setAppList(combined)
-        adapter.filter.filter(binding.search.query)
+        applyQuery(binding.search.query)
     }
 
     private fun initClickListeners() {
