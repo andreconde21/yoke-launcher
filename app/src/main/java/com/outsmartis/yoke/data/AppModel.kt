@@ -17,6 +17,8 @@ sealed class AppModel : Comparable<AppModel> {
         val activityClassName: String?,
         override val isNew: Boolean = false,
         override val user: UserHandle,
+        /** The label the app ships with; [appLabel] is the user's alias when one is set. */
+        val originalLabel: String = appLabel,
     ) : AppModel()
 
     data class PinnedShortcut(

@@ -23,7 +23,7 @@ import com.outsmartis.yoke.databinding.AdapterPrivateSpaceHeaderBinding
 import com.outsmartis.yoke.helper.hideKeyboard
 import com.outsmartis.yoke.helper.isSystemApp
 import com.outsmartis.yoke.helper.showKeyboard
-import java.text.Normalizer
+import com.outsmartis.yoke.palette.AppSearch
 
 class AppDrawerAdapter(
     private var flag: Int,
@@ -62,8 +62,8 @@ class AppDrawerAdapter(
     private var autoLaunch = true
     private var isBangSearch = false
     var allowAutoLaunch = true
-    private val diacriticsRegex = Regex("\\p{InCombiningDiacriticalMarks}+")
-    private val separatorsRegex = Regex("[-_+,.`'\\s\\p{Z}]")
+    var autoLaunchSingle = true
+    private var queryIsBlank = true
     private val appFilter = createAppFilter()
     private val myUserHandle = android.os.Process.myUserHandle()
 
@@ -133,11 +133,16 @@ class AppDrawerAdapter(
         return object : Filter() {
             override fun performFiltering(charSearch: CharSequence?): FilterResults {
                 isBangSearch = charSearch?.startsWith("!") ?: false
+                queryIsBlank = charSearch.isNullOrBlank()
                 autoLaunch = allowAutoLaunch && (charSearch?.startsWith(" ")?.not() ?: true)
 
                 val appFilteredList = (if (charSearch.isNullOrBlank()) appsList
                 else appsList.filter { app ->
-                    app !is AppModel.PrivateSpaceHeader && appLabelMatches(app.appLabel, charSearch)
+                    app !is AppModel.PrivateSpaceHeader && AppSearch.matches(
+                        charSearch,
+                        app.appLabel,
+                        (app as? AppModel.App)?.originalLabel
+                    )
                 } as MutableList<AppModel>)
 
                 val filterResults = FilterResults()
@@ -162,6 +167,8 @@ class AppDrawerAdapter(
         try {
             if (itemCount == 1
                 && autoLaunch
+                && autoLaunchSingle
+                && !queryIsBlank
                 && isBangSearch.not()
                 && flag == Constants.FLAG_LAUNCH_APP
                 && appFilteredList.isNotEmpty()
@@ -171,17 +178,6 @@ class AppDrawerAdapter(
             e.printStackTrace()
         }
     }
-
-    private fun appLabelMatches(appLabel: String, charSearch: CharSequence): Boolean {
-        if (appLabel.contains(charSearch.trim(), true)) return true
-        val query = charSearch.normalizeForSearch()
-        return query.isNotEmpty() && appLabel.normalizeForSearch().contains(query, true)
-    }
-
-    private fun CharSequence.normalizeForSearch(): String =
-        Normalizer.normalize(this, Normalizer.Form.NFD)
-            .replace(diacriticsRegex, "")
-            .replace(separatorsRegex, "")
 
     fun setAppList(appsList: MutableList<AppModel>) {
         // Add empty app for bottom padding in recyclerview and assign to list

@@ -102,4 +102,5 @@
     <string name="quick_add_pick_vault">Pick vault folder</string>
     <string name="quick_add_saved">Added to %1$s</string>
     <string name="quick_add_failed">Could not add the card</string>
+    <string name="auto_launch_single">Auto-launch single match</string>
 </resources>

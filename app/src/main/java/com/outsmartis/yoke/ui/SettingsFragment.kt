@@ -69,6 +69,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
         binding.homeAppsNum.text = prefs.homeAppsNum.toString()
         populateKeyboardText()
+        populateAutoLaunchSingle()
         populateScreenTimeOnOff()
         populateLockSettings()
         // Home button for recents feature disabled
@@ -94,6 +95,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             // Home button for recents feature disabled
             // R.id.homeButtonRecents -> toggleHomeButtonRecents()
             R.id.autoShowKeyboard -> toggleKeyboardText()
+            R.id.autoLaunchSingle -> toggleAutoLaunchSingle()
             R.id.homeAppsNum -> showHomeAppsNumMenu(view)
             R.id.alignment -> showAlignmentMenu(view)
             R.id.statusBar -> toggleStatusBar()
@@ -130,6 +132,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.setLauncher.setOnClickListener(this)
         binding.aboutYoke.setOnClickListener(this)
         binding.autoShowKeyboard.setOnClickListener(this)
+        binding.autoLaunchSingle.setOnClickListener(this)
         binding.toggleLock.setOnClickListener(this)
         // Home button for recents feature disabled
         // binding.homeButtonRecents.setOnClickListener(this)
@@ -449,6 +452,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             if (requireContext().appUsagePermissionGranted()) binding.screenTimeOnOff.text = getString(R.string.on)
             else binding.screenTimeOnOff.text = getString(R.string.off)
         } else binding.screenTimeLayout.visibility = View.GONE
+    }
+
+    private fun toggleAutoLaunchSingle() {
+        prefs.autoLaunchSingle = !prefs.autoLaunchSingle
+        populateAutoLaunchSingle()
+    }
+
+    private fun populateAutoLaunchSingle() {
+        binding.autoLaunchSingle.text =
+            getString(if (prefs.autoLaunchSingle) R.string.on else R.string.off)
     }
 
     private fun populateKeyboardText() {

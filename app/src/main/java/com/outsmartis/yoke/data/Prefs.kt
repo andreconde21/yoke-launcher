@@ -24,6 +24,7 @@ class Prefs(context: Context) {
     private val SWIPE_LEFT_ENABLED = "SWIPE_LEFT_ENABLED"
     private val SWIPE_RIGHT_ENABLED = "SWIPE_RIGHT_ENABLED"
     private val HIDDEN_APPS = "HIDDEN_APPS"
+    private val AUTO_LAUNCH_SINGLE = "AUTO_LAUNCH_SINGLE"
     private val HIDDEN_APPS_UPDATED = "HIDDEN_APPS_UPDATED"
     private val APP_THEME = "APP_THEME"
     private val TEXT_SIZE_SCALE = "TEXT_SIZE_SCALE"
@@ -128,6 +129,11 @@ class Prefs(context: Context) {
     var autoShowKeyboard: Boolean
         get() = prefs.getBoolean(AUTO_SHOW_KEYBOARD, true)
         set(value) = prefs.edit { putBoolean(AUTO_SHOW_KEYBOARD, value).apply() }
+
+    /** Launch the app straight away when a typed search narrows the drawer to exactly one match. */
+    var autoLaunchSingle: Boolean
+        get() = prefs.getBoolean(AUTO_LAUNCH_SINGLE, true)
+        set(value) = prefs.edit { putBoolean(AUTO_LAUNCH_SINGLE, value).apply() }
 
     var keyboardMessageShown: Boolean
         get() = prefs.getBoolean(KEYBOARD_MESSAGE, false)
@@ -589,4 +595,18 @@ class Prefs(context: Context) {
     fun getAppRenameLabel(appPackage: String): String = prefs.getString(appPackage, "").toString()
 
     fun setAppRenameLabel(appPackage: String, renameLabel: String) = prefs.edit { putString(appPackage, renameLabel) }
+
+    /**
+     * Keeps the names pinned on the home screen and swipe slots in sync with a rename,
+     * so the alias shows everywhere. Pinned shortcuts keep their own label.
+     */
+    fun applyRenameToPinnedApps(appPackage: String, label: String) {
+        prefs.edit {
+            for (i in 1..8) {
+                if (getAppPackage(i) == appPackage && !getIsShortcut(i)) putString("APP_NAME_$i", label)
+            }
+            if (appPackageSwipeLeft == appPackage && !isShortcutSwipeLeft) putString(APP_NAME_SWIPE_LEFT, label)
+            if (appPackageSwipeRight == appPackage && !isShortcutSwipeRight) putString(APP_NAME_SWIPE_RIGHT, label)
+        }
+    }
 }

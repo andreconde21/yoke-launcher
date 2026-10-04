@@ -225,6 +225,10 @@ class AppDrawerFragment : BaseFragment() {
                     else -> return@AppDrawerAdapter
                 }
                 prefs.setAppRenameLabel(identifier, renameLabel)
+                if (appModel is AppModel.App) {
+                    prefs.applyRenameToPinnedApps(appModel.appPackage, renameLabel)
+                    viewModel.refreshHome(false)
+                }
                 viewModel.getAppList()
             },
             privateSpaceToggleListener = {
@@ -235,6 +239,8 @@ class AppDrawerFragment : BaseFragment() {
                 findNavController().popBackStack(R.id.mainFragment, false)
             }
         )
+
+        adapter.autoLaunchSingle = prefs.autoLaunchSingle
 
         linearLayoutManager = object : LinearLayoutManager(requireContext()) {
             override fun scrollVerticallyBy(
