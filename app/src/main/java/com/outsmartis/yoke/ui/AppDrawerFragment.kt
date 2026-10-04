@@ -25,6 +25,7 @@ import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.FragmentAppDrawerBinding
 import com.outsmartis.yoke.helper.deletePinnedShortcut
+import com.outsmartis.yoke.helper.LinkDialogs
 import com.outsmartis.yoke.helper.hideKeyboard
 import com.outsmartis.yoke.helper.isEinkDisplay
 import com.outsmartis.yoke.helper.isSystemAnimationsDisabled
@@ -35,6 +36,7 @@ import com.outsmartis.yoke.helper.openUrl
 import com.outsmartis.yoke.helper.showKeyboard
 import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.helper.uninstall
+import java.text.Collator
 
 class AppDrawerFragment : BaseFragment() {
 
@@ -151,6 +153,11 @@ class AppDrawerFragment : BaseFragment() {
             flag,
             prefs.appLabelAlignment,
             appClickListener = { appModel ->
+                if (appModel is AppModel.PaletteResult) {
+                    appModel.run()
+                    if (appModel.closeDrawer) findNavController().popBackStack(R.id.mainFragment, false)
+                    return@AppDrawerAdapter
+                }
                 viewModel.selectedApp(appModel, flag)
                 if (flag == Constants.FLAG_LAUNCH_APP || flag == Constants.FLAG_HIDDEN_APPS)
                     findNavController().popBackStack(R.id.mainFragment, false)
@@ -167,7 +174,7 @@ class AppDrawerFragment : BaseFragment() {
             },
             appDeleteListener = { appModel ->
                 when (appModel) {
-                    is AppModel.PrivateSpaceHeader -> {}
+                    is AppModel.PrivateSpaceHeader, is AppModel.PaletteResult, is AppModel.Link -> {}
                     is AppModel.PinnedShortcut ->
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
                             requireContext().deletePinnedShortcut(
@@ -237,6 +244,9 @@ class AppDrawerFragment : BaseFragment() {
             privateSpaceSettingsListener = {
                 viewModel.openPrivateSpaceSettings()
                 findNavController().popBackStack(R.id.mainFragment, false)
+            },
+            linkLongClickListener = { link ->
+                LinkDialogs.showEdit(requireContext(), prefs, link.entry, onChanged = ::updateCombinedAppList)
             }
         )
 
@@ -301,6 +311,15 @@ class AppDrawerFragment : BaseFragment() {
     private fun updateCombinedAppList() {
         val apps = currentAppList ?: return
         val combined = apps.toMutableList()
+
+        // Web links sit among the apps when launching or pinning to a home slot
+        if (flag == Constants.FLAG_LAUNCH_APP || flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_HOME_APP_8) {
+            val links = prefs.links
+            if (links.isNotEmpty()) {
+                combined.addAll(links.map { AppModel.Link(it) })
+                combined.sortWith(compareBy(Collator.getInstance()) { it.appLabel })
+            }
+        }
 
         if (flag == Constants.FLAG_LAUNCH_APP && currentPrivateSpaceAvailable) {
             combined.add(AppModel.PrivateSpaceHeader(isLocked = currentPrivateSpaceLocked))

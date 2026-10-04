@@ -103,4 +103,14 @@
     <string name="quick_add_saved">Added to %1$s</string>
     <string name="quick_add_failed">Could not add the card</string>
     <string name="auto_launch_single">Auto-launch single match</string>
+    <string name="web_links">Web links</string>
+    <string name="edit_links">Edit</string>
+    <string name="add_link">Add link</string>
+    <string name="edit_link">Edit link</string>
+    <string name="save">Save</string>
+    <string name="link_name">Name</string>
+    <string name="link_url">https://example.com</string>
+    <string name="link_invalid">Enter a name and a web address</string>
+    <string name="link_remove">Remove</string>
+    <string name="no_links">No links yet</string>
 </resources>

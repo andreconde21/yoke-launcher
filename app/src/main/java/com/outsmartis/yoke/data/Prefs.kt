@@ -25,6 +25,7 @@ class Prefs(context: Context) {
     private val SWIPE_RIGHT_ENABLED = "SWIPE_RIGHT_ENABLED"
     private val HIDDEN_APPS = "HIDDEN_APPS"
     private val AUTO_LAUNCH_SINGLE = "AUTO_LAUNCH_SINGLE"
+    private val WEB_LINKS = "WEB_LINKS"
     private val HIDDEN_APPS_UPDATED = "HIDDEN_APPS_UPDATED"
     private val APP_THEME = "APP_THEME"
     private val TEXT_SIZE_SCALE = "TEXT_SIZE_SCALE"
@@ -134,6 +135,11 @@ class Prefs(context: Context) {
     var autoLaunchSingle: Boolean
         get() = prefs.getBoolean(AUTO_LAUNCH_SINGLE, true)
         set(value) = prefs.edit { putBoolean(AUTO_LAUNCH_SINGLE, value).apply() }
+
+    /** Web links shown in the drawer, stored as a JSON array, see [LinkEntry.toJson]. */
+    var links: List<LinkEntry>
+        get() = LinkEntry.listFromJson(prefs.getString(WEB_LINKS, null))
+        set(value) = prefs.edit { putString(WEB_LINKS, LinkEntry.toJson(value)) }
 
     var keyboardMessageShown: Boolean
         get() = prefs.getBoolean(KEYBOARD_MESSAGE, false)
@@ -607,6 +613,27 @@ class Prefs(context: Context) {
             }
             if (appPackageSwipeLeft == appPackage && !isShortcutSwipeLeft) putString(APP_NAME_SWIPE_LEFT, label)
             if (appPackageSwipeRight == appPackage && !isShortcutSwipeRight) putString(APP_NAME_SWIPE_RIGHT, label)
+        }
+    }
+
+    /** Writes every field of a home screen slot (1..8) in one go. */
+    fun setHomeSlot(
+        location: Int,
+        name: String,
+        appPackage: String,
+        user: String,
+        activityClassName: String?,
+        isShortcut: Boolean,
+        shortcutId: String,
+    ) {
+        if (location !in 1..8) return
+        prefs.edit {
+            putString("APP_NAME_$location", name)
+            putString("APP_PACKAGE_$location", appPackage)
+            putString("APP_USER_$location", user)
+            putString("APP_ACTIVITY_CLASS_NAME_$location", activityClassName)
+            putBoolean("IS_SHORTCUT_$location", isShortcut)
+            putString("SHORTCUT_ID_$location", shortcutId)
         }
     }
 }

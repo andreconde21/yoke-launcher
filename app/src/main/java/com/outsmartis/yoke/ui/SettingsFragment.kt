@@ -33,6 +33,7 @@ import com.outsmartis.yoke.helper.isAccessServiceEnabled
 import com.outsmartis.yoke.helper.isTablet
 import com.outsmartis.yoke.helper.openAppInfo
 import com.outsmartis.yoke.helper.openUrl
+import com.outsmartis.yoke.helper.LinkDialogs
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.showPopupMenu
 import com.outsmartis.yoke.helper.showStatusBar
@@ -96,6 +97,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             // R.id.homeButtonRecents -> toggleHomeButtonRecents()
             R.id.autoShowKeyboard -> toggleKeyboardText()
             R.id.autoLaunchSingle -> toggleAutoLaunchSingle()
+            R.id.webLinks -> LinkDialogs.showList(requireContext(), prefs)
             R.id.homeAppsNum -> showHomeAppsNumMenu(view)
             R.id.alignment -> showAlignmentMenu(view)
             R.id.statusBar -> toggleStatusBar()
@@ -133,6 +135,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.aboutYoke.setOnClickListener(this)
         binding.autoShowKeyboard.setOnClickListener(this)
         binding.autoLaunchSingle.setOnClickListener(this)
+        binding.webLinks.setOnClickListener(this)
         binding.toggleLock.setOnClickListener(this)
         // Home button for recents feature disabled
         // binding.homeButtonRecents.setOnClickListener(this)
