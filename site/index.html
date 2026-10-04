@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yoke launcher</title>
+  <meta name="description" content="Yoke is a minimal, text-only Android launcher. Hold an app to see what it is doing, add tasks to your Obsidian Cockpit board with a swipe, and bind any gesture to any action.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><use href="icon.svg#glyph"/></svg>
+        Yoke
+      </a>
+      <nav>
+        <a href="https://github.com/andreconde21/yoke-launcher">Source</a>
+        <a href="/download">Download</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="hero">
+        <div>
+          <h1>A home screen made of words.</h1>
+          <p class="lede">Yoke is a minimal Android launcher. Hold an app to see what it's doing, swipe to drop a task on your Cockpit board, and set every gesture to whatever you want.</p>
+          <div class="actions">
+            <a class="button" href="/download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+              Download for Android
+            </a>
+            <span class="quiet">Free, open source, no ads, no tracking.</span>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="phone" aria-label="Yoke home screen, with the Conductore app held to show its agents">
+            <div class="clock">09:41</div>
+            <div class="date">Sunday, 4 October</div>
+            <ul>
+              <li id="held-app">Conductore</li>
+              <li>Obsidian</li>
+              <li>Signal</li>
+              <li>Maps</li>
+              <li>Camera</li>
+              <li>Music</li>
+            </ul>
+            <div class="sheet" id="sheet" aria-hidden="true">
+              <h3>Conductore · 3 agents</h3>
+              <div class="agent urgent"><span>mobile</span><span>needs input</span></div>
+              <div class="agent"><span>api</span><span>working</span><div class="bar"><i style="width:62%"></i></div></div>
+              <div class="agent"><span>docs</span><span>done</span></div>
+            </div>
+          </div>
+          <div class="picker">
+            <div id="themes" role="group" aria-label="Omarchy theme"></div>
+            <p>Theme: <span id="theme-name">Tokyo Night</span></p>
+          </div>
+        </div>
+      </div>
+
+      <section class="feature" id="hold">
+        <h2>Hold an app to see inside it</h2>
+        <div class="body">
+          <p>Long-press an app and Yoke asks it what's going on. Apps that support it answer with a small live sheet; the rest show their shortcuts and app info.</p>
+          <p><strong>Conductore is the first.</strong> Hold it to see which coding agents are working, which ones are waiting on you, and how far along they are, without opening anything. The sheet updates while it's open.</p>
+          <p>Any app can join through a small, documented ContentProvider contract. Only apps signed with Yoke's key can read the data.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="cockpit">
+        <h2>Swipe left, type, done</h2>
+        <div class="body">
+          <p>Swipe left on the home screen, type a task, pick a column and press Enter. Yoke writes the card straight into your Obsidian vault in the same format the <strong>Cockpit Board</strong> plugin uses, so Syncthing carries it to your desk and it lands in the right column.</p>
+          <p>Yoke reads your board's own settings from the vault, so your folder and columns are always the ones you set up in Obsidian. Sharing text from any app works too.</p>
+          <div class="card-sample" aria-label="Example card file">---
+title: "Call the accountant"
+status: scheduled
+due: 2026-10-04
+labels: []
+source: yoke
+---</div>
+        </div>
+      </section>
+
+      <section class="feature" id="gestures">
+        <h2>Every gesture is yours</h2>
+        <div class="body">
+          <p>Swipes in four directions with one or two fingers, swipes along the screen edges, double tap, long press, pinch, taps on the clock and date, volume keys. Each one can open an app, an app shortcut, a link, or one of Yoke's own actions. Export the whole set as JSON and bring it to your next phone.</p>
+          <table class="gestures">
+            <caption>Where things start. Change any of them in Settings, Gestures.</caption>
+            <tbody>
+              <tr><th>Swipe up</th><td>App drawer</td></tr>
+              <tr><th>Swipe down</th><td>Notifications</td></tr>
+              <tr><th>Two fingers down</th><td>Quick settings</td></tr>
+              <tr><th>Swipe left</th><td>Add a task to Cockpit</td></tr>
+              <tr><th>Swipe right</th><td>Conductore agents</td></tr>
+              <tr><th>Double tap</th><td>Lock the phone</td></tr>
+              <tr><th>Long press, or two fingers up</th><td>Command palette</td></tr>
+              <tr><th>Pinch</th><td>Theme picker</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="feature" id="palette">
+        <h2>Type to do anything</h2>
+        <div class="body">
+          <p>Search apps and your own web links as you type, and Yoke opens the app when only one is left. Start with <code>=</code> for a calculator, <code>&gt;</code> for Yoke's actions, or <code>/</code> to jump straight into an app shortcut.</p>
+          <p>The themes come from <strong>Omarchy</strong>, so your phone can match your desktop. Try one above.</p>
+        </div>
+      </section>
+
+      <section class="closing">
+        <h2>Fewer icons. More of what you meant to do.</h2>
+        <a class="button" href="/download">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+          Download for Android
+        </a>
+      </section>
+    </main>
+
+    <footer>
+      <p>Yoke is a fork of <a href="https://github.com/tanujnotes/Olauncher">Olauncher</a> by Tanuj, and like it is free software under the GPLv3. Themes from <a href="https://github.com/basecamp/omarchy">Omarchy</a> (MIT).</p>
+      <p><a href="https://github.com/andreconde21/yoke-launcher">Source code and releases on GitHub</a></p>
+    </footer>
+  </div>
+
+  <script src="themes.js"></script>
+  <script>
+    // One moment on load: the Conductore label is held and its sheet rises.
+    (function () {
+      var app = document.getElementById("held-app");
+      var sheet = document.getElementById("sheet");
+      function hold() { app.classList.add("held"); sheet.classList.add("open"); }
+      function release() { app.classList.remove("held"); sheet.classList.remove("open"); }
+      var still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (still) hold(); else setTimeout(hold, 1400);
+      app.addEventListener("pointerdown", function () { sheet.classList.contains("open") ? release() : hold(); });
+    })();
+  </script>
+</body>
+</html>

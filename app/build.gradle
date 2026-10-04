@@ -17,15 +17,29 @@ android {
         applicationId "com.outsmartis.yoke"
         minSdkVersion 26
         targetSdkVersion 36
-        versionCode 1
-        versionName "0.1.0"
+        // CI passes these for releases (tag vX.Y.Z → versionName X.Y.Z, run number → versionCode).
+        versionCode((System.getenv("YOKE_VERSION_CODE") ?: "1").toInteger())
+        versionName(System.getenv("YOKE_VERSION_NAME") ?: "0.1.0")
 
         resourceConfigurations += ["en"]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Release signing only when CI provides the keystore; local release builds stay unsigned.
+        if (System.getenv("YOKE_KEYSTORE")) {
+            release {
+                storeFile file(System.getenv("YOKE_KEYSTORE"))
+                storePassword System.getenv("YOKE_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("YOKE_KEY_ALIAS") ?: "yoke"
+                keyPassword System.getenv("YOKE_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (System.getenv("YOKE_KEYSTORE")) signingConfig signingConfigs.release
             debuggable false
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

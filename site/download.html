@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Download Yoke</title>
+  <meta name="description" content="Download the latest Yoke APK for Android and set it as your home app.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><use href="icon.svg#glyph"/></svg>
+        Yoke
+      </a>
+      <nav>
+        <a href="https://github.com/andreconde21/yoke-launcher">Source</a>
+        <a href="/">About</a>
+      </nav>
+    </header>
+
+    <main class="download">
+      <h1>Download Yoke</h1>
+      <p class="meta" id="release">Latest release, for Android 8 and newer.</p>
+      <div class="actions">
+        <a class="button" href="https://github.com/andreconde21/yoke-launcher/releases/latest/download/yoke.apk">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-5-5m5 5 5-5M5 20h14"/></svg>
+          Download APK
+        </a>
+        <a href="https://github.com/andreconde21/yoke-launcher/releases">All releases</a>
+      </div>
+
+      <ol>
+        <li><strong>Open the file you downloaded.</strong>
+          <p>Android asks once whether your browser may install apps. Allow it, then tap Install.</p></li>
+        <li><strong>Make Yoke your home app.</strong>
+          <p>Press the home button and choose Yoke, or go to Settings, Apps, Default apps, Home app.</p></li>
+        <li><strong>Point it at your Obsidian vault.</strong>
+          <p>Swipe left, tap "Pick vault folder" and choose the folder Syncthing keeps in sync. Yoke finds your Cockpit board's columns there.</p></li>
+        <li><strong>Turn on double tap to lock, if you want it.</strong>
+          <p>Locking uses Android's accessibility service and nothing else. Because Yoke isn't installed from a store, Android 13 and newer first need App info, the three-dot menu, "Allow restricted settings".</p></li>
+      </ol>
+
+      <p class="note">Every release is built and signed by GitHub Actions from the public source. The SHA-256 of each APK is published next to it as <code>yoke.apk.sha256</code>, and the signing certificate's SHA-256 is <code>c1c53f01f674494483aa0cb16b0190c4ccbe736840580c383c18bc88510ad4da</code>.</p>
+    </main>
+
+    <footer>
+      <p>Yoke is free software under the GPLv3, a fork of <a href="https://github.com/tanujnotes/Olauncher">Olauncher</a> by Tanuj.</p>
+    </footer>
+  </div>
+
+  <script src="themes.js"></script>
+  <script>
+    // Name the version on the button's page; the link works without this.
+    fetch("https://api.github.com/repos/andreconde21/yoke-launcher/releases/latest")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (rel) {
+        if (!rel || !rel.tag_name) return;
+        var date = new Date(rel.published_at).toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+        document.getElementById("release").textContent =
+          "Version " + rel.tag_name.replace(/^v/, "") + ", released " + date + ". For Android 8 and newer.";
+      })
+      .catch(function () {});
+  </script>
+</body>
+</html>
