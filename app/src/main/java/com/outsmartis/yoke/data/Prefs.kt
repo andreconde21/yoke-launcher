@@ -112,6 +112,7 @@ class Prefs(context: Context) {
     private val SHORTCUT_ID_SWIPE_RIGHT = "SHORTCUT_ID_SWIPE_RIGHT"
     private val IS_SHORTCUT_SWIPE_RIGHT = "IS_SHORTCUT_SWIPE_RIGHT"
     private val GESTURES_JSON = "GESTURES_JSON"
+    private val WIDGETS_JSON = "WIDGETS_JSON"
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_FILENAME, 0)
 
@@ -146,6 +147,10 @@ class Prefs(context: Context) {
         saveGestures(config)
         return config
     }
+
+    var widgetsJson: String?
+        get() = prefs.getString(WIDGETS_JSON, null)
+        set(value) = prefs.edit { putString(WIDGETS_JSON, value) }
 
     fun saveGestures(config: GestureConfig) = prefs.edit { putString(GESTURES_JSON, config.toJson()) }
 

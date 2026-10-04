@@ -134,4 +134,14 @@
     <string name="font_row">Font</string>
     <string name="font_system">System</string>
     <string name="font_jetbrains_mono">JetBrains Mono</string>
+    <string name="widgets_empty">No widgets yet</string>
+    <string name="widgets_add">Add widget</string>
+    <string name="widgets_move_up">Move up</string>
+    <string name="widgets_move_down">Move down</string>
+    <string name="widgets_resize">Resize</string>
+    <string name="widgets_remove">Remove</string>
+    <string name="widgets_size_small">Small</string>
+    <string name="widgets_size_medium">Medium</string>
+    <string name="widgets_size_large">Large</string>
+    <string name="widgets_cannot_add">Could not add this widget</string>
 </resources>

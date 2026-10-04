@@ -102,6 +102,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.ThemePicker -> themePicker()
                 GestureAction.GestureCheatSheet -> showGestureCheatSheet(activity, config())
                 GestureAction.Settings -> openSettings()
+                GestureAction.WidgetPage -> openWidgetPage()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -127,6 +128,14 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
             viewModel.firstOpen(false)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun openWidgetPage() {
+        try {
+            navController.navigate(R.id.action_mainFragment_to_widgetPageFragment)
+        } catch (e: Exception) {
+            navController.navigate(R.id.widgetPageFragment)
         }
     }
 

@@ -170,4 +170,20 @@ class GestureConfigTest {
         assertEquals(Trigger.PINCH_OUT, GestureGeometry.classifyPinch(1.5f))
         assertNull(GestureGeometry.classifyPinch(1.05f))
     }
+
+    @Test
+    fun widgetPageActionRoundTripsAndIsUnboundByDefault() {
+        val config = GestureConfig(emptyMap()).with(Trigger.SWIPE_RIGHT, GestureAction.WidgetPage)
+        val parsed = GestureConfig.parse(config.toJson()) as GestureParse.Ok
+        assertEquals(GestureAction.WidgetPage, parsed.config[Trigger.SWIPE_RIGHT])
+        assertTrue(GestureAction.simple.contains(GestureAction.WidgetPage))
+        assertTrue(GestureDefaults.create().actions.values.none { it == GestureAction.WidgetPage })
+    }
+
+    @Test
+    fun olderJsonWithoutWidgetPageStillParses() {
+        val old = """{"version":1,"gestures":{"SWIPE_UP":{"type":"app_drawer"}}}"""
+        val parsed = GestureConfig.parse(old) as GestureParse.Ok
+        assertEquals(GestureAction.AppDrawer, parsed.config[Trigger.SWIPE_UP])
+    }
 }
