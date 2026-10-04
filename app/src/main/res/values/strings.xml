@@ -125,4 +125,13 @@
     <string name="gesture_reset">Reset gestures</string>
     <string name="gesture_reset_done">Gestures reset to defaults</string>
     <string name="gesture_unset">None</string>
+
+    <!-- Themes and font -->
+    <string name="theme_picker_title">Theme</string>
+    <string name="theme_system_default">System default (light/dark)</string>
+    <string name="theme_follow_pc">Follow my Omarchy PC</string>
+    <string name="theme_follow_pc_unavailable">Follow my Omarchy PC (not available)</string>
+    <string name="font_row">Font</string>
+    <string name="font_system">System</string>
+    <string name="font_jetbrains_mono">JetBrains Mono</string>
 </resources>

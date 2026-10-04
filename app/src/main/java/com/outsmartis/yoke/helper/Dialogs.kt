@@ -15,6 +15,7 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.DialogBaseBinding
+import com.outsmartis.yoke.theme.ThemeApplier
 
 /**
  * Shows a popup menu hanging off the end edge of this view.
@@ -94,6 +95,8 @@ fun Context.createDialog(
         binding.contentContainer.addView(it(binding.contentContainer))
         binding.contentContainer.isVisible = true
     }
+    ThemeApplier.apply(binding.root)
+    ThemeApplier.applyDialogWindow(dialog.window, this)
     dialog.setView(binding.root)
     binding.ivClose.setOnClickListener { dialog.dismiss() }
     binding.tvNeutral.setOnClickListener {

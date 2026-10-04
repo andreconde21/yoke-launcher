@@ -21,6 +21,17 @@ export ANDROID_HOME=/path/to/Android/Sdk
 
 The debug APK ends up in `app/build/outputs/apk/debug/` (application id `com.outsmartis.yoke.debug`).
 
+## Themes and font
+
+Yoke ships every [Omarchy](https://github.com/basecamp/omarchy) theme (MIT,
+Copyright (c) David Heinemeier Hansson), regenerated with
+`tools/generate_omarchy_themes.py <omarchy-checkout>` at the same pinned commit
+Conductore uses. "Follow my Omarchy PC" reads the theme Conductore last synced from the
+followed PC (`/pc_theme` on its launcher-details provider , permission `com.outsmartis.permission.READ_LAUNCHER_DETAILS`) and updates live.
+
+The optional JetBrains Mono font is bundled under the SIL Open Font License
+1.1 (`app/src/main/res/raw/jetbrains_mono_ofl.txt`).
+
 ## License
 
 [GNU GPLv3](LICENSE).

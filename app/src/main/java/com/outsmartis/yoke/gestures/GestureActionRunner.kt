@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
@@ -116,8 +117,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
     // TODO(merge): open the command palette here and delete the Settings fallback.
     private fun commandPalette() = openSettings()
 
-    // TODO(merge): open the theme picker here.
-    private fun themePicker() = comingSoon()
+    private fun themePicker() = ThemePickerActivity.open(activity)
 
     private fun comingSoon() = activity.showToast(activity.getString(R.string.coming_soon))
 

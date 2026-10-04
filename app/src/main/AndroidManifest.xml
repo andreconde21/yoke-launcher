@@ -14,6 +14,12 @@
         tools:ignore="ProtectedPermissions" />
     <!--Used for Private Space support on Android 15+-->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
+    <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
+    <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
+
+    <queries>
+        <provider android:authorities="com.outsmartis.conductore.launcherdetails" />
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -58,6 +64,11 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".theme.ThemePickerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/theme_picker_title" />
         <activity
             android:name=".helper.PinItemActivity"
             android:exported="true"
