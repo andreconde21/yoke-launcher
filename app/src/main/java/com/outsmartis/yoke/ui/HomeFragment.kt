@@ -25,6 +25,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
@@ -639,7 +640,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
             override fun onSwipeDown() {
                 super.onSwipeDown()
-                expandNotificationDrawer(requireContext())
+                openQuickAdd()
             }
 
             override fun onLongClick() {
@@ -682,7 +683,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
             override fun onSwipeDown() {
                 super.onSwipeDown()
-                expandNotificationDrawer(requireContext())
+                openQuickAdd()
             }
 
             override fun onLongClick(view: View) {
@@ -695,6 +696,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 textOnClick(view)
             }
         }
+    }
+
+    // Fixed to swipe down until gestures become configurable.
+    private fun openQuickAdd() {
+        startActivity(Intent(requireContext(), QuickAddActivity::class.java))
     }
 
     override fun onDestroyView() {

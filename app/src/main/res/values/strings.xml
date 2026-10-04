@@ -96,4 +96,10 @@
     <string name="unable_to_open_shortcut">Unable to open shortcut</string>
     <string name="please_set_yoke_as_default_first">Please set Yoke as default first</string>
     <string name="about_yoke">About</string>
+    <string name="quick_add_title">Add to Cockpit</string>
+    <string name="quick_add_hint">New task</string>
+    <string name="quick_add_setup">Pick your Obsidian vault folder once (the one Syncthing keeps in sync). Yoke reads your Cockpit Board columns from it and writes new cards there.</string>
+    <string name="quick_add_pick_vault">Pick vault folder</string>
+    <string name="quick_add_saved">Added to %1$s</string>
+    <string name="quick_add_failed">Could not add the card</string>
 </resources>

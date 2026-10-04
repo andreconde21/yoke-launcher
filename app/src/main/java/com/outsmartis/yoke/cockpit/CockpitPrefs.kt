@@ -1,0 +1,26 @@
+package com.outsmartis.yoke.cockpit
+
+import android.content.Context
+import android.net.Uri
+
+/** Where the vault is and which column quick-add starts on. */
+class CockpitPrefs(context: Context) {
+
+    private val prefs = context.getSharedPreferences("yoke.cockpit", Context.MODE_PRIVATE)
+
+    var vaultUri: String?
+        get() = prefs.getString("vault_uri", null)
+        set(value) = prefs.edit().putString("vault_uri", value).apply()
+
+    /** The last column used, so the next card goes to the same place. */
+    var defaultColumn: String?
+        get() = prefs.getString("default_column", null)
+        set(value) = prefs.edit().putString("default_column", value).apply()
+
+    /** The vault, if one was picked and its permission is still held. */
+    fun vault(context: Context): VaultAccess? {
+        val uri = vaultUri?.let(Uri::parse) ?: return null
+        val held = context.contentResolver.persistedUriPermissions.any { it.uri == uri && it.isWritePermission }
+        return if (held) VaultAccess(context.contentResolver, uri) else null
+    }
+}
