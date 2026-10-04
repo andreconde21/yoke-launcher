@@ -1,6 +1,5 @@
 package com.outsmartis.yoke.ui
 
-import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -15,7 +14,6 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.FrameLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
@@ -23,23 +21,20 @@ import androidx.core.view.setPadding
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import com.outsmartis.yoke.MainActivity
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
-import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.FragmentHomeBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.dpToPx
-import com.outsmartis.yoke.helper.expandNotificationDrawer
 import com.outsmartis.yoke.helper.getUserHandleFromString
 import com.outsmartis.yoke.helper.isPackageInstalled
-import com.outsmartis.yoke.helper.openAlarmApp
-import com.outsmartis.yoke.helper.openCalendar
-import com.outsmartis.yoke.helper.openCameraApp
-import com.outsmartis.yoke.helper.openDialerApp
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.gestures.GestureGeometry
+import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.listener.OnSwipeTouchListener
 import com.outsmartis.yoke.listener.ViewSwipeTouchListener
 import java.text.SimpleDateFormat
@@ -50,7 +45,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     private lateinit var prefs: Prefs
     private lateinit var viewModel: MainViewModel
-    private lateinit var deviceManager: DevicePolicyManager
+    private var mainTouchListener: OnSwipeTouchListener? = null
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -67,8 +62,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             ViewModelProvider(this)[MainViewModel::class.java]
         } ?: throw Exception("Invalid Activity")
 
-        deviceManager = context?.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-
         initObservers()
         setHomeAlignment(prefs.homeAlignment)
         initSwipeTouchListener()
@@ -78,6 +71,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     override fun onResume() {
         super.onResume()
         populateHomeScreen(false)
+        // Gestures may have been edited; only wait for a second tap when double tap is bound
+        mainTouchListener?.setDoubleTapEnabled(gestureRunner().isBound(Trigger.DOUBLE_TAP))
         viewModel.isYokeDefault()
         if (prefs.showStatusBar) showStatusBar()
         else hideStatusBar()
@@ -88,8 +83,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             R.id.lock -> {}
             // Home button for recents feature disabled
             // R.id.recents -> {}
-            R.id.clock -> openClockApp()
-            R.id.date -> openCalendarApp()
+            R.id.clock -> gestureRunner().run(Trigger.TAP_CLOCK)
+            R.id.date -> gestureRunner().run(Trigger.TAP_DATE)
             R.id.setDefaultLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.tvScreenTime -> openScreenTimeDigitalWellbeing()
 
@@ -102,30 +97,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 }
             }
         }
-    }
-
-    private fun openClockApp() {
-        if (prefs.clockAppPackage.isBlank())
-            openAlarmApp(requireContext())
-        else
-            launchApp(
-                "Clock",
-                prefs.clockAppPackage,
-                prefs.clockAppClassName,
-                prefs.clockAppUser
-            )
-    }
-
-    private fun openCalendarApp() {
-        if (prefs.calendarAppPackage.isBlank())
-            openCalendar(requireContext())
-        else
-            launchApp(
-                "Calendar",
-                prefs.calendarAppPackage,
-                prefs.calendarAppClassName,
-                prefs.calendarAppUser
-            )
     }
 
     override fun onLongClick(view: View): Boolean {
@@ -205,7 +176,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     private fun initSwipeTouchListener() {
         val context = requireContext()
-        binding.mainLayout.setOnTouchListener(getSwipeGestureListener(context))
+        mainTouchListener = getSwipeGestureListener(context)
+        binding.mainLayout.setOnTouchListener(mainTouchListener)
         binding.homeApp1.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp1))
         binding.homeApp2.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp2))
         binding.homeApp3.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp3))
@@ -501,32 +473,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         )
     }
 
-    private fun openSwipeRightApp() {
-        if (!prefs.swipeRightEnabled) return
-        launchAppOrShortcut(
-            appName = prefs.appNameSwipeRight,
-            packageName = prefs.appPackageSwipeRight,
-            activityClassName = prefs.appActivityClassNameRight,
-            shortcutId = prefs.shortcutIdSwipeRight,
-            isShortcut = prefs.isShortcutSwipeRight,
-            userString = prefs.appUserSwipeRight,
-            fallback = { openDialerApp(requireContext()) }
-        )
-    }
-
-    private fun openSwipeLeftApp() {
-        if (!prefs.swipeLeftEnabled) return
-        launchAppOrShortcut(
-            appName = prefs.appNameSwipeLeft,
-            packageName = prefs.appPackageSwipeLeft,
-            activityClassName = prefs.appActivityClassNameSwipeLeft,
-            shortcutId = prefs.shortcutIdSwipeLeft,
-            isShortcut = prefs.isShortcutSwipeLeft,
-            userString = prefs.appUserSwipeLeft,
-            fallback = { openCameraApp(requireContext()) }
-        )
-    }
-
     private fun showAppList(flag: Int, rename: Boolean = false, includeHiddenApps: Boolean = false) {
         viewModel.getAppList(includeHiddenApps)
         try {
@@ -546,20 +492,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 )
             )
             e.printStackTrace()
-        }
-    }
-
-    private fun lockPhone() {
-        requireActivity().runOnUiThread {
-            try {
-                deviceManager.lockNow()
-            } catch (e: SecurityException) {
-                requireContext().showToast(getString(R.string.please_turn_on_double_tap_to_unlock), Toast.LENGTH_LONG)
-                findNavController().navigate(R.id.action_mainFragment_to_settingsFragment)
-            } catch (e: Exception) {
-                requireContext().showToast(getString(R.string.launcher_failed_to_lock_device), Toast.LENGTH_LONG)
-                prefs.lockModeOn = false
-            }
         }
     }
 
@@ -621,69 +553,29 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     private fun textOnLongClick(view: View) = onLongClick(view)
 
-    private fun getSwipeGestureListener(context: Context): View.OnTouchListener {
+    private fun gestureRunner() = (requireActivity() as MainActivity).gestureRunner
+
+    // Edge swipes fall back to the plain swipe when the edge trigger itself is not bound
+    private fun runGesture(trigger: Trigger) {
+        val runner = gestureRunner()
+        if (runner.run(trigger)) return
+        GestureGeometry.plainSwipeFor(trigger)?.let { runner.run(it) }
+    }
+
+    private fun getSwipeGestureListener(context: Context): OnSwipeTouchListener {
         return object : OnSwipeTouchListener(context) {
-            override fun onSwipeLeft() {
-                super.onSwipeLeft()
-                openSwipeLeftApp()
-            }
-
-            override fun onSwipeRight() {
-                super.onSwipeRight()
-                openSwipeRightApp()
-            }
-
-            override fun onSwipeUp() {
-                super.onSwipeUp()
-                showAppList(Constants.FLAG_LAUNCH_APP)
-            }
-
-            override fun onSwipeDown() {
-                super.onSwipeDown()
-                openQuickAdd()
-            }
-
-            override fun onLongClick() {
-                super.onLongClick()
-                try {
-                    findNavController().navigate(R.id.action_mainFragment_to_settingsFragment)
-                    viewModel.firstOpen(false)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            override fun onDoubleClick() {
-                super.onDoubleClick()
-                if (!prefs.lockModeOn) return
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-                    binding.lock.performClick()
-                else
-                    lockPhone()
+            override fun onGesture(trigger: Trigger) {
+                super.onGesture(trigger)
+                runGesture(trigger)
             }
         }
     }
 
     private fun getViewSwipeTouchListener(context: Context, view: View): View.OnTouchListener {
         return object : ViewSwipeTouchListener(context, view) {
-            override fun onSwipeLeft() {
-                super.onSwipeLeft()
-                openSwipeLeftApp()
-            }
-
-            override fun onSwipeRight() {
-                super.onSwipeRight()
-                openSwipeRightApp()
-            }
-
-            override fun onSwipeUp() {
-                super.onSwipeUp()
-                showAppList(Constants.FLAG_LAUNCH_APP)
-            }
-
-            override fun onSwipeDown() {
-                super.onSwipeDown()
-                openQuickAdd()
+            override fun onGesture(trigger: Trigger) {
+                super.onGesture(trigger)
+                runGesture(trigger)
             }
 
             override fun onLongClick(view: View) {
@@ -698,13 +590,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
-    // Fixed to swipe down until gestures become configurable.
-    private fun openQuickAdd() {
-        startActivity(Intent(requireContext(), QuickAddActivity::class.java))
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
+        mainTouchListener = null
         _binding = null
     }
 }

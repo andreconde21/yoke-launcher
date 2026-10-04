@@ -13,6 +13,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +25,8 @@ import androidx.navigation.findNavController
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityMainBinding
+import com.outsmartis.yoke.gestures.GestureActionRunner
+import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.helper.hasBeenHours
 import com.outsmartis.yoke.helper.isDefaultLauncher
@@ -49,6 +52,8 @@ class MainActivity : AppCompatActivity() {
     private var profileReceiver: BroadcastReceiver? = null
     private var launcherAppsCallback: LauncherApps.Callback? = null
     private var messageDialog: YokeDialog? = null
+    lateinit var gestureRunner: GestureActionRunner
+        private set
 
 //    override fun onBackPressed() {
 //        if (navController.currentDestination?.id != R.id.mainFragment)
@@ -74,12 +79,17 @@ class MainActivity : AppCompatActivity() {
 
         navController = this.findNavController(R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
+        // Must run before firstOpen is cleared: a fresh install gets plain defaults, an upgrade migrates
+        prefs.loadGestures()
+        gestureRunner = GestureActionRunner(this)
 
         val onBackPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 // Back never leaves the home screen; elsewhere it pops the nav stack
                 if (navController.currentDestination?.id != R.id.mainFragment)
                     navController.popBackStack()
+                else
+                    gestureRunner.run(Trigger.BACK_ON_HOME)
             }
         }
         onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
@@ -166,12 +176,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
-        // Home button for recents feature disabled
-        // val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
+        val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
         backToHomeScreen()
-        // if (alreadyHome && isResumed && prefs.homeButtonShowRecents)
-        //     viewModel.showRecentApps.call()
+        if (alreadyHome && isResumed && intent?.action == Intent.ACTION_MAIN)
+            gestureRunner.run(Trigger.HOME_ON_HOME)
         super.onNewIntent(intent)
+    }
+
+    private fun volumeTrigger(keyCode: Int): Trigger? = when (keyCode) {
+        KeyEvent.KEYCODE_VOLUME_UP -> Trigger.VOLUME_UP
+        KeyEvent.KEYCODE_VOLUME_DOWN -> Trigger.VOLUME_DOWN
+        else -> null
+    }
+
+    // Volume keys are only taken while the home screen has focus and a gesture is bound to them
+    private fun volumeKeyBound(keyCode: Int): Trigger? {
+        val trigger = volumeTrigger(keyCode) ?: return null
+        val onHome = isResumed && hasWindowFocus() && navController.currentDestination?.id == R.id.mainFragment
+        return trigger.takeIf { onHome && gestureRunner.isBound(it) }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val trigger = volumeKeyBound(keyCode)
+        if (trigger != null) {
+            if (event?.repeatCount == 0) gestureRunner.run(trigger)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (volumeKeyBound(keyCode) != null) return true
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -258,6 +294,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        gestureRunner.close()
         messageDialog?.dismiss()
         messageDialog = null
         launcherAppsCallback?.let {

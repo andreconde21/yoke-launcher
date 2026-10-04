@@ -14,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
+import com.outsmartis.yoke.gestures.GestureAction
+import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.helper.SingleLiveEvent
 import com.outsmartis.yoke.helper.formattedTimeSpent
 import com.outsmartis.yoke.helper.getAppsList
@@ -37,6 +39,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val refreshHome = MutableLiveData<Boolean>()
     val toggleDateTime = MutableLiveData<Unit>()
     val updateSwipeApps = MutableLiveData<Any>()
+    // Gesture being edited while the app list is open, and the app chosen to pick a shortcut from
+    var pendingGestureTrigger: Trigger? = null
+    val gestureShortcutApp = MutableLiveData<AppModel.App?>()
     val appList = MutableLiveData<List<AppModel>?>()
     val hiddenApps = MutableLiveData<List<AppModel>?>()
     val isYokeDefault = MutableLiveData<Boolean>()
@@ -84,8 +89,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             Constants.FLAG_SET_HOME_APP_7 -> saveHomeApp(appModel, 7)
             Constants.FLAG_SET_HOME_APP_8 -> saveHomeApp(appModel, 8)
 
-            Constants.FLAG_SET_SWIPE_LEFT_APP -> saveSwipeApp(appModel, isLeft = true)
-            Constants.FLAG_SET_SWIPE_RIGHT_APP -> saveSwipeApp(appModel, isLeft = false)
+            Constants.FLAG_SET_GESTURE_APP -> saveGestureApp(appModel)
+            Constants.FLAG_SET_GESTURE_SHORTCUT_APP -> if (appModel is AppModel.App) gestureShortcutApp.value = appModel
             Constants.FLAG_SET_CLOCK_APP -> saveClockApp(appModel)
             Constants.FLAG_SET_CALENDAR_APP -> saveCalendarApp(appModel)
             Constants.FLAG_SET_SCREEN_TIME_APP -> saveScreenTimeApp(appModel)
@@ -269,45 +274,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshHome(false)
     }
 
-    private fun saveSwipeApp(appModel: AppModel, isLeft: Boolean) {
-        when (appModel) {
-            is AppModel.PrivateSpaceHeader -> return
-            is AppModel.App -> {
-                if (isLeft) {
-                    prefs.appNameSwipeLeft = appModel.appLabel
-                    prefs.appPackageSwipeLeft = appModel.appPackage
-                    prefs.appUserSwipeLeft = appModel.user.toString()
-                    prefs.appActivityClassNameSwipeLeft = appModel.activityClassName
-                    prefs.isShortcutSwipeLeft = false
-                    prefs.shortcutIdSwipeLeft = ""
-                } else {
-                    prefs.appNameSwipeRight = appModel.appLabel
-                    prefs.appPackageSwipeRight = appModel.appPackage
-                    prefs.appUserSwipeRight = appModel.user.toString()
-                    prefs.appActivityClassNameRight = appModel.activityClassName
-                    prefs.isShortcutSwipeRight = false
-                    prefs.shortcutIdSwipeRight = ""
-                }
-            }
-
-            is AppModel.PinnedShortcut -> {
-                if (isLeft) {
-                    prefs.appNameSwipeLeft = appModel.appLabel
-                    prefs.appPackageSwipeLeft = appModel.appPackage
-                    prefs.appUserSwipeLeft = appModel.user.toString()
-                    prefs.appActivityClassNameSwipeLeft = null
-                    prefs.isShortcutSwipeLeft = true
-                    prefs.shortcutIdSwipeLeft = appModel.shortcutId
-                } else {
-                    prefs.appNameSwipeRight = appModel.appLabel
-                    prefs.appPackageSwipeRight = appModel.appPackage
-                    prefs.appUserSwipeRight = appModel.user.toString()
-                    prefs.appActivityClassNameRight = null
-                    prefs.isShortcutSwipeRight = true
-                    prefs.shortcutIdSwipeRight = appModel.shortcutId
-                }
-            }
+    private fun saveGestureApp(appModel: AppModel) {
+        val trigger = pendingGestureTrigger ?: return
+        val action = when (appModel) {
+            is AppModel.App -> GestureAction.OpenApp(appModel.appPackage, appModel.activityClassName, appModel.user.toString())
+            is AppModel.PinnedShortcut -> GestureAction.OpenShortcut(appModel.appPackage, appModel.shortcutId, appModel.user.toString())
+            else -> return
         }
+        prefs.saveGestures(prefs.loadGestures().with(trigger, action))
+        pendingGestureTrigger = null
         updateSwipeApps()
     }
 
@@ -316,6 +291,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             prefs.clockAppPackage = appModel.appPackage
             prefs.clockAppUser = appModel.user.toString()
             prefs.clockAppClassName = appModel.activityClassName
+            // Tap clock runs the gesture map now; keep long press on the clock choosing its app
+            prefs.saveGestures(
+                prefs.loadGestures().with(
+                    Trigger.TAP_CLOCK,
+                    GestureAction.OpenApp(appModel.appPackage, appModel.activityClassName, appModel.user.toString())
+                )
+            )
         }
     }
 
@@ -324,6 +306,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             prefs.calendarAppPackage = appModel.appPackage
             prefs.calendarAppUser = appModel.user.toString()
             prefs.calendarAppClassName = appModel.activityClassName
+            prefs.saveGestures(
+                prefs.loadGestures().with(
+                    Trigger.TAP_DATE,
+                    GestureAction.OpenApp(appModel.appPackage, appModel.activityClassName, appModel.user.toString())
+                )
+            )
         }
     }
 

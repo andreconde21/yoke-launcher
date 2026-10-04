@@ -102,4 +102,27 @@
     <string name="quick_add_pick_vault">Pick vault folder</string>
     <string name="quick_add_saved">Added to %1$s</string>
     <string name="quick_add_failed">Could not add the card</string>
+    <string name="gestures_summary">All gestures</string>
+    <string name="edit">Edit</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="gesture_nothing_to_open">Nothing can open that</string>
+    <string name="gesture_quick_settings_unavailable">Quick settings are not available on this device</string>
+    <string name="gesture_no_torch">No torch found</string>
+    <string name="gesture_cheat_sheet">Gesture cheat sheet</string>
+    <string name="gesture_cheat_sheet_empty">No gestures are set</string>
+    <string name="gesture_choose_action">Choose action</string>
+    <string name="gesture_choose_shortcut">Choose shortcut</string>
+    <string name="gesture_enter_uri">Link or intent URI</string>
+    <string name="gesture_uri_hint">https://example.com</string>
+    <string name="gesture_uri_invalid">That is not a valid link</string>
+    <string name="gesture_no_shortcuts">This app has no shortcuts</string>
+    <string name="gesture_export">Export gestures</string>
+    <string name="gesture_export_copied">Gestures copied to clipboard</string>
+    <string name="gesture_import">Import gestures</string>
+    <string name="gesture_import_done">Gestures imported</string>
+    <string name="gesture_import_failed">Import failed: %1$s</string>
+    <string name="gesture_import_empty">Clipboard is empty</string>
+    <string name="gesture_reset">Reset gestures</string>
+    <string name="gesture_reset_done">Gestures reset to defaults</string>
+    <string name="gesture_unset">None</string>
 </resources>
