@@ -15,6 +15,7 @@ class MyAccessibilityService : AccessibilityService() {
     }
 
     override fun onServiceConnected() {
+        instance = this
         Prefs(applicationContext).lockModeOn = true
         super.onServiceConnected()
     }
@@ -41,5 +42,22 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
 
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        if (instance === this) instance = null
+        return super.onUnbind(intent)
+    }
+
+    override fun onDestroy() {
+        if (instance === this) instance = null
+        super.onDestroy()
+    }
+
+    companion object {
+        /** The connected service, used by gesture actions that need a global action (lock, recents). */
+        @Volatile
+        var instance: MyAccessibilityService? = null
+            private set
     }
 }

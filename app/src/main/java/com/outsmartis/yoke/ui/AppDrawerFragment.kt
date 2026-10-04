@@ -45,6 +45,7 @@ class AppDrawerFragment : BaseFragment() {
     private var cachedIsCjkKeyboard: Boolean? = null
 
     private var flag = Constants.FLAG_LAUNCH_APP
+    private var forceKeyboard = false
     private var canRename = false
     private var currentAppList: List<AppModel>? = null
     private var currentPrivateSpaceApps: List<AppModel>? = null
@@ -70,6 +71,7 @@ class AppDrawerFragment : BaseFragment() {
         arguments?.let {
             flag = it.getInt(Constants.Key.FLAG, Constants.FLAG_LAUNCH_APP)
             canRename = it.getBoolean(Constants.Key.RENAME, false)
+            forceKeyboard = it.getBoolean(Constants.Key.SEARCH, false)
         }
 
         initViews()
@@ -82,7 +84,8 @@ class AppDrawerFragment : BaseFragment() {
     private fun initViews() {
         if (flag == Constants.FLAG_HIDDEN_APPS)
             binding.search.queryHint = getString(R.string.hidden_apps)
-        else if (flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_CALENDAR_APP)
+        else if (flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_CALENDAR_APP
+            || flag == Constants.FLAG_SET_GESTURE_APP || flag == Constants.FLAG_SET_GESTURE_SHORTCUT_APP)
             binding.search.queryHint = "Please select an app"
         try {
             searchTextView = binding.search.findViewById(R.id.search_src_text)
@@ -350,7 +353,7 @@ class AppDrawerFragment : BaseFragment() {
                             binding.search.hideKeyboard()
                         else if (!recyclerView.canScrollVertically(-1))
                             if (!onTop && isRemoving.not())
-                                binding.search.showKeyboard(prefs.autoShowKeyboard)
+                                binding.search.showKeyboard(prefs.autoShowKeyboard || forceKeyboard)
                     }
                 }
             }
@@ -364,7 +367,7 @@ class AppDrawerFragment : BaseFragment() {
     override fun onStart() {
         super.onStart()
         cachedIsCjkKeyboard = null
-        binding.search.showKeyboard(prefs.autoShowKeyboard)
+        binding.search.showKeyboard(prefs.autoShowKeyboard || forceKeyboard)
     }
 
     override fun onStop() {

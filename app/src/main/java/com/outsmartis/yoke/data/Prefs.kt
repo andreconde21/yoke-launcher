@@ -5,6 +5,11 @@ import android.content.SharedPreferences
 import android.view.Gravity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
+import com.outsmartis.yoke.gestures.GestureAction
+import com.outsmartis.yoke.gestures.GestureConfig
+import com.outsmartis.yoke.gestures.GestureDefaults
+import com.outsmartis.yoke.gestures.GestureParse
+import com.outsmartis.yoke.gestures.LegacyGestureState
 
 class Prefs(context: Context) {
     private val PREFS_FILENAME = "com.outsmartis.yoke"
@@ -106,6 +111,7 @@ class Prefs(context: Context) {
     private val IS_SHORTCUT_SWIPE_LEFT = "IS_SHORTCUT_SWIPE_LEFT"
     private val SHORTCUT_ID_SWIPE_RIGHT = "SHORTCUT_ID_SWIPE_RIGHT"
     private val IS_SHORTCUT_SWIPE_RIGHT = "IS_SHORTCUT_SWIPE_RIGHT"
+    private val GESTURES_JSON = "GESTURES_JSON"
 
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_FILENAME, 0)
 
@@ -124,6 +130,43 @@ class Prefs(context: Context) {
     var lockModeOn: Boolean
         get() = prefs.getBoolean(LOCK_MODE, false)
         set(value) = prefs.edit { putBoolean(LOCK_MODE, value).apply() }
+
+    /**
+     * The gesture map. First call after upgrade migrates the old swipe left/right apps, the lock
+     * switch and the clock/calendar apps; a fresh install (firstOpen still true) gets plain defaults.
+     * MainActivity calls this before it clears firstOpen.
+     */
+    fun loadGestures(): GestureConfig {
+        val stored = prefs.getString(GESTURES_JSON, null)
+        if (stored != null) {
+            val parsed = GestureConfig.parse(stored)
+            if (parsed is GestureParse.Ok) return parsed.config
+        }
+        val config = GestureDefaults.migrate(if (firstOpen) null else legacyGestureState())
+        saveGestures(config)
+        return config
+    }
+
+    fun saveGestures(config: GestureConfig) = prefs.edit { putString(GESTURES_JSON, config.toJson()) }
+
+    private fun legacyGestureState(): LegacyGestureState {
+        fun swipe(pkg: String, activity: String?, user: String, isShortcut: Boolean, shortcutId: String): GestureAction? = when {
+            pkg.isBlank() -> null
+            isShortcut && shortcutId.isNotBlank() -> GestureAction.OpenShortcut(pkg, shortcutId, user)
+            else -> GestureAction.OpenApp(pkg, activity?.ifBlank { null }, user)
+        }
+        fun app(pkg: String, cls: String?, user: String) =
+            if (pkg.isBlank()) null else GestureAction.OpenApp(pkg, cls?.ifBlank { null }, user)
+        return LegacyGestureState(
+            swipeLeft = swipe(appPackageSwipeLeft, appActivityClassNameSwipeLeft, appUserSwipeLeft, isShortcutSwipeLeft, shortcutIdSwipeLeft),
+            swipeLeftEnabled = swipeLeftEnabled,
+            swipeRight = swipe(appPackageSwipeRight, appActivityClassNameRight, appUserSwipeRight, isShortcutSwipeRight, shortcutIdSwipeRight),
+            swipeRightEnabled = swipeRightEnabled,
+            lockModeOn = lockModeOn,
+            clockApp = app(clockAppPackage, clockAppClassName, clockAppUser),
+            calendarApp = app(calendarAppPackage, calendarAppClassName, calendarAppUser),
+        )
+    }
 
     var autoShowKeyboard: Boolean
         get() = prefs.getBoolean(AUTO_SHOW_KEYBOARD, true)

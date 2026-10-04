@@ -7,57 +7,69 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.View.OnTouchListener
 import com.outsmartis.yoke.data.Constants
+import com.outsmartis.yoke.gestures.GestureGeometry
+import com.outsmartis.yoke.gestures.Trigger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 /*
-Swipe, double tap and long press touch listener for a view
+Swipe, edge swipe, two-finger swipe, pinch, double tap and long press touch listener for a view
 Source: https://www.tutorialspoint.com/how-to-handle-swipe-gestures-in-kotlin
 */
 
 internal open class OnSwipeTouchListener(c: Context?) : OnTouchListener {
     private var longPressOn = false
 
-    //    private var doubleTapOn = false
+    private val gestureListener = GestureListener()
     private val gestureDetector: GestureDetector
+    private val multiTouch: MultiTouchDetector?
+    private val screenWidthPx = (c?.resources?.displayMetrics?.widthPixels ?: 0).toFloat()
+    private val edgePx = GestureGeometry.EDGE_DP * (c?.resources?.displayMetrics?.density ?: 1f)
 
     override fun onTouch(view: View, motionEvent: MotionEvent): Boolean {
         if (motionEvent.action == MotionEvent.ACTION_UP)
             longPressOn = false
+        if (multiTouch != null) {
+            val wasActive = multiTouch.active
+            if (multiTouch.onTouchEvent(motionEvent)) {
+                if (!wasActive) {
+                    longPressOn = false
+                    val cancel = MotionEvent.obtain(motionEvent)
+                    cancel.action = MotionEvent.ACTION_CANCEL
+                    gestureDetector.onTouchEvent(cancel)
+                    cancel.recycle()
+                }
+                return true
+            }
+        }
         return gestureDetector.onTouchEvent(motionEvent)
     }
 
+    /**
+     * When no double tap is bound the detector is told not to look for one, so it does not
+     * hold back its single-tap handling waiting for a second tap.
+     */
+    fun setDoubleTapEnabled(enabled: Boolean) {
+        gestureDetector.setOnDoubleTapListener(if (enabled) gestureListener else null)
+    }
+
     private inner class GestureListener : SimpleOnGestureListener() {
-        private val SWIPE_THRESHOLD: Int = 100
-        private val SWIPE_VELOCITY_THRESHOLD: Int = 100
 
         override fun onDown(e: MotionEvent): Boolean {
             return true
         }
 
         override fun onSingleTapUp(e: MotionEvent): Boolean {
-//            if (doubleTapOn) {
-//                doubleTapOn = false
-//                onTripleClick()
-//            }
             onClick()
             return super.onSingleTapUp(e)
         }
 
         override fun onDoubleTap(e: MotionEvent): Boolean {
-//            doubleTapOn = true
-//            Timer().schedule(Constants.TRIPLE_TAP_DELAY_MS) {
-//                if (doubleTapOn) {
-//                    doubleTapOn = false
-//                    onDoubleClick()
-//                }
-//            }
-            onDoubleClick()
+            onGesture(Trigger.DOUBLE_TAP)
             return super.onDoubleTap(e)
         }
 
@@ -67,7 +79,7 @@ internal open class OnSwipeTouchListener(c: Context?) : OnTouchListener {
                 delay(Constants.LONG_PRESS_DELAY_MS)
                 withContext(Dispatchers.Main) {
                     if (isActive && longPressOn)
-                        onLongClick()
+                        onGesture(Trigger.LONG_PRESS_EMPTY)
                 }
             }
             super.onLongPress(e)
@@ -80,17 +92,11 @@ internal open class OnSwipeTouchListener(c: Context?) : OnTouchListener {
             velocityY: Float,
         ): Boolean {
             try {
-                val diffY = event2.y - (event1?.y ?: 0F)
-                val diffX = event2.x - (event1?.x ?: 0F)
-                if (abs(diffX) > abs(diffY)) {
-                    if (abs(diffX) > SWIPE_THRESHOLD && abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffX > 0) onSwipeRight() else onSwipeLeft()
-                    }
-                } else {
-                    if (abs(diffY) > SWIPE_THRESHOLD && abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffY < 0) onSwipeUp() else onSwipeDown()
-                    }
-                }
+                event1 ?: return false
+                GestureGeometry.classifyFling(
+                    event1.rawX, event1.rawY, event2.rawX, event2.rawY, velocityX, velocityY,
+                    screenWidthPx, edgePx, SWIPE_THRESHOLD,
+                )?.let { onGesture(it) }
             } catch (exception: Exception) {
                 exception.printStackTrace()
             }
@@ -98,16 +104,15 @@ internal open class OnSwipeTouchListener(c: Context?) : OnTouchListener {
         }
     }
 
-    open fun onSwipeRight() {}
-    open fun onSwipeLeft() {}
-    open fun onSwipeUp() {}
-    open fun onSwipeDown() {}
-    open fun onLongClick() {}
-    open fun onDoubleClick() {}
-    open fun onTripleClick() {}
+    open fun onGesture(trigger: Trigger) {}
     open fun onClick() {}
 
+    private companion object {
+        const val SWIPE_THRESHOLD = 100f
+    }
+
     init {
-        gestureDetector = GestureDetector(c, GestureListener())
+        gestureDetector = GestureDetector(c, gestureListener)
+        multiTouch = c?.let { MultiTouchDetector(it) { trigger -> onGesture(trigger) } }
     }
 }

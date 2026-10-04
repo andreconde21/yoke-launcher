@@ -5,6 +5,7 @@ object Constants {
     object Key {
         const val FLAG = "flag"
         const val RENAME = "rename"
+        const val SEARCH = "search"
     }
 
     object Dialog {
@@ -55,11 +56,11 @@ object Constants {
     const val FLAG_SET_HOME_APP_7 = 7
     const val FLAG_SET_HOME_APP_8 = 8
 
-    const val FLAG_SET_SWIPE_LEFT_APP = 11
-    const val FLAG_SET_SWIPE_RIGHT_APP = 12
     const val FLAG_SET_CLOCK_APP = 13
     const val FLAG_SET_CALENDAR_APP = 14
     const val FLAG_SET_SCREEN_TIME_APP = 15
+    const val FLAG_SET_GESTURE_APP = 16
+    const val FLAG_SET_GESTURE_SHORTCUT_APP = 17
 
     const val REQUEST_CODE_ENABLE_ADMIN = 666
     const val REQUEST_CODE_LAUNCHER_SELECTOR = 678
