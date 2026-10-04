@@ -24,7 +24,7 @@ import com.outsmartis.yoke.databinding.AdapterPrivateSpaceHeaderBinding
 import com.outsmartis.yoke.helper.hideKeyboard
 import com.outsmartis.yoke.helper.isSystemApp
 import com.outsmartis.yoke.helper.showKeyboard
-import java.text.Normalizer
+import com.outsmartis.yoke.palette.AppSearch
 
 class AppDrawerAdapter(
     private var flag: Int,
@@ -36,6 +36,7 @@ class AppDrawerAdapter(
     private val appRenameListener: (AppModel, String) -> Unit,
     private val privateSpaceToggleListener: () -> Unit = {},
     private val privateSpaceSettingsListener: () -> Unit = {},
+    private val linkLongClickListener: (AppModel.Link) -> Unit = {},
 ) : ListAdapter<AppModel, RecyclerView.ViewHolder>(DIFF_CALLBACK), Filterable {
 
     companion object {
@@ -50,6 +51,12 @@ class AppDrawerAdapter(
                 oldItem is AppModel.PinnedShortcut && newItem is AppModel.PinnedShortcut ->
                     oldItem.identity == newItem.identity
 
+                oldItem is AppModel.Link && newItem is AppModel.Link ->
+                    oldItem.entry.id == newItem.entry.id
+
+                oldItem is AppModel.PaletteResult && newItem is AppModel.PaletteResult ->
+                    oldItem.id == newItem.id
+
                 oldItem is AppModel.PrivateSpaceHeader && newItem is AppModel.PrivateSpaceHeader -> true
 
                 else -> false
@@ -63,8 +70,15 @@ class AppDrawerAdapter(
     private var autoLaunch = true
     private var isBangSearch = false
     var allowAutoLaunch = true
-    private val diacriticsRegex = Regex("\\p{InCombiningDiacriticalMarks}+")
-    private val separatorsRegex = Regex("[-_+,.`'\\s\\p{Z}]")
+
+    /** Builds the single row shown when a plain query matches nothing, e.g. "Search the web for ...". */
+    var noMatchRow: ((String) -> AppModel?)? = null
+    private var lastQuery = ""
+
+    // Palette results are pushed in directly; a late filter publish must not overwrite them
+    private var customResults = false
+    var autoLaunchSingle = true
+    private var queryIsBlank = true
     private val appFilter = createAppFilter()
     private val myUserHandle = android.os.Process.myUserHandle()
 
@@ -122,7 +136,8 @@ class AppDrawerAdapter(
                     appDeleteListener,
                     appInfoListener,
                     appHideListener,
-                    appRenameListener
+                    appRenameListener,
+                    linkLongClickListener
                 )
             }
         } catch (e: Exception) {
@@ -136,11 +151,17 @@ class AppDrawerAdapter(
         return object : Filter() {
             override fun performFiltering(charSearch: CharSequence?): FilterResults {
                 isBangSearch = charSearch?.startsWith("!") ?: false
+                queryIsBlank = charSearch.isNullOrBlank()
+                lastQuery = charSearch?.toString().orEmpty()
                 autoLaunch = allowAutoLaunch && (charSearch?.startsWith(" ")?.not() ?: true)
 
                 val appFilteredList = (if (charSearch.isNullOrBlank()) appsList
                 else appsList.filter { app ->
-                    app !is AppModel.PrivateSpaceHeader && appLabelMatches(app.appLabel, charSearch)
+                    app !is AppModel.PrivateSpaceHeader && AppSearch.matches(
+                        charSearch,
+                        app.appLabel,
+                        (app as? AppModel.App)?.originalLabel
+                    )
                 } as MutableList<AppModel>)
 
                 val filterResults = FilterResults()
@@ -150,8 +171,12 @@ class AppDrawerAdapter(
 
             @Suppress("UNCHECKED_CAST")
             override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                if (customResults) return
                 results?.values?.let {
-                    val items = it as MutableList<AppModel>
+                    var items = it as MutableList<AppModel>
+                    if (items.isEmpty() && lastQuery.isNotBlank()) {
+                        noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = mutableListOf(row) }
+                    }
                     appFilteredList = items
                     submitList(appFilteredList) {
                         autoLaunch()
@@ -165,26 +190,19 @@ class AppDrawerAdapter(
         try {
             if (itemCount == 1
                 && autoLaunch
+                && autoLaunchSingle
+                && !queryIsBlank
                 && isBangSearch.not()
                 && flag == Constants.FLAG_LAUNCH_APP
                 && appFilteredList.isNotEmpty()
-                && appFilteredList[0] !is AppModel.PrivateSpaceHeader
+                && (appFilteredList[0] is AppModel.App
+                        || appFilteredList[0] is AppModel.PinnedShortcut
+                        || appFilteredList[0] is AppModel.Link)
             ) appClickListener(appFilteredList[0])
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-
-    private fun appLabelMatches(appLabel: String, charSearch: CharSequence): Boolean {
-        if (appLabel.contains(charSearch.trim(), true)) return true
-        val query = charSearch.normalizeForSearch()
-        return query.isNotEmpty() && appLabel.normalizeForSearch().contains(query, true)
-    }
-
-    private fun CharSequence.normalizeForSearch(): String =
-        Normalizer.normalize(this, Normalizer.Form.NFD)
-            .replace(diacriticsRegex, "")
-            .replace(separatorsRegex, "")
 
     fun setAppList(appsList: MutableList<AppModel>) {
         // Add empty app for bottom padding in recyclerview and assign to list
@@ -201,6 +219,18 @@ class AppDrawerAdapter(
         this.appsList = appsList
         this.appFilteredList = appsList
         submitList(appsList)
+    }
+
+    /** Shows [rows] instead of the filtered apps (command palette modes). */
+    fun showResults(rows: List<AppModel>) {
+        customResults = true
+        appFilteredList = rows.toMutableList()
+        submitList(appFilteredList)
+    }
+
+    /** Back to plain app filtering; call before [getFilter] runs again. */
+    fun clearResults() {
+        customResults = false
     }
 
     fun launchFirstInList() {
@@ -236,6 +266,7 @@ class AppDrawerAdapter(
             appInfoListener: (AppModel) -> Unit,
             appHideListener: (AppModel, Int) -> Unit,
             appRenameListener: (AppModel, String) -> Unit,
+            linkLongClickListener: (AppModel.Link) -> Unit,
         ) = with(binding) {
             appHideLayout.visibility = View.GONE
             renameLayout.visibility = View.GONE
@@ -245,6 +276,7 @@ class AppDrawerAdapter(
             appTitle.text = buildString {
                 append(appModel.appLabel)
                 if (appModel.isNew) append(" ✦")
+                if (appModel is AppModel.Link) append(" ↗")
             }
             appTitle.gravity = appLabelGravity
             otherProfileIndicator.isVisible = appModel.user != myUserHandle
@@ -252,6 +284,10 @@ class AppDrawerAdapter(
             appTitle.setOnClickListener { clickListener(appModel) }
 
             appTitle.setOnLongClickListener {
+                if (appModel is AppModel.Link) {
+                    linkLongClickListener(appModel)
+                    return@setOnLongClickListener true
+                }
                 if (appModel.appPackage.isNotEmpty()) {
                     appDelete.alpha = when (
                         appModel is AppModel.PinnedShortcut || !root.context.isSystemApp(appModel.appPackage, appModel.user)

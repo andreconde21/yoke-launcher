@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.net.Uri
 import android.os.Build
 import android.os.UserHandle
 import android.os.UserManager
@@ -13,6 +14,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
+import com.outsmartis.yoke.data.LinkEntry
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.gestures.GestureAction
 import com.outsmartis.yoke.gestures.Trigger
@@ -70,6 +72,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     is AppModel.App ->
                         launchApp(appModel.appPackage, appModel.activityClassName, appModel.user)
 
+                    is AppModel.Link -> openLink(appModel.entry.url)
+
                     else -> {}
                 }
             }
@@ -119,6 +123,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun saveHomeApp(appModel: AppModel, position: Int) {
         when (appModel) {
             is AppModel.PrivateSpaceHeader -> return
+            is AppModel.PaletteResult -> return
+            is AppModel.Link -> prefs.setHomeSlot(
+                position,
+                appModel.entry.name,
+                appModel.entry.pinToken,
+                appModel.user.toString(),
+                activityClassName = null,
+                isShortcut = false,
+                shortcutId = "",
+            )
             is AppModel.App -> {
                 when (position) {
                     1 -> {
@@ -339,7 +353,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         updateSwipeApps.postValue(Unit)
     }
 
+    /** Opens a web link with the system's default handler. */
+    fun openLink(url: String) {
+        try {
+            appContext.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        } catch (_: Exception) {
+            appContext.showToast(appContext.getString(R.string.unable_to_open_app))
+        }
+    }
+
     private fun launchApp(packageName: String, activityClassName: String?, userHandle: UserHandle) {
+        // A link pinned to a home slot or gesture is stored as a pseudo package, see LinkEntry.pinToken
+        LinkEntry.idFromPinToken(packageName)?.let { id ->
+            prefs.links.find { it.id == id }?.let { openLink(it.url) }
+                ?: appContext.showToast(appContext.getString(R.string.app_not_found))
+            return
+        }
         val launcher = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         val activityInfo = launcher.getActivityList(packageName, userHandle)
 

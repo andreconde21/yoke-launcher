@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
@@ -109,14 +110,12 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
         }
     }
 
-    // Hooks for features built elsewhere. Wire them at merge time; until then they show a toast
-    // (the command palette opens Settings so Settings stays reachable from long press).
+    // Hooks for features built elsewhere. Wire them at merge time; until then they show a toast.
 
     // TODO(merge): open the Conductore sheet here.
     private fun conductoreSheet() = comingSoon()
 
-    // TODO(merge): open the command palette here and delete the Settings fallback.
-    private fun commandPalette() = openSettings()
+    private fun commandPalette() = CommandPalette.open(navController)
 
     private fun themePicker() = ThemePickerActivity.open(activity)
 
