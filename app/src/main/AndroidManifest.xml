@@ -154,6 +154,15 @@
             </intent-filter>
         </service>
 
+
+        <!--Shizuku: lets the Smart grayscale setup grant its one-time permission from the phone-->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 
 </manifest>

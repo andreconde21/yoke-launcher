@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Shizuku: ShizukuGrant reaches the private newProcess and the hidden IPackageManager by reflection
+-keep class rikka.shizuku.** { *; }
+-keep class moe.shizuku.api.** { *; }
+-dontwarn rikka.shizuku.**

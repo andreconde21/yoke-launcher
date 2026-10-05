@@ -201,7 +201,6 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="grayscale_master">Smart grayscale</string>
     <string name="grayscale_explainer">The whole phone is grayscale, except while an exception app is in front.</string>
     <string name="grayscale_setup_title">One-time setup</string>
-    <string name="grayscale_setup_body">Run this on a computer with the phone connected, then come back. Tap to copy.</string>
     <string name="grayscale_copied">Command copied</string>
     <string name="grayscale_exceptions">Exceptions</string>
     <string name="grayscale_exceptions_count">%1$d apps stay in colour</string>
@@ -261,4 +260,17 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="weather_permission_denied">Location permission denied, using the chosen city</string>
     <string name="weather_permission_denied_no_city">Location permission denied, search for a city instead</string>
     <string name="weather_needs_location">Weather needs a location: search for a city or use the current location</string>
+    <string name="grayscale_shizuku_title">Grant with Shizuku</string>
+    <string name="grayscale_shizuku_not_installed">Install Shizuku from Google Play or GitHub, start it with Wireless debugging, then come back.</string>
+    <string name="grayscale_shizuku_install">Get Shizuku</string>
+    <string name="grayscale_shizuku_not_running">Open Shizuku and start it (Wireless debugging, no computer needed).</string>
+    <string name="grayscale_shizuku_open">Open Shizuku</string>
+    <string name="grayscale_shizuku_ready">Shizuku is running. Tap to grant the permission.</string>
+    <string name="grayscale_shizuku_grant">Grant with Shizuku</string>
+    <string name="grayscale_shizuku_denied">Shizuku permission was denied.</string>
+    <string name="grayscale_shizuku_failed">Could not grant the permission: %1$s</string>
+    <string name="grayscale_granted">Grayscale can now switch</string>
+    <string name="grayscale_or_computer">Or from a computer with the phone connected. Tap to copy.</string>
+    <string name="grayscale_how_title">How this works</string>
+    <string name="grayscale_how_body">Android only lets developer tools grant this permission. It is a one-time step and survives Yoke updates. Yoke uses it only to turn colour correction (grayscale) on and off.</string>
 </resources>

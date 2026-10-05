@@ -69,11 +69,24 @@
                         android:layout_height="wrap_content"
                         android:text="@string/grayscale_setup_title" />
                     <TextView
+                        android:id="@+id/grayscaleShizukuStatus"
                         style="@style/TextSmall"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:paddingVertical="6dp"
-                        android:text="@string/grayscale_setup_body" />
+                        android:paddingVertical="6dp" />
+                    <TextView
+                        android:id="@+id/grayscaleShizukuButton"
+                        style="@style/TextSmallBold"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="6dp" />
+                    <TextView
+                        style="@style/TextSmall"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="6dp"
+                        android:text="@string/grayscale_or_computer" />
                     <TextView
                         android:id="@+id/grayscaleCommand"
                         style="@style/TextSmallBold"
@@ -81,6 +94,22 @@
                         android:layout_height="wrap_content"
                         android:paddingVertical="6dp"
                         android:textIsSelectable="false" />
+                    <TextView
+                        android:id="@+id/grayscaleHowTitle"
+                        style="@style/TextSmallBold"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="6dp"
+                        android:text="@string/grayscale_how_title" />
+                    <TextView
+                        android:id="@+id/grayscaleHowBody"
+                        style="@style/TextSmall"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="6dp"
+                        android:text="@string/grayscale_how_body"
+                        android:visibility="gone" />
                 </LinearLayout>
 
                 <TextView

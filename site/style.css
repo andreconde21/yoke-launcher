@@ -167,3 +167,6 @@ code { font-family: var(--mono); font-size: .88em; }
   #themes { gap: .35rem; }
   #themes button { width: 2.05rem; height: 2.05rem; font-size: .7rem; }
 }
+
+.download h2 { margin: 3rem 0 .5rem; font-size: 1.4rem; letter-spacing: -.02em; line-height: 1.2; }
+.download h2 + p { color: var(--dim); margin-top: 0; }
