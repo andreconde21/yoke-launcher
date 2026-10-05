@@ -26,6 +26,13 @@ data class DetailsItem(
     val progress: Int?,
     val updatedAt: Long,
     val deepLink: String?,
+    /** Contract v2, needsInput/blocked rows only: what the agent is waiting on. */
+    val question: String? = null,
+    /** Contract v2: the choices (e.g. Allow / Always allow / Deny), or null for free text. */
+    val options: List<String>? = null,
+    /** Contract v2: false when the provider cannot take an answer; [answerNote] says why. */
+    val answerable: Boolean = false,
+    val answerNote: String? = null,
 )
 
 data class DetailsSummary(
@@ -35,6 +42,8 @@ data class DetailsSummary(
     /** 0..100, or null when unknown. */
     val limit5hPct: Int?,
     val limit7dPct: Int?,
+    /** 1 when the provider predates the reply actions (column missing). */
+    val contractVersion: Int = 1,
 )
 
 data class AppDetails(val authority: String, val summary: DetailsSummary?, val items: List<DetailsItem>)
@@ -56,7 +65,23 @@ object DetailsMapper {
         progress = row.int("progress")?.takeIf { it in 0..100 },
         updatedAt = row.long("updated_at") ?: 0L,
         deepLink = row.string("deep_link")?.takeIf { it.isNotBlank() },
+        question = row.string("question")?.takeIf { it.isNotBlank() },
+        options = parseOptions(row.string("options")),
+        answerable = row.int("answerable") == 1,
+        answerNote = row.string("answer_note")?.takeIf { it.isNotBlank() },
     )
+
+    /** A JSON array of non-blank strings; null for null, malformed, empty or non-string content. */
+    fun parseOptions(json: String?): List<String>? {
+        if (json.isNullOrBlank()) return null
+        return try {
+            val a = org.json.JSONArray(json)
+            val out = (0 until a.length()).map { a.get(it) as? String ?: return null }
+            out.takeIf { it.isNotEmpty() && it.all { o -> o.isNotBlank() } }
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     fun summary(row: RowSource): DetailsSummary = DetailsSummary(
         monitoring = row.int("monitoring") == 1,
@@ -64,6 +89,7 @@ object DetailsMapper {
         updatedAt = row.long("updated_at") ?: 0L,
         limit5hPct = row.int("limit_5h_pct")?.takeIf { it in 0..100 },
         limit7dPct = row.int("limit_7d_pct")?.takeIf { it in 0..100 },
+        contractVersion = row.int("contract_version") ?: 1,
     )
 
     /** Urgent first, then newest first. Stable, so ties keep the provider's order. */
@@ -98,4 +124,26 @@ object DetailsText {
 
     fun updated(then: Long, now: Long): String =
         relativeTime(then, now).let { if (it.isEmpty()) "" else if (it == "now") "updated now" else "updated $it" }
+}
+
+/** Which reply controls the sheet shows for a row (contract v2). */
+sealed class ReplyUi {
+    object None : ReplyUi()
+    data class Choices(val options: List<String>) : ReplyUi()
+    object TextField : ReplyUi()
+    data class Note(val text: String) : ReplyUi()
+
+    companion object {
+        const val MIN_VERSION = 2
+        const val DENY = "Deny"
+
+        fun of(item: DetailsItem, contractVersion: Int): ReplyUi {
+            if (contractVersion < MIN_VERSION || !item.state.urgent) return None
+            if (!item.answerable) return item.answerNote?.let { Note(it) } ?: None
+            return item.options?.let { Choices(it) } ?: TextField
+        }
+
+        /** "Deny" is drawn as a secondary action. */
+        fun isSecondary(option: String) = option.equals(DENY, ignoreCase = true)
+    }
 }

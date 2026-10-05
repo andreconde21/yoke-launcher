@@ -6,6 +6,7 @@ import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 
@@ -24,6 +25,32 @@ class AppDetailsClient(context: Context) {
         object NeedsNewerAndroid : Result()
         /** Permission denied, provider missing or failing. */
         object Unavailable : Result()
+    }
+
+    sealed class ReplyResult {
+        object Ok : ReplyResult()
+        /** Still running after the provider's 5 s wait; it will complete in Conductore. */
+        object Queued : ReplyResult()
+        data class Failed(val message: String) : ReplyResult()
+        /** The provider refused the caller (SecurityException): Conductore is too old to trust us. */
+        object NotAllowed : ReplyResult()
+    }
+
+    /** Free-text answer. Blocking (up to ~5 s): call off the main thread. */
+    fun reply(authority: String, itemId: String, text: String): ReplyResult =
+        act(authority, "reply", itemId, Bundle().apply { putString("text", text) })
+
+    /** Picks option [index] (0-based). Blocking (up to ~5 s): call off the main thread. */
+    fun choose(authority: String, itemId: String, index: Int): ReplyResult =
+        act(authority, "choose", itemId, Bundle().apply { putInt("index", index) })
+
+    private fun act(authority: String, method: String, itemId: String, extras: Bundle): ReplyResult = try {
+        val out = context.contentResolver.call(Uri.parse("content://$authority"), method, itemId, extras)
+        ReplyOutcome.of(out?.containsKey("ok") == true, out?.getBoolean("ok") ?: false, out?.getString("error"), out?.getBoolean("queued") ?: false)
+    } catch (_: SecurityException) {
+        ReplyResult.NotAllowed
+    } catch (e: Exception) {
+        ReplyResult.Failed(e.message ?: e.javaClass.simpleName)
     }
 
     /** The authority [packageName] declares, or null when it has no details provider. */
@@ -73,6 +100,16 @@ class AppDetailsClient(context: Context) {
         override fun string(column: String) = idx(column).takeIf { it >= 0 }?.let(c::getString)
         override fun int(column: String) = idx(column).takeIf { it >= 0 }?.let(c::getInt)
         override fun long(column: String) = idx(column).takeIf { it >= 0 }?.let(c::getLong)
+    }
+
+    /** Pure mapping of the provider's reply Bundle, kept apart so it is unit tested. */
+    object ReplyOutcome {
+        fun of(hasOk: Boolean, ok: Boolean, error: String?, queued: Boolean): ReplyResult = when {
+            !hasOk -> ReplyResult.Failed("No answer from Conductore")
+            queued && error.isNullOrBlank() -> ReplyResult.Queued
+            ok -> ReplyResult.Ok
+            else -> ReplyResult.Failed(error?.takeIf { it.isNotBlank() } ?: "Conductore could not send that")
+        }
     }
 
     companion object {

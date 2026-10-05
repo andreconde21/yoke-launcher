@@ -327,4 +327,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="backup_no_vault_copy">No copy found in the vault</string>
     <string name="backup_copy_written">Copy written to the vault</string>
     <string name="backup_copy_failed">Could not write to the vault</string>
+    <string name="details_sending">Sending…</string>
+    <string name="details_sent">Sent</string>
+    <string name="details_queued">Sending… it will finish in Conductore</string>
+    <string name="details_send">Send</string>
+    <string name="details_reply_hint">Reply to %1$s…</string>
+    <string name="details_update_conductore_reply">Update Conductore to reply from Yoke</string>
 </resources>
