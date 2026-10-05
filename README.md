@@ -37,3 +37,17 @@ The optional JetBrains Mono font is bundled under the SIL Open Font License
 [GNU GPLv3](LICENSE).
 
 Yoke is a fork of Olauncher by Tanuj (github.com/tanujnotes/Olauncher), GPLv3.
+
+## Smart grayscale
+
+The whole phone is grayscale except while an exception app is in front. It uses Android's colour-correction
+grayscale, so it needs a one-time permission, granted over adb:
+
+```
+adb shell pm grant com.outsmartis.yoke android.permission.WRITE_SECURE_SETTINGS
+```
+
+(debug build: `com.outsmartis.yoke.debug`). Then turn on Yoke's accessibility service (Android 13+ sideloaded:
+App info, three dots, Allow restricted settings first) and switch on Settings, Smart grayscale. The
+service reads only the name of the app in front. Yoke itself is an exception by default; pick the rest under Exceptions.
+Also available as gesture actions, palette commands and a Quick Settings tile.

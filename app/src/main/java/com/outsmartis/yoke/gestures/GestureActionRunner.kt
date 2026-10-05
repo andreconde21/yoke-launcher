@@ -28,6 +28,7 @@ import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.details.DetailsSheet
+import com.outsmartis.yoke.grayscale.GrayscaleController
 import com.outsmartis.yoke.helper.MyAccessibilityService
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.expandNotificationDrawer
@@ -105,6 +106,8 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.GestureCheatSheet -> showGestureCheatSheet(activity, config())
                 GestureAction.Settings -> openSettings()
                 GestureAction.WidgetPage -> openWidgetPage()
+                GestureAction.ToggleGrayscale -> GrayscaleController.toggle(activity)
+                GestureAction.PauseGrayscale -> GrayscaleController.pause(activity)
             }
         } catch (e: Exception) {
             e.printStackTrace()

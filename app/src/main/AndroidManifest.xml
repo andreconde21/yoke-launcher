@@ -14,6 +14,10 @@
         tools:ignore="ProtectedPermissions" />
     <!--Used for Private Space support on Android 15+-->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
+    <!--Smart grayscale: granted once with adb (see README), lets Yoke switch the colour-correction grayscale-->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
     <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
 
@@ -114,13 +118,27 @@
             android:name=".helper.MyAccessibilityService"
             android:exported="false"
             android:label="@string/app_name"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:process=":serviceProcess">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".grayscale.GrayscaleReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".grayscale.GrayscaleTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_grayscale"
+            android:label="@string/grayscale_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
 

@@ -186,4 +186,26 @@ class GestureConfigTest {
         val parsed = GestureConfig.parse(old) as GestureParse.Ok
         assertEquals(GestureAction.AppDrawer, parsed.config[Trigger.SWIPE_UP])
     }
+
+    @Test
+    fun grayscaleActionsRoundTripAndAreUnboundByDefault() {
+        val config = GestureConfig(emptyMap())
+            .with(Trigger.SWIPE_LEFT, GestureAction.ToggleGrayscale)
+            .with(Trigger.SWIPE_RIGHT, GestureAction.PauseGrayscale)
+        val back = (GestureConfig.parse(config.toJson()) as GestureParse.Ok).config
+        assertEquals(GestureAction.ToggleGrayscale, back[Trigger.SWIPE_LEFT])
+        assertEquals(GestureAction.PauseGrayscale, back[Trigger.SWIPE_RIGHT])
+        assertTrue(GestureAction.simple.containsAll(listOf(GestureAction.ToggleGrayscale, GestureAction.PauseGrayscale)))
+        assertTrue(GestureDefaults.create().actions.values.none {
+            it == GestureAction.ToggleGrayscale || it == GestureAction.PauseGrayscale
+        })
+    }
+
+    @Test
+    fun jsonWrittenBeforeGrayscaleStillImports() {
+        val old = """{"version":1,"gestures":{"SWIPE_UP":{"type":"app_drawer"},"DOUBLE_TAP":{"type":"lock"},"PINCH_IN":{"type":"widget_page"}}}"""
+        val parsed = GestureConfig.parse(old)
+        assertTrue(parsed is GestureParse.Ok)
+        assertEquals(GestureAction.Lock, (parsed as GestureParse.Ok).config[Trigger.DOUBLE_TAP])
+    }
 }
