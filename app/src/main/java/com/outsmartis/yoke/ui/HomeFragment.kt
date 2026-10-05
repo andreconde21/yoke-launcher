@@ -473,6 +473,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     private fun homeAppClicked(location: Int) {
+        // An empty slot opens the picker straight away instead of asking for a long press
+        if (prefs.getAppPackage(location).isEmpty()) {
+            showAppList(Constants.FLAG_SET_HOME_APP_1 + location - 1, rename = false, includeHiddenApps = true)
+            return
+        }
         launchAppOrShortcut(
             appName = prefs.getAppName(location),
             packageName = prefs.getAppPackage(location),

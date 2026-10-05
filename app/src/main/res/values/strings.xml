@@ -22,7 +22,7 @@
     <string name="off">Off</string>
     <string name="on">On</string>
     <string name="change_default_launcher">Change default launcher</string>
-    <string name="swipe_up_for_apps">1. Swipe up for all apps\n2. Long press anywhere for settings</string>
+    <string name="swipe_up_for_apps">1. Long press "App" to choose your apps\n2. Swipe up for all apps\n3. Long press anywhere, type &gt;Settings</string>
     <string name="apps_on_home_screen">Apps on home screen</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
