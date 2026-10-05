@@ -79,6 +79,13 @@
             app:exitAnim="@anim/fade_exit"
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
+        <action
+            android:id="@+id/action_settingsFragment_to_notificationsHomeFragment"
+            app:destination="@id/notificationsHomeFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
     </fragment>
 
     <fragment
@@ -86,6 +93,12 @@
         android:name="com.outsmartis.yoke.ui.GrayscaleFragment"
         android:label="GrayscaleFragment"
         android:layout="@layout/fragment_grayscale" />
+
+    <fragment
+        android:id="@+id/notificationsHomeFragment"
+        android:name="com.outsmartis.yoke.ui.NotificationsHomeFragment"
+        android:label="NotificationsHomeFragment"
+        android:layout="@layout/fragment_notifications_home" />
 
     <fragment
         android:id="@+id/gesturesFragment"

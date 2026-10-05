@@ -7,6 +7,9 @@ import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -43,6 +46,11 @@ import com.outsmartis.yoke.listener.ViewSwipeTouchListener
 import com.outsmartis.yoke.cockpit.CockpitAgendaRepository
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitPrefs
+import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.notifications.HomeNotifications
+import com.outsmartis.yoke.notifications.NotificationLogic
+import com.outsmartis.yoke.notifications.NotificationStore
+import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.weather.WeatherFormat
 import com.outsmartis.yoke.weather.WeatherPrefs
 import com.outsmartis.yoke.weather.WeatherRepository
@@ -55,6 +63,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var prefs: Prefs
     private lateinit var viewModel: MainViewModel
     private var mainTouchListener: OnSwipeTouchListener? = null
+    private var notes: HomeNotifications? = null
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -67,10 +76,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = Prefs(requireContext())
+        keepAppsBelowTopBlock()
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
         } ?: throw Exception("Invalid Activity")
 
+        notes = HomeNotifications(requireContext(), binding.homeNotifications, binding.homeNowPlaying).also { it.bindNowPlaying() }
+        NotificationStore.entries.observe(viewLifecycleOwner) { renderNotifications() }
+        NotificationStore.nowPlaying.observe(viewLifecycleOwner) { notes?.render() }
         initObservers()
         setHomeAlignment(prefs.homeAlignment)
         initSwipeTouchListener()
@@ -79,6 +92,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     override fun onResume() {
         super.onResume()
+        NotificationStore.refresh()
         populateHomeScreen(false)
         WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateWeather() }
         CockpitAgendaRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateAgenda() }
@@ -323,6 +337,37 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     private fun populateHomeScreen(appCountUpdated: Boolean) {
+        populateHomeScreenCore(appCountUpdated)
+        renderNotifications()
+    }
+
+    /** The notification block, now playing line and the counts after the home app labels. */
+    private fun renderNotifications() {
+        val n = notes ?: return
+        n.render()
+        val counts = n.counts()
+        val accent = ThemeStore.current(requireContext())?.accentText
+            ?: requireContext().getColorFromAttr(R.attr.primaryColor)
+        val slots = listOf(
+            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+        )
+        for ((i, tv) in slots.withIndex()) {
+            val slot = i + 1
+            if (tv.text.isEmpty()) continue
+            val pkg = prefs.getAppPackage(slot)
+            val suffix = NotificationLogic.labelCountSuffix(counts[pkg] ?: 0, true)
+            val base = prefs.getAppName(slot)
+            tv.text = if (suffix.isEmpty()) base else SpannableStringBuilder(base).apply {
+                val start = length
+                append("  ").append(suffix)
+                setSpan(ForegroundColorSpan(accent), start, length, 0)
+                setSpan(RelativeSizeSpan(0.6f), start, length, 0)
+            }
+        }
+    }
+
+    private fun populateHomeScreenCore(appCountUpdated: Boolean) {
         if (appCountUpdated) hideHomeApps()
         populateDateTime()
 
@@ -659,9 +704,28 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
+    /**
+     * Clock, date, weather, agenda and notifications grow the top block; the home apps are
+     * centred under a fixed top padding, so push that padding down whenever the block is taller.
+     */
+    private fun keepAppsBelowTopBlock() {
+        // Landscape lays the block out differently and has no fixed top padding to adjust.
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) return
+        val minTop = 112.dpToPx()
+        binding.dateTimeLayout.addOnLayoutChangeListener { block, _, _, _, _, _, _, _, _ ->
+            val apps = _binding?.homeAppsLayout ?: return@addOnLayoutChangeListener
+            val wanted = if (block.visibility == View.VISIBLE) maxOf(minTop, block.bottom + 16.dpToPx()) else minTop
+            if (apps.paddingTop != wanted) apps.post {
+                apps.setPadding(apps.paddingLeft, wanted, apps.paddingRight, apps.paddingBottom)
+            }
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         mainTouchListener = null
+        notes?.release()
+        notes = null
         _binding = null
     }
 }

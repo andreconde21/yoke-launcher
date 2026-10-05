@@ -280,4 +280,24 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="quick_add_open_board">Open board</string>
     <string name="cockpit_agenda_setting">Cockpit agenda</string>
     <string name="cockpit_agenda_needs_vault">Pick the vault in Cockpit quick add first</string>
+    <string name="notes_title">Notifications on home</string>
+    <string name="notes_explainer">Pick the apps whose notifications appear on home. Nothing is stored or sent anywhere; Yoke only reads what Android shows in the shade, for the apps you choose.</string>
+    <string name="notes_master">Notifications on home</string>
+    <string name="notes_access_ok">Notification access: granted</string>
+    <string name="notes_access_missing">Notification access: not granted</string>
+    <string name="notes_access_button">Open Notification access</string>
+    <string name="notes_restricted_note">Android 13 and newer: for a sideloaded app, open Yoke\'s App info, tap the three dots and choose Allow restricted settings first. Otherwise Notification access stays greyed out.</string>
+    <string name="notes_apps">Apps</string>
+    <string name="notes_apps_empty">none picked yet</string>
+    <string name="notes_apps_count">%d picked</string>
+    <string name="notes_apps_search">Search apps</string>
+    <string name="notes_apps_hint">Pick the apps whose notifications appear on home</string>
+    <string name="notes_max_lines">Max lines</string>
+    <string name="notes_show_text">Show message text</string>
+    <string name="notes_hide_dnd">Hide during Do Not Disturb</string>
+    <string name="notes_counts">Counts on home apps</string>
+    <string name="notes_now_playing">Now playing</string>
+    <string name="notes_hide_text_app">Hide text for this app</string>
+    <string name="notes_show_text_app">Show text for this app</string>
+    <string name="notes_remove_app">Remove app from home notifications</string>
 </resources>
