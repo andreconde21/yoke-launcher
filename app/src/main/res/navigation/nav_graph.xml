@@ -79,7 +79,33 @@
             app:exitAnim="@anim/fade_exit"
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
+        <action
+            android:id="@+id/action_settingsFragment_to_searchSettingsFragment"
+            app:destination="@id/searchSettingsFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
+        <action
+            android:id="@+id/action_settingsFragment_to_backupFragment"
+            app:destination="@id/backupFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
     </fragment>
+
+    <fragment
+        android:id="@+id/searchSettingsFragment"
+        android:name="com.outsmartis.yoke.ui.SearchSettingsFragment"
+        android:label="SearchSettingsFragment"
+        android:layout="@layout/fragment_search_settings" />
+
+    <fragment
+        android:id="@+id/backupFragment"
+        android:name="com.outsmartis.yoke.ui.BackupFragment"
+        android:label="BackupFragment"
+        android:layout="@layout/fragment_backup" />
 
     <fragment
         android:id="@+id/grayscaleFragment"

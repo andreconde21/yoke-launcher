@@ -1,5 +1,9 @@
 package com.outsmartis.yoke.ui
 
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
+
 import android.content.Context
 import android.content.pm.LauncherApps
 import android.os.UserHandle
@@ -75,6 +79,10 @@ class AppDrawerAdapter(
 
     /** Builds the single row shown when a plain query matches nothing, e.g. "Search the web for ...". */
     var noMatchRow: ((String) -> AppModel?)? = null
+
+    /** Extra rows (cards, notes, contacts, settings) shown below the app and link matches for a plain query. */
+    var extraRows: ((String) -> List<AppModel>)? = null
+    private var baseCount = 0
     private var lastQuery = ""
 
     // Palette results are pushed in directly; a late filter publish must not overwrite them
@@ -176,8 +184,11 @@ class AppDrawerAdapter(
                 if (customResults) return
                 results?.values?.let {
                     var items = it as MutableList<AppModel>
-                    if (items.isEmpty() && lastQuery.isNotBlank()) {
-                        noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = mutableListOf(row) }
+                    baseCount = items.size
+                    val extras = if (lastQuery.isBlank()) emptyList() else extraRows?.invoke(lastQuery.trim()).orEmpty()
+                    if (extras.isNotEmpty()) items = (items + extras).toMutableList()
+                    if (baseCount == 0 && lastQuery.isNotBlank()) {
+                        noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
                     }
                     appFilteredList = items
                     submitList(appFilteredList) {
@@ -190,7 +201,7 @@ class AppDrawerAdapter(
 
     private fun autoLaunch() {
         try {
-            if (itemCount == 1
+            if (baseCount == 1
                 && autoLaunch
                 && autoLaunchSingle
                 && !queryIsBlank
@@ -275,10 +286,14 @@ class AppDrawerAdapter(
             appTitle.visibility = View.VISIBLE
 
             // Show indicators in title based on app type and state
-            appTitle.text = buildString {
+            val title = buildString {
                 append(appModel.appLabel)
                 if (appModel.isNew) append(" ✦")
                 if (appModel is AppModel.Link) append(" ↗")
+            }
+            val detail = (appModel as? AppModel.PaletteResult)?.detail
+            appTitle.text = if (detail.isNullOrEmpty()) title else SpannableString("$title  $detail").apply {
+                setSpan(RelativeSizeSpan(0.65f), title.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
             appTitle.gravity = appLabelGravity
             otherProfileIndicator.isVisible = appModel.user != myUserHandle
