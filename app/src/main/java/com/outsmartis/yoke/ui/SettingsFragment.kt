@@ -101,7 +101,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     override fun onClick(view: View) {
         when (view.id) {
             R.id.yokeHiddenApps -> showHiddenApps()
-            R.id.screenTimeOnOff -> viewModel.showDialog.postValue(Constants.Dialog.DIGITAL_WELLBEING)
+            R.id.screenTimeOnOff -> toggleScreenTime()
             R.id.appInfo -> openAppInfo(requireContext(), Process.myUserHandle(), BuildConfig.APPLICATION_ID)
             R.id.setLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.toggleLock -> toggleLockMode()
@@ -467,9 +467,20 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun populateScreenTimeOnOff() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (requireContext().appUsagePermissionGranted()) binding.screenTimeOnOff.text = getString(R.string.on)
-            else binding.screenTimeOnOff.text = getString(R.string.off)
+            val on = requireContext().appUsagePermissionGranted() && prefs.showScreenTime
+            binding.screenTimeOnOff.text = getString(if (on) R.string.on else R.string.off)
         } else binding.screenTimeLayout.visibility = View.GONE
+    }
+
+    // Off just hides it; usage access is only asked for when turning it on without it.
+    private fun toggleScreenTime() {
+        val granted = requireContext().appUsagePermissionGranted()
+        if (granted && prefs.showScreenTime) prefs.showScreenTime = false
+        else {
+            prefs.showScreenTime = true
+            if (!granted) viewModel.showDialog.postValue(Constants.Dialog.DIGITAL_WELLBEING)
+        }
+        populateScreenTimeOnOff()
     }
 
     private fun toggleAutoLaunchSingle() {

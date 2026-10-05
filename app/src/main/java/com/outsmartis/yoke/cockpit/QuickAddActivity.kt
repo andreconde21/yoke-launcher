@@ -44,8 +44,8 @@ class QuickAddActivity : AppCompatActivity() {
     private var config: CockpitBoardConfig? = null
     private var selected: CockpitColumn? = null
     /** Due date for the new card; today unless the user picks otherwise, null for "No date". */
-    private var due: LocalDate? = LocalDate.now()
-    private var dueChoice = DueChoice.TODAY
+    private var due: LocalDate? = null
+    private var dueChoice = DueChoice.NONE
     /** The label picked in the label row; null is "No label" (the default). */
     private var selectedLabel: String? = null
     private var defaultChipText: ColorStateList? = null
@@ -131,14 +131,11 @@ class QuickAddActivity : AppCompatActivity() {
         }
         renderDates()
 
-        // The date decides Today / Soon / Scheduled, so those columns are not offered here.
+        // Every column is offered. A date column (Today / Soon / Scheduled) and the date row
+        // stay in step: picking one sets the other, so a card never says two things.
         binding.columns.removeAllViews()
-        val offered = cfg.columns.filter { it.rule?.contains("status:done") != true && !CockpitCards.isDateColumn(it) }
-            .ifEmpty { cfg.columns }
-        offered.forEach { column -> addChip(binding.columns, column.label, column) { select(column) } }
-        // A column whose rule adds a label is never the silent default: cards start unlabelled.
-        select(offered.firstOrNull { it.id == prefs.defaultColumn }
-            ?: offered.firstOrNull { CockpitCards.columnLabel(it) == null } ?: offered.first())
+        cfg.columns.forEach { column -> addChip(binding.columns, column.label, column) { select(column, fromUser = true) } }
+        CockpitCards.defaultColumn(cfg.columns)?.let { select(it) }
 
         renderLabels(cfg)
         scanLabels(cfg)
@@ -218,6 +215,13 @@ class QuickAddActivity : AppCompatActivity() {
         dueChoice = choice
         due = date
         renderDates()
+        // A date column follows the date; "No date" falls back to the default (Pending) column.
+        val cfg = config ?: return
+        val current = selected ?: return
+        if (!CockpitCards.isDateColumn(current)) return
+        val target = if (date == null) CockpitCards.defaultColumn(cfg.columns)
+        else CockpitCards.columnForDue(cfg.columns, date, LocalDate.now())
+        target?.let { select(it) }
     }
 
     private fun renderDates() {
@@ -228,8 +232,18 @@ class QuickAddActivity : AppCompatActivity() {
         styleChips(binding.dates, theme?.accent ?: Color.GRAY) { it == dueChoice }
     }
 
-    private fun select(column: CockpitColumn) {
+    private fun select(column: CockpitColumn, fromUser: Boolean = false) {
         selected = column
+        if (fromUser) {
+            // Tapping a date column picks its date.
+            val today = LocalDate.now()
+            val rule = column.rule.orEmpty()
+            when {
+                rule.contains("date:today") -> { dueChoice = DueChoice.TODAY; due = today; renderDates() }
+                rule.contains("date:tomorrow") -> { dueChoice = DueChoice.TOMORROW; due = today.plusDays(1); renderDates() }
+                rule.contains("date:future") && (due == null || !due!!.isAfter(today.plusDays(1))) -> pickDue(DueChoice.CUSTOM)
+            }
+        }
         // A column's own colour wins; without one the theme's accent stands in for the old grey.
         val accent = runCatching { Color.parseColor(column.color) }.getOrNull()
             ?: theme?.accent ?: Color.GRAY
@@ -274,7 +288,6 @@ class QuickAddActivity : AppCompatActivity() {
             }
             runOnUiThread {
                 result.onSuccess {
-                    prefs.defaultColumn = column.id
                     Toast.makeText(this, getString(R.string.quick_add_saved, savedTo), Toast.LENGTH_SHORT).show()
                     finish()
                 }.onFailure {

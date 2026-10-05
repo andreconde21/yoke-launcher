@@ -43,6 +43,18 @@ fun Window.hideStatusBar() {
         decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE or View.SYSTEM_UI_FLAG_FULLSCREEN
 }
 
+/**
+ * An EditText built with a TextView style (`EditText(ctx, null, 0, R.style.TextSmall)`) loses
+ * the editText defaults, so it can't take focus and never opens the keyboard; restore them.
+ */
+fun android.widget.EditText.asTextField(): android.widget.EditText = apply {
+    isFocusable = true
+    isFocusableInTouchMode = true
+    isClickable = true
+    isLongClickable = true
+    isCursorVisible = true
+}
+
 fun View.hideKeyboard() {
     this.clearFocus()
     val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager

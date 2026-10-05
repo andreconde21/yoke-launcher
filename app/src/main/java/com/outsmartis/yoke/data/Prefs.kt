@@ -175,6 +175,11 @@ class Prefs(context: Context) {
         )
     }
 
+    /** Show today's screen time on home; separate from the usage-access permission it needs. */
+    var showScreenTime: Boolean
+        get() = prefs.getBoolean("SHOW_SCREEN_TIME", true)
+        set(value) = prefs.edit { putBoolean("SHOW_SCREEN_TIME", value).apply() }
+
     var autoShowKeyboard: Boolean
         get() = prefs.getBoolean(AUTO_SHOW_KEYBOARD, true)
         set(value) = prefs.edit { putBoolean(AUTO_SHOW_KEYBOARD, value).apply() }

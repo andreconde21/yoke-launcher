@@ -1,5 +1,6 @@
 package com.outsmartis.yoke.ui
 
+import com.outsmartis.yoke.helper.asTextField
 import android.text.InputType
 import android.view.View
 import android.widget.EditText
@@ -111,7 +112,7 @@ class WeatherSettings(
             val query = input.text.toString().trim()
             if (query.isNotEmpty()) search(query)
         }) {
-            EditText(context, null, 0, R.style.TextSmall).also {
+            EditText(context, null, 0, R.style.TextSmall).asTextField().also {
                 input = it
                 it.setHint(R.string.weather_city_hint)
                 it.inputType = InputType.TYPE_TEXT_FLAG_CAP_WORDS

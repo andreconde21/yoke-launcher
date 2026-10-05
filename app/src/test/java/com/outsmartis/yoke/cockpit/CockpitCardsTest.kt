@@ -99,4 +99,30 @@ class CockpitCardsTest {
         assertEquals("work", CockpitCards.columnLabel(col("no-date label:work")))
         assertNull(CockpitCards.columnLabel(col("no-date")))
     }
+
+    @Test
+    fun startsOnPendingOrTheFirstPlainColumn() {
+        val board = listOf(col("status:in-progress", "doing"), col("no-date label:work", "work"), col("no-date", "backlog"),
+            CockpitColumn("pending", "Pending", "#000", "no-date"))
+        assertEquals("pending", CockpitCards.defaultColumn(board)?.id)
+        assertEquals("backlog", CockpitCards.defaultColumn(board.dropLast(1))?.id)
+        assertEquals("backlog", CockpitCards.defaultColumn(CockpitBoardConfig.DEFAULT_COLUMNS)?.id)
+    }
+
+    @Test
+    fun aDueDatePointsAtItsDateColumn() {
+        val cols = CockpitBoardConfig.DEFAULT_COLUMNS
+        assertEquals("today", CockpitCards.columnForDue(cols, today, today)?.id)
+        assertEquals("today", CockpitCards.columnForDue(cols, today.minusDays(3), today)?.id)
+        assertEquals("soon", CockpitCards.columnForDue(cols, today.plusDays(1), today)?.id)
+        assertEquals("scheduled", CockpitCards.columnForDue(cols, today.plusDays(9), today)?.id)
+    }
+
+    @Test
+    fun doneCardsGetACompletedDate() {
+        val body = CockpitCards.content("T", CockpitCards.fieldsFor(col("status:done"), today), today)
+        assertTrue(body.contains("status: done\n"))
+        assertTrue(body.contains("completed: 2026-10-04\n"))
+        assertTrue(CockpitCards.content("T", ColumnFields("", "", null), today).contains("completed:\nproject:"))
+    }
 }

@@ -1,5 +1,6 @@
 package com.outsmartis.yoke.ui
 
+import com.outsmartis.yoke.helper.asTextField
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -182,7 +183,7 @@ class GesturesFragment : BaseFragment() {
                 if (valid) setAction(trigger, GestureAction.OpenUri(uri))
                 else ctx.showToast(getString(R.string.gesture_uri_invalid))
             }) { container ->
-                EditText(ctx, null, 0, R.style.TextSmall).also {
+                EditText(ctx, null, 0, R.style.TextSmall).asTextField().also {
                     input = it
                     it.setHint(R.string.gesture_uri_hint)
                     it.inputType = InputType.TYPE_TEXT_VARIATION_URI

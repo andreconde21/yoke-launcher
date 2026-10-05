@@ -103,6 +103,22 @@ object CockpitCards {
         return raw.map { it.trim().trim('"', '\'') }.filter { it.isNotEmpty() }
     }
 
+    /** The column quick-add starts on: "Pending" if the board has one, else the first plain column without a label rule. */
+    fun defaultColumn(columns: List<CockpitColumn>): CockpitColumn? =
+        columns.firstOrNull { it.id.equals("pending", true) || it.label.equals("pending", true) }
+            ?: columns.firstOrNull { !isDateColumn(it) && columnLabel(it) == null && it.rule?.contains("status:") != true }
+            ?: columns.firstOrNull()
+
+    /** The board column a due date lands in: today → date:today, tomorrow → date:tomorrow, later → date:future. */
+    fun columnForDue(columns: List<CockpitColumn>, due: LocalDate, today: LocalDate): CockpitColumn? {
+        val rule = when {
+            !due.isAfter(today) -> "date:today"
+            due == today.plusDays(1) -> "date:tomorrow"
+            else -> "date:future"
+        }
+        return columns.firstOrNull { it.rule.orEmpty().contains(rule) }
+    }
+
     /** Columns placed by a due date (Today, Soon, Scheduled); quick-add sets the date directly instead. */
     fun isDateColumn(column: CockpitColumn): Boolean = column.rule.orEmpty().contains("date:")
 
@@ -141,7 +157,9 @@ object CockpitCards {
         val all = (extraLabels + listOfNotNull(fields.label)).distinct()
         val labels = all.joinToString(", ", "[", "]") { "\"" + it.replace("\"", "\\\"") + "\"" }
         val escaped = title.replace("\"", "\\\"")
-        return "---\ntitle: \"$escaped\"\nstatus: ${fields.status}\ndue: ${fields.due}\ntime:\ncompleted:\nproject:\n" +
+        // Straight into Done: completed is today, as getDropUpdates sets it.
+        val completed = if (fields.status == "done") " $today" else ""
+        return "---\ntitle: \"$escaped\"\nstatus: ${fields.status}\ndue: ${fields.due}\ntime:\ncompleted:$completed\nproject:\n" +
             "labels: $labels\ncreated: $today\nsource: yoke\n---\n\n# $title\n"
     }
 }

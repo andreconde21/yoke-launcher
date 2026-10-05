@@ -92,6 +92,13 @@ class AppDrawerFragment : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = Prefs(requireContext())
+        // The list scrolls under the navigation bar; its last row must still clear it.
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.recyclerView) { list, insets ->
+            val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()
+                or androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+            list.setPadding(list.paddingLeft, list.paddingTop, list.paddingRight, bottom)
+            insets
+        }
         arguments?.let {
             flag = it.getInt(Constants.Key.FLAG, Constants.FLAG_LAUNCH_APP)
             canRename = it.getBoolean(Constants.Key.RENAME, false)

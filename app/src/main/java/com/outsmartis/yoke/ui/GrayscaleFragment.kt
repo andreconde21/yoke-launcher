@@ -1,5 +1,6 @@
 package com.outsmartis.yoke.ui
 
+import com.outsmartis.yoke.helper.asTextField
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -188,7 +189,7 @@ class GrayscaleFragment : BaseFragment() {
                 refresh()
             }) {
                 val root = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-                val search = EditText(ctx, null, 0, R.style.TextSmall).apply {
+                val search = EditText(ctx, null, 0, R.style.TextSmall).asTextField().apply {
                     setHint(R.string.grayscale_exceptions_search)
                     setSingleLine()
                 }

@@ -12,10 +12,6 @@ class CockpitPrefs(context: Context) {
         get() = prefs.getString("vault_uri", null)
         set(value) = prefs.edit().putString("vault_uri", value).apply()
 
-    /** The last column used, so the next card goes to the same place. */
-    var defaultColumn: String?
-        get() = prefs.getString("default_column", null)
-        set(value) = prefs.edit().putString("default_column", value).apply()
 
     /** Labels seen on the board's cards last time, so the label row shows at once. */
     var knownLabels: Set<String>
