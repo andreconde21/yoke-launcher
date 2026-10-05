@@ -7,6 +7,7 @@ import com.outsmartis.yoke.R
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
+import com.outsmartis.yoke.grayscale.GrayscaleController
 import com.outsmartis.yoke.helper.LinkDialogs
 import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.theme.ThemePickerActivity
@@ -14,7 +15,7 @@ import com.outsmartis.yoke.theme.ThemePickerActivity
 /**
  * The `>` actions this branch ships. Other branches add theirs next to these:
  * `PaletteActions.register(PaletteAction(id = "theme_picker", label = "Theme picker") { ... })`.
- * Ids: settings, add_to_cockpit, add_link, web_links, theme_picker, gestures, hidden_apps.
+ * Ids: settings, add_to_cockpit, add_link, web_links, theme_picker, gestures, hidden_apps, grayscale_toggle, grayscale_pause.
  * Lock is not offered because
  * locking needs the home screen's accessibility hook.
  */
@@ -50,6 +51,16 @@ object DefaultPaletteActions {
         PaletteActions.register(
             PaletteAction("gestures", app.getString(R.string.palette_gestures), closeDrawer = false) {
                 it.navController.navigate(R.id.gesturesFragment)
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("grayscale_toggle", app.getString(R.string.palette_grayscale_toggle)) {
+                GrayscaleController.toggle(it.context)
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("grayscale_pause", app.getString(R.string.palette_grayscale_pause)) {
+                GrayscaleController.pause(it.context)
             }
         )
         PaletteActions.register(

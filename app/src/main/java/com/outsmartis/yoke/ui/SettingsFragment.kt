@@ -111,6 +111,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.fontText -> toggleFont()
 
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
+            R.id.grayscaleRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
         }
     }
@@ -146,6 +147,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.statusBar.setOnClickListener(this)
         binding.dateTime.setOnClickListener(this)
         binding.gesturesRow.setOnClickListener(this)
+        binding.grayscaleRow.setOnClickListener(this)
+        binding.grayscaleRow.setText(if (com.outsmartis.yoke.grayscale.GrayscalePrefs(requireContext()).featureOn) R.string.on else R.string.off)
         binding.appThemeText.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)

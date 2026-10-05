@@ -43,6 +43,8 @@ sealed class GestureAction(val type: String, val label: String) {
     object GestureCheatSheet : GestureAction("gesture_cheat_sheet", "Gesture cheat sheet")
     object Settings : GestureAction("settings", "Settings")
     object WidgetPage : GestureAction("widget_page", "Widgets page")
+    object ToggleGrayscale : GestureAction("toggle_grayscale", "Toggle grayscale")
+    object PauseGrayscale : GestureAction("pause_grayscale", "Pause grayscale 15 min")
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("type", type)
@@ -68,7 +70,7 @@ sealed class GestureAction(val type: String, val label: String) {
             None, AppDrawer, Search, Notifications, QuickSettings, Lock, RecentApps, Torch,
             MediaPlayPause, MediaNext, MediaPrevious, CockpitQuickAdd, ConductoreSheet,
             CommandPalette, ThemePicker, GestureCheatSheet, Settings,
-            WidgetPage,
+            WidgetPage, ToggleGrayscale, PauseGrayscale,
         )
 
         /** Throws [IllegalArgumentException] with a readable message when [json] is not a valid action. */

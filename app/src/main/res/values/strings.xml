@@ -47,15 +47,17 @@
         \n\nThe choice is always yours.</string>
     <string name="app_usage_message">To show/hide your screen time on the home screen, please allow or disallow the app usage permission.
         \n\nNote: No app usage data is collected. Everything is processed on your device.</string>
-    <string name="accessibility_service_description">The accessibility permission is required to enable the gesture - double tap to lock . Any data acquired by Yoke via this service will not leave your device.</string>
+    <string name="accessibility_service_description">Used for the double-tap-to-lock gesture and, if Smart grayscale is on, to see which app is in front so the screen can switch between grayscale and colour. Nothing is stored or sent.</string>
     <string name="close">Close</string>
     <string name="date">Date</string>
     <string name="date_only">Date only</string>
     <string name="bottom_on">Bottom: On</string>
     <string name="bottom_off">Bottom: Off</string>
     <string name="hidden_apps_message">Note: Tap on \'Yoke\' at the top of this Settings page to find your hidden apps.</string>
-    <string name="accessibility_disclosure">Please turn on Yoke\'s accessibility service in your device\'s settings to enable Double tap to lock gesture.
-    \n\nPlease note that this service is only used for this particular feature. Our accessibility service does not collect or share any data.</string>
+    <string name="accessibility_disclosure">Please turn on Yoke\'s accessibility service in your device\'s settings.
+    
+
+Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart grayscale is on, to see the name of the app in front so the screen can switch between grayscale and colour. It reads no screen content. Nothing is stored or sent anywhere.</string>
     <string name="permission">Permission</string>
     <string name="enable">Enable</string>
     <string name="disable">Disable</string>
@@ -184,4 +186,32 @@
     <string name="quick_add_tomorrow">Tomorrow</string>
     <string name="quick_add_pick_date">Pick date…</string>
     <string name="quick_add_no_date">No date</string>
+
+    <!-- Smart grayscale -->
+    <string name="grayscale_tile_label">Grayscale</string>
+    <string name="grayscale_title">Smart grayscale</string>
+    <string name="grayscale_summary">Smart grayscale</string>
+    <string name="palette_grayscale_toggle">Grayscale on/off</string>
+    <string name="palette_grayscale_pause">Pause grayscale 15 min</string>
+    <string name="grayscale_toast_on">Grayscale on</string>
+    <string name="grayscale_toast_off">Grayscale off</string>
+    <string name="grayscale_toast_paused">Colour for %1$d min</string>
+    <string name="grayscale_needs_permission">Grayscale needs a one-time permission. See Settings, Smart grayscale.</string>
+    <string name="grayscale_pause_needs_on">Turn Smart grayscale on first</string>
+    <string name="grayscale_master">Smart grayscale</string>
+    <string name="grayscale_explainer">The whole phone is grayscale, except while an exception app is in front.</string>
+    <string name="grayscale_setup_title">One-time setup</string>
+    <string name="grayscale_setup_body">Run this on a computer with the phone connected, then come back. Tap to copy.</string>
+    <string name="grayscale_copied">Command copied</string>
+    <string name="grayscale_exceptions">Exceptions</string>
+    <string name="grayscale_exceptions_count">%1$d apps stay in colour</string>
+    <string name="grayscale_exceptions_search">Search apps</string>
+    <string name="grayscale_status_permission_ok">Permission: granted</string>
+    <string name="grayscale_status_permission_missing">Permission: missing (see setup above)</string>
+    <string name="grayscale_status_service_ok">Accessibility service: on</string>
+    <string name="grayscale_status_service_off">Accessibility service: off</string>
+    <string name="grayscale_open_accessibility">Open accessibility settings</string>
+    <string name="grayscale_restricted_note">Android 13 and newer: for a sideloaded app, open Yoke\'s App info, tap the three dots and choose Allow restricted settings first. Otherwise the accessibility switch stays greyed out.</string>
+    <string name="grayscale_pause">Pause for 15 min</string>
+    <string name="grayscale_resume">Colour until %1$s. Tap to resume grayscale.</string>
 </resources>
