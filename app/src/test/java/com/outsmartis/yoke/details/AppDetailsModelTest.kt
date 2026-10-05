@@ -82,4 +82,49 @@ class AppDetailsModelTest {
         assertEquals("updated now", DetailsText.updated(now, now))
         assertEquals("", DetailsText.updated(0, now))
     }
+
+    private fun v2(state: String = "needsInput", vararg extra: Pair<String, Any?>) =
+        DetailsMapper.item(Row(mapOf("id" to "h/a", "title" to "a", "state" to state) + extra))
+
+    @Test fun v1RowHasNoReplyFields() {
+        val i = item("needsInput", 1)
+        assertNull(i.question); assertNull(i.options); assertFalse(i.answerable); assertNull(i.answerNote)
+        assertEquals(1, DetailsMapper.summary(Row(mapOf("monitoring" to 1))).contractVersion)
+        assertEquals(ReplyUi.None, ReplyUi.of(i, 1))
+    }
+
+    @Test fun v2ColumnsAndSummaryVersion() {
+        val i = v2("needsInput", "question" to "Run rm?", "options" to "[\"Allow\",\"Always allow\",\"Deny\"]", "answerable" to 1)
+        assertEquals("Run rm?", i.question); assertEquals(listOf("Allow", "Always allow", "Deny"), i.options); assertTrue(i.answerable)
+        assertEquals(2, DetailsMapper.summary(Row(mapOf("contract_version" to 2))).contractVersion)
+    }
+
+    @Test fun malformedOptionsAreNull() {
+        listOf(null, "", "nope", "{\"a\":1}", "[1,2]", "[]", "[\"ok\",\"\"]", "[\"a\",").forEach {
+            assertNull(it, DetailsMapper.parseOptions(it))
+        }
+    }
+
+    @Test fun replyUiChoices() {
+        val choices = v2("blocked", "options" to "[\"Allow\",\"Deny\"]", "answerable" to 1)
+        assertEquals(ReplyUi.Choices(listOf("Allow", "Deny")), ReplyUi.of(choices, 2))
+        assertEquals(ReplyUi.None, ReplyUi.of(choices, 1))
+        assertTrue(ReplyUi.isSecondary("Deny")); assertFalse(ReplyUi.isSecondary("Allow"))
+    }
+
+    @Test fun replyUiTextNoteAndNonUrgent() {
+        assertEquals(ReplyUi.TextField, ReplyUi.of(v2("needsInput", "question" to "q", "answerable" to 1), 2))
+        assertEquals(ReplyUi.Note("why"), ReplyUi.of(v2("needsInput", "answerable" to 0, "answer_note" to "why"), 2))
+        assertEquals(ReplyUi.None, ReplyUi.of(v2("needsInput", "answerable" to 0), 2))
+        assertEquals(ReplyUi.None, ReplyUi.of(v2("working", "answerable" to 1), 2))
+    }
+
+    @Test fun replyOutcomeMapping() {
+        val o = AppDetailsClient.ReplyOutcome
+        assertEquals(AppDetailsClient.ReplyResult.Ok, o.of(true, true, null, false))
+        assertEquals(AppDetailsClient.ReplyResult.Queued, o.of(true, true, null, true))
+        assertEquals(AppDetailsClient.ReplyResult.Failed("gone"), o.of(true, false, "gone", false))
+        assertTrue(o.of(true, false, null, false) is AppDetailsClient.ReplyResult.Failed)
+        assertTrue(o.of(false, false, null, false) is AppDetailsClient.ReplyResult.Failed)
+    }
 }

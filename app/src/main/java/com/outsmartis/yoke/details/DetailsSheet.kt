@@ -21,10 +21,16 @@ import androidx.core.view.WindowInsetsCompat
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.text.Editable
+import android.text.InputType
+import android.text.TextWatcher
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.helper.asTextField
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.helper.openAppInfo
 import com.outsmartis.yoke.helper.showToast
@@ -64,6 +70,14 @@ class DetailsSheet private constructor(
     @Volatile private var dismissed = false
     private var loadSeq = 0
 
+    // Reply state survives re-renders (the provider reloads the sheet while the user types).
+    private val drafts = mutableMapOf<String, String>()
+    private val sending = mutableSetOf<String>()
+    private val expanded = mutableSetOf<String>()
+    private val fields = mutableMapOf<String, EditText>()
+    private var lastResult: AppDetailsClient.Result? = null
+    private var lastShortcuts: List<ShortcutInfo> = emptyList()
+
     private fun dp(v: Int) = (v * density).toInt()
 
     private fun show() {
@@ -74,7 +88,8 @@ class DetailsSheet private constructor(
         // The sheet's background runs behind the navigation bar; its content stays above it.
         ViewCompat.setOnApplyWindowInsetsListener(scroll) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
-            content.setPadding(dp(24) + bars.left, dp(20), dp(24) + bars.right, dp(20) + bars.bottom)
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            content.setPadding(dp(24) + bars.left, dp(20), dp(24) + bars.right, dp(20) + maxOf(bars.bottom, ime.bottom))
             insets
         }
         dialog.setContentView(scroll)
@@ -118,6 +133,8 @@ class DetailsSheet private constructor(
     }
 
     private fun present(result: AppDetailsClient.Result?, shortcuts: List<ShortcutInfo>) {
+        lastResult = result
+        lastShortcuts = shortcuts
         val isConductore = packageName == CONDUCTORE_PACKAGE
         when (result) {
             is AppDetailsClient.Result.Ok -> {
@@ -130,7 +147,7 @@ class DetailsSheet private constructor(
                 val rows = when {
                     s != null && !s.monitoring -> listOf(note(context.getString(R.string.details_not_watching)))
                     d.items.isEmpty() -> listOf(note(context.getString(R.string.details_no_agents)))
-                    else -> d.items.map { itemRow(it, now) }
+                    else -> d.items.map { itemBlock(it, now, s?.contractVersion ?: 1, d.authority) }
                 }
                 render(label, head, rows, null, shortcuts)
             }
@@ -147,6 +164,12 @@ class DetailsSheet private constructor(
         render(header, "", body, hint, shortcuts)
 
     private fun render(header: String, summary: String, body: List<View>, hint: String?, shortcuts: List<ShortcutInfo>) {
+        // Keep the caret where the user left it when a reload re-renders the reply field.
+        val focused = fields.entries.firstOrNull { it.value.hasFocus() }
+        val focusedId = focused?.key
+        val selStart = focused?.value?.selectionStart ?: 0
+        val selEnd = focused?.value?.selectionEnd ?: 0
+        fields.clear()
         content.removeAllViews()
         content.addView(text(header, 22f, fg, bold = true))
         if (summary.isNotEmpty()) content.addView(text(summary, 13f, secondary).apply { setPadding(0, dp(4), 0, 0) })
@@ -163,6 +186,13 @@ class DetailsSheet private constructor(
         content.addView(action(context.getString(R.string.details_app_info)) { dismissThen { openAppInfo(context, user, packageName) } })
         extraActions.forEach { a -> content.addView(action(a.label) { dismissThen(a.onClick) }) }
         ThemeApplier.fonts(context)?.let { applyFont(content, it) }
+        focusedId?.let { id ->
+            fields[id]?.let { f ->
+                f.requestFocus()
+                val n = f.text.length
+                f.setSelection(selStart.coerceIn(0, n), selEnd.coerceIn(0, n))
+            }
+        }
     }
 
     private fun applyFont(v: View, f: ThemeApplier.Fonts) {
@@ -193,6 +223,113 @@ class DetailsSheet private constructor(
         }
         return row
     }
+
+    /** The row (tap = deep link) plus, for contract v2 needsInput/blocked rows, the question and reply controls. */
+    private fun itemBlock(item: DetailsItem, now: Long, version: Int, auth: String): View {
+        val row = itemRow(item, now)
+        val ui = ReplyUi.of(item, version)
+        if (ui == ReplyUi.None) return row
+        val block = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        block.addView(row)
+        item.question?.let { q ->
+            val open = item.id in expanded
+            block.addView(text(q, 14f, fg).apply {
+                maxLines = if (open) Int.MAX_VALUE else 6
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setPadding(0, 0, 0, dp(6))
+                setOnClickListener {
+                    if (!expanded.remove(item.id)) expanded.add(item.id)
+                    maxLines = if (item.id in expanded) Int.MAX_VALUE else 6
+                }
+            })
+        }
+        val busy = item.id in sending
+        when (ui) {
+            is ReplyUi.Note -> block.addView(text(ui.text, 13f, secondary).apply { setPadding(0, 0, 0, dp(6)) })
+            is ReplyUi.Choices -> block.addView(choiceRow(item, ui.options, busy, auth))
+            ReplyUi.TextField -> block.addView(replyRow(item, busy, auth))
+            ReplyUi.None -> {}
+        }
+        if (busy) block.addView(text(context.getString(R.string.details_sending), 12f, secondary))
+        return block
+    }
+
+    private fun choiceRow(item: DetailsItem, options: List<String>, busy: Boolean, auth: String): View {
+        val flow = FlowLayout(context)
+        options.forEachIndexed { i, o ->
+            flow.addView(chip(o, ReplyUi.isSecondary(o), !busy) {
+                send(item) { client.choose(auth, item.id, i) }
+            })
+        }
+        return flow
+    }
+
+    private fun replyRow(item: DetailsItem, busy: Boolean, auth: String): View {
+        val line = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val field = EditText(context, null, 0, R.style.TextSmall).asTextField().apply {
+            hint = context.getString(R.string.details_reply_hint, item.title)
+            setTextColor(fg)
+            setHintTextColor(secondary)
+            textSize = 14f
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            imeOptions = EditorInfo.IME_ACTION_SEND
+            isEnabled = !busy
+            setText(drafts[item.id].orEmpty())
+            addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(e: Editable?) { drafts[item.id] = e?.toString().orEmpty() }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            })
+        }
+        fields[item.id] = field
+        fun go() {
+            val t = drafts[item.id].orEmpty().trim()
+            if (t.isNotEmpty() && item.id !in sending) send(item) { client.reply(auth, item.id, t) }
+        }
+        field.setOnEditorActionListener { _, action, _ -> if (action == EditorInfo.IME_ACTION_SEND) { go(); true } else false }
+        line.addView(field, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        line.addView(chip(context.getString(R.string.details_send), false, !busy) { go() })
+        return line
+    }
+
+    private fun chip(label: String, secondaryStyle: Boolean, enabled: Boolean, onClick: () -> Unit): TextView {
+        val color = if (secondaryStyle) secondary else accent
+        return text(label, 14f, color).apply {
+            setPadding(dp(14), dp(7), dp(14), dp(7))
+            background = GradientDrawable().apply {
+                cornerRadius = 20 * density
+                setStroke(dp(1), if (secondaryStyle) Color.TRANSPARENT else color)
+                setColor(Color.TRANSPARENT)
+            }
+            layoutParams = ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { rightMargin = dp(6); bottomMargin = dp(6) }
+            isEnabled = enabled
+            alpha = if (enabled) 1f else 0.4f
+            setOnClickListener { onClick() }
+        }
+    }
+
+    /** Runs a reply/choose call off the main thread and reports the outcome. */
+    private fun send(item: DetailsItem, call: () -> AppDetailsClient.ReplyResult) {
+        if (!sending.add(item.id)) return
+        repaint()
+        actions.execute {
+            val r = call()
+            main.post {
+                sending.remove(item.id)
+                when (r) {
+                    AppDetailsClient.ReplyResult.Ok -> { drafts.remove(item.id); context.showToast(context.getString(R.string.details_sent)) }
+                    AppDetailsClient.ReplyResult.Queued -> { drafts.remove(item.id); context.showToast(context.getString(R.string.details_queued)) }
+                    AppDetailsClient.ReplyResult.NotAllowed -> context.showToast(context.getString(R.string.details_update_conductore_reply))
+                    is AppDetailsClient.ReplyResult.Failed -> context.showToast(r.message)
+                }
+                if (!dismissed) repaint()
+            }
+        }
+    }
+
+    private fun repaint() = present(lastResult, lastShortcuts)
 
     private fun openItem(item: DetailsItem) {
         val link = item.deepLink
@@ -267,6 +404,8 @@ class DetailsSheet private constructor(
     companion object {
         const val CONDUCTORE_PACKAGE = "com.outsmartis.conductore"
         private val io = Executors.newSingleThreadExecutor()
+        /** Separate from [io]: a reply can block ~5 s and must not hold up reloads. */
+        private val actions = Executors.newCachedThreadPool()
 
         fun unwrap(context: Context): Context =
             generateSequence(context) { (it as? ContextWrapper)?.baseContext }.firstOrNull { it is Activity } ?: context
@@ -289,4 +428,43 @@ class DetailsSheet private constructor(
             show(context, CONDUCTORE_PACKAGE, user, activity.label.toString())
         }
     }
+}
+
+/** Minimal wrapping row for the option chips. */
+private class FlowLayout(context: Context) : ViewGroup(context) {
+    private fun lp(v: View) = v.layoutParams as? MarginLayoutParams ?: MarginLayoutParams(0, 0)
+
+    override fun onMeasure(wSpec: Int, hSpec: Int) {
+        val maxW = MeasureSpec.getSize(wSpec)
+        var x = 0; var y = 0; var rowH = 0
+        for (i in 0 until childCount) {
+            val c = getChildAt(i)
+            measureChildWithMargins(c, wSpec, 0, hSpec, 0)
+            val m = lp(c)
+            val w = c.measuredWidth + m.leftMargin + m.rightMargin
+            val h = c.measuredHeight + m.topMargin + m.bottomMargin
+            if (x > 0 && x + w > maxW) { x = 0; y += rowH; rowH = 0 }
+            x += w; rowH = maxOf(rowH, h)
+        }
+        setMeasuredDimension(maxW, y + rowH)
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        val maxW = r - l
+        var x = 0; var y = 0; var rowH = 0
+        for (i in 0 until childCount) {
+            val c = getChildAt(i)
+            val m = lp(c)
+            val w = c.measuredWidth + m.leftMargin + m.rightMargin
+            val h = c.measuredHeight + m.topMargin + m.bottomMargin
+            if (x > 0 && x + w > maxW) { x = 0; y += rowH; rowH = 0 }
+            c.layout(x + m.leftMargin, y + m.topMargin, x + m.leftMargin + c.measuredWidth, y + m.topMargin + c.measuredHeight)
+            x += w; rowH = maxOf(rowH, h)
+        }
+    }
+
+    override fun generateLayoutParams(attrs: android.util.AttributeSet?) = MarginLayoutParams(context, attrs)
+    override fun generateDefaultLayoutParams() = MarginLayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+    override fun generateLayoutParams(p: LayoutParams?) = MarginLayoutParams(p)
+    override fun checkLayoutParams(p: LayoutParams?) = p is MarginLayoutParams
 }
