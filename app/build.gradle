@@ -79,6 +79,10 @@ dependencies {
     //Material dependency
     implementation libs.material
 
+    // Shizuku: grant WRITE_SECURE_SETTINGS from the phone (Smart grayscale setup)
+    implementation libs.shizuku.api
+    implementation libs.shizuku.provider
+
     testImplementation libs.junit
     testImplementation 'org.json:json:20250517'
 }

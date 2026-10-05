@@ -1,6 +1,8 @@
 package com.outsmartis.yoke.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -17,6 +19,7 @@ import com.outsmartis.yoke.R
 import com.outsmartis.yoke.databinding.FragmentGrayscaleBinding
 import com.outsmartis.yoke.grayscale.GrayscaleController
 import com.outsmartis.yoke.grayscale.GrayscalePrefs
+import com.outsmartis.yoke.grayscale.ShizukuGrant
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.copyToClipboard
 import com.outsmartis.yoke.helper.createDialog
@@ -53,6 +56,9 @@ class GrayscaleFragment : BaseFragment() {
             requireContext().copyToClipboard(GrayscaleController.grantCommand(requireContext()))
             requireContext().showToast(getString(R.string.grayscale_copied))
         }
+        binding.grayscaleHowTitle.setOnClickListener {
+            binding.grayscaleHowBody.isVisible = !binding.grayscaleHowBody.isVisible
+        }
         binding.grayscaleExceptions.setOnClickListener { showExceptions() }
         binding.grayscalePause.setOnClickListener {
             if (prefs.pausedUntil > System.currentTimeMillis()) GrayscaleController.resume(requireContext())
@@ -74,6 +80,7 @@ class GrayscaleFragment : BaseFragment() {
         val permission = GrayscaleController.hasPermission(ctx)
         binding.grayscaleSetupCard.isVisible = !permission
         binding.grayscaleCommand.text = GrayscaleController.grantCommand(ctx)
+        if (!permission) refreshShizuku(ctx)
         binding.grayscaleStatusPermission.setText(
             if (permission) R.string.grayscale_status_permission_ok else R.string.grayscale_status_permission_missing
         )
@@ -86,6 +93,59 @@ class GrayscaleFragment : BaseFragment() {
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
         } else getString(R.string.grayscale_pause)
+    }
+
+    private fun refreshShizuku(ctx: android.content.Context) {
+        val status = binding.grayscaleShizukuStatus
+        val button = binding.grayscaleShizukuButton
+        button.isVisible = true
+        when (ShizukuGrant.state(ctx)) {
+            ShizukuGrant.State.NotInstalled -> {
+                status.setText(R.string.grayscale_shizuku_not_installed)
+                button.setText(R.string.grayscale_shizuku_install)
+                button.setOnClickListener { openShizukuListing() }
+            }
+            ShizukuGrant.State.NotRunning -> {
+                status.setText(R.string.grayscale_shizuku_not_running)
+                button.setText(R.string.grayscale_shizuku_open)
+                button.setOnClickListener {
+                    val launch = ctx.packageManager.getLaunchIntentForPackage(ShizukuGrant.SHIZUKU_PACKAGE)
+                    if (launch != null) startActivity(launch)
+                }
+            }
+            ShizukuGrant.State.NeedsPermission, ShizukuGrant.State.Ready -> {
+                status.setText(R.string.grayscale_shizuku_ready)
+                button.setText(R.string.grayscale_shizuku_grant)
+                button.setOnClickListener { grantWithShizuku() }
+            }
+            ShizukuGrant.State.Granted -> button.isVisible = false
+        }
+    }
+
+    private fun openShizukuListing() {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuGrant.SHIZUKU_PACKAGE}")))
+        } catch (e: ActivityNotFoundException) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+            } catch (_: ActivityNotFoundException) {
+            }
+        }
+    }
+
+    private fun grantWithShizuku() {
+        val ctx = requireContext()
+        ShizukuGrant.requestAndGrant(ctx) { error ->
+            if (_binding == null) return@requestAndGrant
+            if (error == null) {
+                ctx.showToast(getString(R.string.grayscale_granted))
+            } else if (error == "denied") {
+                ctx.showToast(getString(R.string.grayscale_shizuku_denied))
+            } else {
+                binding.grayscaleShizukuStatus.text = getString(R.string.grayscale_shizuku_failed, error)
+            }
+            refresh()
+        }
     }
 
     private fun showAccessibilityDisclosure() {
@@ -164,6 +224,7 @@ class GrayscaleFragment : BaseFragment() {
     }
 
     override fun onDestroyView() {
+        ShizukuGrant.release()
         dialog?.dismiss()
         dialog = null
         super.onDestroyView()

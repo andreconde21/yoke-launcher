@@ -46,6 +46,16 @@
           <p>Locking uses Android's accessibility service and nothing else. Because Yoke isn't installed from a store, Android 13 and newer first need App info, the three-dot menu, "Allow restricted settings".</p></li>
       </ol>
 
+      <h2>Smart grayscale (optional)</h2>
+      <p>Smart grayscale turns the whole phone grayscale except in the apps you choose. It needs a one-time permission that Android only lets developer tools grant. The grant survives Yoke updates, and Yoke uses it only to switch colour correction on and off. Pick one way:</p>
+      <ol>
+        <li><strong>On the phone, with Shizuku.</strong>
+          <p>Install Shizuku, start it with Wireless debugging, then open Yoke, Settings, Smart grayscale and tap "Grant with Shizuku".</p></li>
+        <li><strong>From a computer, with adb.</strong>
+          <p>Connect the phone and run <code>adb shell pm grant com.outsmartis.yoke android.permission.WRITE_SECURE_SETTINGS</code></p></li>
+      </ol>
+      <p>Then turn on Yoke's accessibility service. On Android 13 and newer, first open App info, the three-dot menu, "Allow restricted settings".</p>
+
       <p class="note">Every release is built and signed by GitHub Actions from the public source. The SHA-256 of each APK is published next to it as <code>yoke.apk.sha256</code>, and the signing certificate's SHA-256 is <code>c1c53f01f674494483aa0cb16b0190c4ccbe736840580c383c18bc88510ad4da</code>.</p>
     </main>
 
