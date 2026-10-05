@@ -46,6 +46,8 @@ class QuickAddActivity : AppCompatActivity() {
     /** Due date for the new card; today unless the user picks otherwise, null for "No date". */
     private var due: LocalDate? = LocalDate.now()
     private var dueChoice = DueChoice.TODAY
+    /** The label picked in the label row; null is "No label" (the default). */
+    private var selectedLabel: String? = null
     private var defaultChipText: ColorStateList? = null
 
     private val pickVault = 1
@@ -113,6 +115,7 @@ class QuickAddActivity : AppCompatActivity() {
         binding.input.visibility = View.GONE
         binding.datesScroll.visibility = View.GONE
         binding.columnsScroll.visibility = View.GONE
+        binding.labelsScroll.visibility = View.GONE
     }
 
     private fun showBoard(cfg: CockpitBoardConfig) {
@@ -133,8 +136,50 @@ class QuickAddActivity : AppCompatActivity() {
         val offered = cfg.columns.filter { it.rule?.contains("status:done") != true && !CockpitCards.isDateColumn(it) }
             .ifEmpty { cfg.columns }
         offered.forEach { column -> addChip(binding.columns, column.label, column) { select(column) } }
-        select(offered.firstOrNull { it.id == prefs.defaultColumn } ?: offered.first())
+        // A column whose rule adds a label is never the silent default: cards start unlabelled.
+        select(offered.firstOrNull { it.id == prefs.defaultColumn }
+            ?: offered.firstOrNull { CockpitCards.columnLabel(it) == null } ?: offered.first())
+
+        renderLabels(cfg)
+        scanLabels(cfg)
         binding.input.requestFocus()
+    }
+
+    /** "No label" plus every label the board knows: custom colours, column rules, and labels seen on cards. */
+    private fun renderLabels(cfg: CockpitBoardConfig) {
+        val known = (prefs.knownLabels + cfg.labelColors.keys + cfg.columns.mapNotNull { CockpitCards.columnLabel(it) })
+            .filter { it.isNotBlank() }.toSortedSet(String.CASE_INSENSITIVE_ORDER)
+        binding.labelsScroll.visibility = if (known.isEmpty()) View.GONE else View.VISIBLE
+        binding.labels.removeAllViews()
+        addChip(binding.labels, getString(R.string.quick_add_no_label), NO_LABEL) { pickLabel(null) }
+        known.forEach { label -> addChip(binding.labels, label, label) { pickLabel(label) } }
+        if (selectedLabel != null && selectedLabel !in known) selectedLabel = null
+        styleLabels()
+    }
+
+    private fun pickLabel(label: String?) {
+        selectedLabel = label
+        styleLabels()
+    }
+
+    private fun styleLabels() {
+        val cfg = config
+        val accent = selectedLabel?.let { cfg?.labelColors?.get(it) }
+            ?.let { runCatching { Color.parseColor(it) }.getOrNull() } ?: theme?.accent ?: Color.GRAY
+        styleChips(binding.labels, accent) { it == (selectedLabel ?: NO_LABEL) }
+    }
+
+    /** Reads the labels on the board's cards in the background and refreshes the row if they changed. */
+    private fun scanLabels(cfg: CockpitBoardConfig) {
+        val vault = prefs.vault(this) ?: return
+        io.execute {
+            val found = runCatching {
+                vault.readHeads(cfg.folder).flatMap { CockpitCards.parseLabels(it) }.toSet()
+            }.getOrNull() ?: return@execute
+            if (found == prefs.knownLabels) return@execute
+            prefs.knownLabels = found
+            runOnUiThread { if (!isDestroyed && config == cfg) renderLabels(cfg) }
+        }
     }
 
     private fun addChip(row: android.widget.LinearLayout, label: String, tag: Any, onClick: () -> Unit) {
@@ -218,13 +263,14 @@ class QuickAddActivity : AppCompatActivity() {
         val vault = prefs.vault(this) ?: return showSetup()
         binding.input.isEnabled = false
         val pickedDue = due
+        val pickedLabels = listOfNotNull(selectedLabel)
         val savedTo = if (pickedDue != null) dueLabel(dueChoice) else column.label
         io.execute {
             val today = LocalDate.now()
             val result = runCatching {
                 val path = CockpitCards.pathFor(cfg.folder, title) { vault.exists(it) }
                 val fields = CockpitCards.withDue(CockpitCards.fieldsFor(column, today), pickedDue)
-                vault.createText(path, CockpitCards.content(title, fields, today))
+                vault.createText(path, CockpitCards.content(title, fields, today, pickedLabels))
             }
             runOnUiThread {
                 result.onSuccess {
@@ -264,3 +310,6 @@ class QuickAddActivity : AppCompatActivity() {
 
 /** The date chips, in display order. */
 private enum class DueChoice { TODAY, TOMORROW, CUSTOM, NONE }
+
+/** Tag of the "No label" chip. */
+private const val NO_LABEL = "\u0000no-label"

@@ -49,7 +49,8 @@ object ThemeApplier {
         val theme = ThemeStore.current(context)
         val typeface = fonts(context)
         if (theme == null && typeface == null) return
-        if (theme != null && surface) root.setBackgroundColor(theme.background)
+        // With an image wallpaper the window shows it; a painted root would hide it again.
+        if (theme != null && surface && WallpaperPrefs(context).imageChoice == null) root.setBackgroundColor(theme.background)
         walk(root, theme, typeface)
     }
 

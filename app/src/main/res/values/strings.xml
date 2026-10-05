@@ -273,4 +273,5 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="grayscale_or_computer">Or from a computer with the phone connected. Tap to copy.</string>
     <string name="grayscale_how_title">How this works</string>
     <string name="grayscale_how_body">Android only lets developer tools grant this permission. It is a one-time step and survives Yoke updates. Yoke uses it only to turn colour correction (grayscale) on and off.</string>
+    <string name="quick_add_no_label">No label</string>
 </resources>

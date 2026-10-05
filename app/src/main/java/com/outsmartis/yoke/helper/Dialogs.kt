@@ -56,6 +56,25 @@ class YokeDialog(context: Context) : AlertDialog(context) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
         }
         blur = window?.let { WindowBlur(it).apply { fadeIn() } }
+        window?.decorView?.post { focusTextField() }
+    }
+
+    /**
+     * A dialog whose text field arrives inside a custom view can be left with input blocked
+     * (FLAG_ALT_FOCUSABLE_IM) and nothing focused; clear that and open the keyboard on the field.
+     */
+    private fun focusTextField() {
+        val window = window ?: return
+        val field = findEditText(window.decorView) ?: return
+        window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        field.showKeyboard()
+    }
+
+    private fun findEditText(view: android.view.View): android.widget.EditText? {
+        if (view is android.widget.EditText && view.isShown) return view
+        if (view is android.view.ViewGroup) for (i in 0 until view.childCount) findEditText(view.getChildAt(i))?.let { return it }
+        return null
     }
 
     override fun dismiss() {

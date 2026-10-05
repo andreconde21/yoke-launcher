@@ -21,6 +21,32 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
         return resolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
     }
 
+    /**
+     * The first [bytes] of each `.md` file directly in [folder] (at most [maxFiles]), for
+     * reading frontmatter cheaply: one directory listing, then one small read per file.
+     */
+    fun readHeads(folder: String, maxFiles: Int = 400, bytes: Int = 1024): List<String> {
+        val folderId = if (folder.isEmpty()) rootId else find(folder) ?: return emptyList()
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, folderId)
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        )
+        val ids = mutableListOf<String>()
+        resolver.query(children, projection, null, null, null)?.use { c ->
+            while (c.moveToNext() && ids.size < maxFiles) if (c.getString(1).endsWith(".md")) ids += c.getString(0)
+        }
+        return ids.mapNotNull { id ->
+            runCatching {
+                resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(treeUri, id))?.use {
+                    val buf = ByteArray(bytes)
+                    val n = it.read(buf)
+                    if (n > 0) String(buf, 0, n, Charsets.UTF_8) else null
+                }
+            }.getOrNull()
+        }
+    }
+
     /** Creates `path` (its folders must exist) and writes [content]. Throws if it already exists. */
     fun createText(path: String, content: String) {
         val parentPath = path.substringBeforeLast('/', "")

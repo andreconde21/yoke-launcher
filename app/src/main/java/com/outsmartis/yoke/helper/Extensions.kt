@@ -51,10 +51,14 @@ fun View.hideKeyboard() {
 
 fun View.showKeyboard(show: Boolean = true) {
     if (show.not()) return
+    // toggleSoftInput(SHOW_FORCED) does nothing for apps targeting Android 13+; ask the window instead.
     if (this.requestFocus())
         postDelayed({
+            androidx.core.view.ViewCompat.getWindowInsetsController(this)
+                ?.show(androidx.core.view.WindowInsetsCompat.Type.ime())
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, InputMethodManager.HIDE_IMPLICIT_ONLY)
+            // A SearchView hands focus to its inner field; the IME must be asked for the focused view.
+            imm.showSoftInput(findFocus() ?: this, InputMethodManager.SHOW_IMPLICIT)
         }, 100)
 }
 

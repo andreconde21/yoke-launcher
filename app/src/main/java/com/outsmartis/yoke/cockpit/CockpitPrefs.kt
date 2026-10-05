@@ -17,6 +17,11 @@ class CockpitPrefs(context: Context) {
         get() = prefs.getString("default_column", null)
         set(value) = prefs.edit().putString("default_column", value).apply()
 
+    /** Labels seen on the board's cards last time, so the label row shows at once. */
+    var knownLabels: Set<String>
+        get() = prefs.getStringSet("known_labels", emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet("known_labels", value).apply()
+
     /** The vault, if one was picked and its permission is still held. */
     fun vault(context: Context): VaultAccess? {
         val uri = vaultUri?.let(Uri::parse) ?: return null

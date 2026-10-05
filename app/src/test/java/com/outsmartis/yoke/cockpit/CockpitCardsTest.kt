@@ -1,6 +1,8 @@
 package com.outsmartis.yoke.cockpit
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -71,5 +73,30 @@ class CockpitCardsTest {
             listOf("scheduled", "soon", "today"),
             CockpitBoardConfig.DEFAULT_COLUMNS.filter { CockpitCards.isDateColumn(it) }.map { it.id },
         )
+    }
+
+    @Test
+    fun parsesCardLabelsInEveryYamlShape() {
+        assertEquals(listOf("work", "home"), CockpitCards.parseLabels("---\ntitle: x\nlabels: [\"work\", \"home\"]\n---\n# x"))
+        assertEquals(listOf("work", "home"), CockpitCards.parseLabels("---\nlabels: [work, home]\n---"))
+        assertEquals(listOf("a", "b"), CockpitCards.parseLabels("---\nlabels:\n  - a\n  - 'b'\nstatus: x\n---"))
+        assertEquals(emptyList<String>(), CockpitCards.parseLabels("---\nlabels: []\n---"))
+        assertEquals(emptyList<String>(), CockpitCards.parseLabels("no frontmatter\nlabels: [x]"))
+        assertEquals(emptyList<String>(), CockpitCards.parseLabels("---\ntitle: x\n---\nlabels: [after]"))
+    }
+
+    @Test
+    fun contentCarriesPickedAndColumnLabels() {
+        val body = CockpitCards.content("T", ColumnFields("", "", "work"), today, listOf("home", "work"))
+        assertTrue(body.contains("labels: [\"home\", \"work\"]\n"))
+        assertTrue(CockpitCards.content("T", ColumnFields("", "", null), today).contains("labels: []\n"))
+    }
+
+    @Test
+    fun readsLabelColoursAndColumnLabels() {
+        val cfg = CockpitBoardConfig.parse("""{"labelColors":{"work":"#ff0000","home":"#00ff00"}}""")
+        assertEquals(mapOf("work" to "#ff0000", "home" to "#00ff00"), cfg.labelColors)
+        assertEquals("work", CockpitCards.columnLabel(col("no-date label:work")))
+        assertNull(CockpitCards.columnLabel(col("no-date")))
     }
 }

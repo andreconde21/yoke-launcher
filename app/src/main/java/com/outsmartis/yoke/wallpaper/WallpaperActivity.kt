@@ -160,6 +160,9 @@ class WallpaperActivity : AppCompatActivity() {
                     if (selected) accent else secondary).also {
                     if (selected) it.setStroke(dp(3), accent)
                 }
+                // The image is inset so the outline (accent when selected) stays visible around it.
+                val inset = if (selected) dp(4) else dp(1)
+                setPadding(inset, inset, inset, inset)
                 clipToOutline = true
                 outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
                 layoutParams = GridLayout.LayoutParams().apply {

@@ -14,7 +14,12 @@ data class CockpitColumn(val id: String, val label: String, val color: String, v
  * The part of the plugin's settings quick-add needs: the cards folder
  * (vault-relative, "" for the vault root) and the board's columns.
  */
-data class CockpitBoardConfig(val folder: String, val columns: List<CockpitColumn>) {
+data class CockpitBoardConfig(
+    val folder: String,
+    val columns: List<CockpitColumn>,
+    /** The plugin's `labelColors`: only labels the user gave a custom colour. */
+    val labelColors: Map<String, String> = emptyMap(),
+) {
 
     companion object {
         /** The plugin's DEFAULT_COLUMNS (src/constants.ts), for a vault whose data.json has none. */
@@ -41,7 +46,9 @@ data class CockpitBoardConfig(val folder: String, val columns: List<CockpitColum
                     rule = if (c.isNull("rule")) null else c.optString("rule"),
                 )
             }
-            return CockpitBoardConfig(root.optString("folder", "").trim('/'), columns)
+            val colours = root.optJSONObject("labelColors")
+            val labelColors = colours?.keys()?.asSequence()?.associateWith { colours.optString(it) }.orEmpty()
+            return CockpitBoardConfig(root.optString("folder", "").trim('/'), columns, labelColors)
         }
     }
 }
@@ -73,6 +80,27 @@ object CockpitCards {
             rule.isEmpty() -> ColumnFields(column.id, "", null)
             else -> ColumnFields("", "", null)
         }
+    }
+
+    /** The label a column's rule adds to a card dropped there (`no-date label:work` → work), or null. */
+    fun columnLabel(column: CockpitColumn): String? = fieldsFor(column, LocalDate.of(2000, 1, 1)).label
+
+    /**
+     * The `labels` of a card from its text: `labels: ["a", "b"]`, `labels: [a, b]` or a YAML
+     * list under `labels:`. Only the frontmatter is looked at; anything unparseable gives none.
+     */
+    fun parseLabels(text: String): List<String> {
+        val lines = text.lineSequence().toList()
+        if (lines.firstOrNull()?.trim() != "---") return emptyList()
+        val end = lines.drop(1).indexOfFirst { it.trim() == "---" }.let { if (it < 0) lines.size else it + 1 }
+        val fm = lines.subList(1, end)
+        val i = fm.indexOfFirst { it.startsWith("labels:") }
+        if (i < 0) return emptyList()
+        val inline = fm[i].removePrefix("labels:").trim()
+        val raw = if (inline.startsWith("[")) inline.trim('[', ']').split(',')
+        else if (inline.isNotEmpty()) listOf(inline)
+        else fm.drop(i + 1).takeWhile { it.trimStart().startsWith("- ") }.map { it.trimStart().removePrefix("- ") }
+        return raw.map { it.trim().trim('"', '\'') }.filter { it.isNotEmpty() }
     }
 
     /** Columns placed by a due date (Today, Soon, Scheduled); quick-add sets the date directly instead. */
@@ -108,9 +136,10 @@ object CockpitCards {
         return path
     }
 
-    /** The exact file body `createCardInColumn` writes, with `source: yoke`. */
-    fun content(title: String, fields: ColumnFields, today: LocalDate): String {
-        val labels = if (fields.label != null) "[\"${fields.label}\"]" else "[]"
+    /** The exact file body `createCardInColumn` writes, with `source: yoke`; [extraLabels] join the column's label. */
+    fun content(title: String, fields: ColumnFields, today: LocalDate, extraLabels: List<String> = emptyList()): String {
+        val all = (extraLabels + listOfNotNull(fields.label)).distinct()
+        val labels = all.joinToString(", ", "[", "]") { "\"" + it.replace("\"", "\\\"") + "\"" }
         val escaped = title.replace("\"", "\\\"")
         return "---\ntitle: \"$escaped\"\nstatus: ${fields.status}\ndue: ${fields.due}\ntime:\ncompleted:\nproject:\n" +
             "labels: $labels\ncreated: $today\nsource: yoke\n---\n\n# $title\n"
