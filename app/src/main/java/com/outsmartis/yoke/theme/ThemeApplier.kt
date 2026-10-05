@@ -20,6 +20,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
 /**
  * Paints the selected [YokeTheme] and font onto views at runtime. The XML
@@ -66,7 +67,12 @@ object ThemeApplier {
             (if (alpha < SECONDARY_ALPHA_BELOW) ROLE_SECONDARY else ROLE_PRIMARY).also { tv.setTag(R.id.theme_text_role, it) }
         }
         tv.setTextColor(textColors(theme, role == ROLE_SECONDARY))
-        tv.setShadowLayer(0f, 0f, 0f, 0)
+        // Over an image wallpaper with no dimming, a soft shadow keeps text readable
+        val image = WallpaperPrefs(tv.context).imageChoice
+        if (image != null && image.dim.alpha == 0f) {
+            val d = tv.resources.displayMetrics.density
+            tv.setShadowLayer(4 * d, 0f, 1 * d, 0xAA000000.toInt())
+        } else tv.setShadowLayer(0f, 0f, 0f, 0)
         tv.highlightColor = (theme.accent and 0x00FFFFFF) or (0x55 shl 24)
         if (tv is EditText || tv.hint != null) tv.setHintTextColor(theme.secondary)
         if (tv is EditText && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -103,16 +109,23 @@ object ThemeApplier {
     }
 
     /**
-     * Window-level theming: a solid background instead of the wallpaper
-     * (no SET_WALLPAPER needed, it is just drawn in our window) and bar icon
-     * contrast. System default keeps the wallpaper.
+     * Window-level theming. With the Wallpaper source "Theme colour" a solid
+     * background is drawn instead of the wallpaper (the system wallpaper is set
+     * to the same colour); with an image source the system wallpaper stays
+     * visible under an optional dimming scrim. System default keeps the wallpaper.
      */
     fun applyWindow(activity: Activity) {
-        val theme = ThemeStore.current(activity) ?: return
+        val theme = ThemeStore.current(activity)
         val window = activity.window
-        window.setBackgroundDrawable(ColorDrawable(theme.background))
-        window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
-        applyBars(window, theme)
+        val image = WallpaperPrefs(activity).imageChoice
+        if (image != null) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+            window.setBackgroundDrawable(ColorDrawable(image.dim.scrimColor))
+        } else if (theme != null) {
+            window.setBackgroundDrawable(ColorDrawable(theme.background))
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+        }
+        if (theme != null) applyBars(window, theme)
     }
 
     private fun applyBars(window: Window, theme: YokeTheme) {

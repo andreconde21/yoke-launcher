@@ -23,6 +23,7 @@ object LinkDialogs {
         ) { container ->
             LinearLayout(container.context).apply {
                 orientation = LinearLayout.VERTICAL
+                addView(textRow(context, context.getString(R.string.web_links_explainer), 0.6f))
                 if (links.isEmpty()) addView(textRow(context, context.getString(R.string.no_links), 0.5f))
                 links.forEach { link ->
                     addView(textRow(context, "${link.name}  ↗", 1f).apply {

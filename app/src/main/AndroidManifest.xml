@@ -3,6 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!--Network users: weather and Omarchy wallpaper backgrounds, nothing else-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--Wallpaper screen: sets the home / lock screen wallpaper-->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
@@ -73,6 +77,11 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:label="@string/theme_picker_title" />
+        <activity
+            android:name=".wallpaper.WallpaperActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/wallpaper_title" />
         <activity
             android:name=".helper.PinItemActivity"
             android:exported="true"

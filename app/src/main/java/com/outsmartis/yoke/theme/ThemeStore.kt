@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.helper.isEinkDisplay
+import com.outsmartis.yoke.wallpaper.WallpaperApplier
+import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
 /**
  * The selected theme, resolved. System default is represented by null so the
@@ -32,13 +34,15 @@ object ThemeStore {
     fun setThemeId(context: Context, id: String) {
         ThemePrefs(context).themeId = id
         invalidate()
+        WallpaperApplier.onThemeChanged(context)
     }
 
     /** Changes whenever the painted result changes; compare to know when to recreate. */
     fun signature(context: Context): String {
         val r = resolved(context)
-        val t = r.theme ?: return r.id
-        return "${r.id}:${t.background}:${t.foreground}:${t.accent}:${t.secondary}:${ThemePrefs(context).jetBrainsMono}"
+        val wallpaper = WallpaperPrefs(context).windowSignature
+        val t = r.theme ?: return "${r.id}:$wallpaper"
+        return "${r.id}:${t.background}:${t.foreground}:${t.accent}:${t.secondary}:${ThemePrefs(context).jetBrainsMono}:$wallpaper"
     }
 
     /** Night mode the activity should run in: the theme's own mode, else the launcher's light/dark setting. */
@@ -74,7 +78,10 @@ object ThemeStore {
             override fun onChange(selfChange: Boolean) {
                 val before = signature(app)
                 invalidate()
-                if (signature(app) != before) onChange()
+                if (signature(app) != before) {
+                    WallpaperApplier.onThemeChanged(app)
+                    onChange()
+                }
             }
         }
         val registered = try {

@@ -79,6 +79,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         // Home button for recents feature disabled
         // populateHomeButtonRecents()
         populateAppThemeText()
+        populateWallpaper()
         populateTextSize()
         populateBoldFont()
         populateFont()
@@ -106,6 +107,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.statusBar -> toggleStatusBar()
             R.id.dateTime -> showDateTimeMenu(view)
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
+            R.id.wallpaperRow -> com.outsmartis.yoke.wallpaper.WallpaperActivity.open(requireContext())
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
             R.id.fontText -> toggleFont()
@@ -150,6 +152,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.grayscaleRow.setOnClickListener(this)
         binding.grayscaleRow.setText(if (com.outsmartis.yoke.grayscale.GrayscalePrefs(requireContext()).featureOn) R.string.on else R.string.off)
         binding.appThemeText.setOnClickListener(this)
+        binding.wallpaperRow.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
         binding.fontText.setOnClickListener(this)
@@ -403,6 +406,15 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun setAppTheme(theme: Int) {
         if (AppCompatDelegate.getDefaultNightMode() == theme) return
         requireActivity().recreate()
+    }
+
+    private fun populateWallpaper() {
+        binding.wallpaperRow.text = com.outsmartis.yoke.wallpaper.WallpaperActivity.summary(requireContext())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) populateWallpaper()
     }
 
     private fun populateAppThemeText(appTheme: Int = prefs.appTheme) {

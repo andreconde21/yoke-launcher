@@ -15,7 +15,7 @@ import com.outsmartis.yoke.theme.ThemePickerActivity
 /**
  * The `>` actions this branch ships. Other branches add theirs next to these:
  * `PaletteActions.register(PaletteAction(id = "theme_picker", label = "Theme picker") { ... })`.
- * Ids: settings, add_to_cockpit, add_link, web_links, theme_picker, gestures, hidden_apps, grayscale_toggle, grayscale_pause.
+ * Ids: settings, wallpaper, add_to_cockpit, add_link, web_links, theme_picker, gestures, hidden_apps, grayscale_toggle, grayscale_pause.
  * Lock is not offered because
  * locking needs the home screen's accessibility hook.
  */
@@ -46,6 +46,11 @@ object DefaultPaletteActions {
         PaletteActions.register(
             PaletteAction("theme_picker", app.getString(R.string.palette_theme_picker)) {
                 ThemePickerActivity.open(it.context)
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("wallpaper", app.getString(R.string.palette_wallpaper)) {
+                com.outsmartis.yoke.wallpaper.WallpaperActivity.open(it.context)
             }
         )
         PaletteActions.register(

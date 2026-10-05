@@ -23,4 +23,6 @@ class OmarchyTheme(
     val magenta: Int = accent,
     val cyan: Int = accent,
     val orange: Int = accent,
+    /** File names under themes/<id>/backgrounds/ in the Omarchy repo; empty when the theme has none. */
+    val backgrounds: List<String> = emptyList(),
 )

@@ -69,6 +69,16 @@ class ThemePickerActivity : AppCompatActivity() {
         } else getString(R.string.theme_follow_pc_unavailable)
         list.addView(row(YokeTheme.PC_ID, conductoreLabel, conductoreTheme, resolved.id))
 
+        val wallpaperLink = TextView(this).apply {
+            setText(R.string.theme_picker_wallpaper)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextColor(theme?.accentText ?: getColorFromAttr(R.attr.primaryColor))
+            setPadding((8 * dp).toInt(), (20 * dp).toInt(), (8 * dp).toInt(), (8 * dp).toInt())
+            isClickable = true
+            setOnClickListener { com.outsmartis.yoke.wallpaper.WallpaperActivity.open(this@ThemePickerActivity) }
+        }
+        list.addView(wallpaperLink)
+
         val scroll = ScrollView(this).apply {
             id = R.id.themePickerScroll
             isFillViewport = true

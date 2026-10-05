@@ -133,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
+            com.outsmartis.yoke.wallpaper.WallpaperApplier.onThemeChanged(this)
             recreate()
             return
         }

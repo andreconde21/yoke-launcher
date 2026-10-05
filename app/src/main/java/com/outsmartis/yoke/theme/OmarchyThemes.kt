@@ -26,6 +26,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFF5C2E7.toInt(),
         cyan = 0xFF94E2D5.toInt(),
         orange = 0xFFF6B6AB.toInt(),
+        backgrounds = listOf("1-totoro.webp", "2-waves.webp", "3-blue-eye.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "catppuccin-latte",
@@ -45,6 +46,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFEA76CB.toInt(),
         cyan = 0xFF179299.toInt(),
         orange = 0xFFD84E2B.toInt(),
+        backgrounds = listOf("1-color-fade.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "ethereal",
@@ -64,6 +66,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFC89DC1.toInt(),
         cyan = 0xFFA3BFD1.toInt(),
         orange = 0xFFEB8B54.toInt(),
+        backgrounds = listOf("1-cosmic.webp", "2-meadow.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "everforest",
@@ -83,6 +86,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFD699B6.toInt(),
         cyan = 0xFF83C092.toInt(),
         orange = 0xFFE09D7F.toInt(),
+        backgrounds = listOf("1-tree-tops.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "flexoki-light",
@@ -102,6 +106,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFCE5D97.toInt(),
         cyan = 0xFF3AA99F.toInt(),
         orange = 0xFFD0772B.toInt(),
+        backgrounds = listOf("1-orb.webp", "2-omarchy.webp"),
     ),
     OmarchyTheme(
         id = "gruvbox",
@@ -121,6 +126,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFD3869B.toInt(),
         cyan = 0xFF89B482.toInt(),
         orange = 0xFFE1875C.toInt(),
+        backgrounds = listOf("1-the-backwater.jpg", "2-flower-basket.webp", "3-village-square.jpg", "4-idyllic-procession.jpg", "5-leaves.jpg", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "hackerman",
@@ -140,6 +146,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF86A7DF.toInt(),
         cyan = 0xFF7CF8F7.toInt(),
         orange = 0xFF50F7A3.toInt(),
+        backgrounds = listOf("1-synth-scape.jpg", "2-geometric.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "kanagawa",
@@ -159,6 +166,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF957FB8.toInt(),
         cyan = 0xFF6A9589.toInt(),
         orange = 0xFFC17158.toInt(),
+        backgrounds = listOf("1-kanagawa.jpg", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "last-horizon",
@@ -178,6 +186,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFC4D8E2.toInt(),
         cyan = 0xFFA5A0B6.toInt(),
         orange = 0xFF6B5E73.toInt(),
+        backgrounds = listOf("1-eyes-wide.webp", "2-blink.webp", "3-bokeh.webp", "4-new-horizons.jpg"),
     ),
     OmarchyTheme(
         id = "lumon",
@@ -197,6 +206,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF8BC9EB.toInt(),
         cyan = 0xFFB4E4F6.toInt(),
         orange = 0xFF8BC9EB.toInt(),
+        backgrounds = listOf("01-united-in-severance.webp", "02-opinions-equally.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "lupine",
@@ -216,6 +226,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF8A4AD7.toInt(),
         cyan = 0xFF0C67DE.toInt(),
         orange = 0xFF026FDE.toInt(),
+        backgrounds = listOf("01-cherry-blossom-bokeh.webp", "02-cherry-blossom-white.webp", "03-pastel-clouds.webp", "04-elegant-blue-wave.webp", "05-abstract-wave.webp", "06-omarchy.webp"),
     ),
     OmarchyTheme(
         id = "matte-black",
@@ -235,6 +246,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFD35F5F.toInt(),
         cyan = 0xFFBEBEBE.toInt(),
         orange = 0xFFC63D3D.toInt(),
+        backgrounds = listOf("0-ship-at-sea.jpg", "1-dark-waters.webp", "2-dot-hands.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "miasma",
@@ -254,6 +266,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFBB7744.toInt(),
         cyan = 0xFFC9A554.toInt(),
         orange = 0xFF8D6242.toInt(),
+        backgrounds = listOf("01-nature-of-fear.webp", "02-crowned.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "nord",
@@ -273,6 +286,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFB48EAD.toInt(),
         cyan = 0xFF88C0D0.toInt(),
         orange = 0xFFD5967A.toInt(),
+        backgrounds = listOf("0-black-moon.jpg", "1-city-view.webp", "2-night-hawks.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "osaka-jade",
@@ -292,6 +306,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFD2689C.toInt(),
         cyan = 0xFF2DD5B7.toInt(),
         orange = 0xFFA2734B.toInt(),
+        backgrounds = listOf("1-glowing-city.webp", "2-shaded-entrance.webp", "3-mountain-moon.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "retro-82",
@@ -311,6 +326,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF3F8F8A.toInt(),
         cyan = 0xFF8CBFB8.toInt(),
         orange = 0xFFFAA968.toInt(),
+        backgrounds = listOf("1-in-the-groove.webp", "2-dusk-guardian.webp", "3-glassy-lines.webp", "4-gateway.webp", "5-zen-boat.webp", "6-abstract-pyramids.webp", "7-the-journey.webp", "8-glitter-glass.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "ristretto",
@@ -330,6 +346,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFA8A9EB.toInt(),
         cyan = 0xFF85DACC.toInt(),
         orange = 0xFFFB9A77.toInt(),
+        backgrounds = listOf("0-launch.webp", "1-color-curves.webp", "2-coffee-beans.jpg", "3-industrial-moon.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "rose-pine",
@@ -349,6 +366,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF907AA9.toInt(),
         cyan = 0xFFD7827E.toInt(),
         orange = 0xFFCF8057.toInt(),
+        backgrounds = listOf("1-funky-shapes.webp", "2-dot-map.webp", "3-omarchy-plants.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "solitude",
@@ -368,6 +386,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFAEAEAE.toInt(),
         cyan = 0xFF707070.toInt(),
         orange = 0xFFD9DBDC.toInt(),
+        backgrounds = listOf("1-on-pole.webp", "2-wreakage.webp", "3-climb.jpg", "4-ether.webp", "5-eyed.jpg"),
     ),
     OmarchyTheme(
         id = "tokyo-night",
@@ -387,6 +406,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFFAD8EE6.toInt(),
         cyan = 0xFF449DAB.toInt(),
         orange = 0xFFEB927B.toInt(),
+        backgrounds = listOf("0-winding-road.webp", "1-quattro.webp", "2-swirl-buck.webp", "3-sunset-lake.webp", "4-omakub.webp", "5-oma-cityscape.jpg", "6-oma.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "vantablack",
@@ -406,6 +426,7 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF9B9B9B.toInt(),
         cyan = 0xFFB0B0B0.toInt(),
         orange = 0xFFB9B9B9.toInt(),
+        backgrounds = listOf("0-dot-hands.webp", "1-twisted-stairs.webp", "2-layers-deep.webp", "3-layers-stacked.webp", "omarchy.webp"),
     ),
     OmarchyTheme(
         id = "white",
@@ -425,5 +446,6 @@ val OMARCHY_THEMES: List<OmarchyTheme> = listOf(
         magenta = 0xFF2E2E2E.toInt(),
         cyan = 0xFF3E3E3E.toInt(),
         orange = 0xFF4A4A4A.toInt(),
+        backgrounds = listOf("1-white.webp", "2-white.webp", "3-white.webp", "omarchy.webp"),
     ),
 )

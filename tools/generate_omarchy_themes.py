@@ -77,6 +77,12 @@ def main():
         out.append(f"        dark = {'true' if values['mode'] == 'dark' else 'false'},")
         for key, field in FIELDS:
             out.append(f'        {field} = {color(values[key])},')
+        bg_dir = os.path.join(themes_dir, slug, 'backgrounds')
+        if os.path.isdir(bg_dir):
+            files = sorted(f for f in os.listdir(bg_dir) if os.path.isfile(os.path.join(bg_dir, f)))
+            if files:
+                names = ', '.join('"' + f.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$') + '"' for f in files)
+                out.append(f'        backgrounds = listOf({names}),')
         out.append('    ),')
     out.append(')')
     out.append('')
