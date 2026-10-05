@@ -327,4 +327,6 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="backup_no_vault_copy">No copy found in the vault</string>
     <string name="backup_copy_written">Copy written to the vault</string>
     <string name="backup_copy_failed">Could not write to the vault</string>
+    <string name="now_playing_needs_access">Turn on Notification access for Yoke to show what\'s playing</string>
+    <string name="link_built_in">Built into Yoke: it opens your Cockpit board in Obsidian</string>
 </resources>

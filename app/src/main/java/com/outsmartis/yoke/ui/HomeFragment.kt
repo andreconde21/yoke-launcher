@@ -443,7 +443,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     ): Boolean {
         // A pinned web link has no package to check, only a stored link to look up
         if (LinkEntry.idFromPinToken(packageName) != null) {
-            val exists = prefs.links.any { it.pinToken == packageName }
+            val exists = prefs.allLinks().any { it.pinToken == packageName }
             textView.text = if (exists) appName else ""
             return exists
         }

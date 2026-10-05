@@ -11,7 +11,7 @@ import com.outsmartis.yoke.gestures.GestureDefaults
 import com.outsmartis.yoke.gestures.GestureParse
 import com.outsmartis.yoke.gestures.LegacyGestureState
 
-class Prefs(context: Context) {
+class Prefs(private val context: Context) {
     private val PREFS_FILENAME = "com.outsmartis.yoke"
 
     private val FIRST_OPEN = "FIRST_OPEN"
@@ -193,6 +193,9 @@ class Prefs(context: Context) {
     var links: List<LinkEntry>
         get() = LinkEntry.listFromJson(prefs.getString(WEB_LINKS, null))
         set(value) = prefs.edit { putString(WEB_LINKS, LinkEntry.toJson(value)) }
+
+    /** The user's website shortcuts plus Yoke's built-in ones (Cockpit board/calendar when Obsidian is installed). */
+    fun allLinks(): List<LinkEntry> = LinkEntry.builtIns(context) + links
 
     var keyboardMessageShown: Boolean
         get() = prefs.getBoolean(KEYBOARD_MESSAGE, false)

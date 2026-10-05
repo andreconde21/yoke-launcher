@@ -82,7 +82,10 @@ class AppDrawerAdapter(
 
     /** Extra rows (cards, notes, contacts, settings) shown below the app and link matches for a plain query. */
     var extraRows: ((String) -> List<AppModel>)? = null
+    /** False while the extra search indexes are still loading; auto-launch waits until they are in. */
+    var extrasReady: () -> Boolean = { true }
     private var baseCount = 0
+    private var extraCount = 0
     private var lastQuery = ""
 
     // Palette results are pushed in directly; a late filter publish must not overwrite them
@@ -186,6 +189,7 @@ class AppDrawerAdapter(
                     var items = it as MutableList<AppModel>
                     baseCount = items.size
                     val extras = if (lastQuery.isBlank()) emptyList() else extraRows?.invoke(lastQuery.trim()).orEmpty()
+                    extraCount = extras.size
                     if (extras.isNotEmpty()) items = (items + extras).toMutableList()
                     if (baseCount == 0 && lastQuery.isNotBlank()) {
                         noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
@@ -201,7 +205,10 @@ class AppDrawerAdapter(
 
     private fun autoLaunch() {
         try {
+            // Only when the app is the one and only result, cards/notes/contacts/settings included.
             if (baseCount == 1
+                && extraCount == 0
+                && extrasReady()
                 && autoLaunch
                 && autoLaunchSingle
                 && !queryIsBlank

@@ -83,7 +83,7 @@ class YokeNotificationListener : NotificationListenerService() {
         val entries = if (prefs.enabled) {
             NotificationLogic.visible(active.map { it.toEntry() }, prefs.allowed)
         } else emptyList()
-        val playing = if (prefs.enabled && prefs.nowPlaying) currentController()?.toNowPlaying() else null
+        val playing = if (prefs.nowPlaying) currentController()?.toNowPlaying() else null
         NotificationStore.publish(entries, playing)
     }
 

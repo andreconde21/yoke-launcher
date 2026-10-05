@@ -140,6 +140,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.notesRow -> findNavController().navigate(R.id.action_settingsFragment_to_notificationsHomeFragment)
             R.id.searchRow -> findNavController().navigate(R.id.action_settingsFragment_to_searchSettingsFragment)
             R.id.backupRow -> findNavController().navigate(R.id.action_settingsFragment_to_backupFragment)
+            R.id.nowPlayingRow -> toggleNowPlaying()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
         }
     }
@@ -176,6 +177,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.dateTime.setOnClickListener(this)
         binding.gesturesRow.setOnClickListener(this)
         binding.grayscaleRow.setOnClickListener(this)
+        binding.nowPlayingRow.setOnClickListener(this)
+        populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
         binding.notesRow.setText(if (com.outsmartis.yoke.notifications.NotificationPrefs(requireContext()).enabled) R.string.on else R.string.off)
         binding.searchRow.setOnClickListener(this)
@@ -485,6 +488,26 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun populateBoldFont() {
         binding.boldFont.text = getString(if (prefs.boldFont) R.string.on else R.string.off)
+    }
+
+    private fun populateNowPlaying() {
+        binding.nowPlayingRow.setText(
+            if (com.outsmartis.yoke.notifications.NotificationPrefs(requireContext()).nowPlaying) R.string.on else R.string.off
+        )
+    }
+
+    // Now playing reads media sessions through Yoke's notification listener, so it needs Notification access.
+    private fun toggleNowPlaying() {
+        val ctx = requireContext()
+        val notes = com.outsmartis.yoke.notifications.NotificationPrefs(ctx)
+        notes.nowPlaying = !notes.nowPlaying
+        populateNowPlaying()
+        com.outsmartis.yoke.notifications.NotificationStore.refresh()
+        val granted = androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(ctx).contains(ctx.packageName)
+        if (notes.nowPlaying && !granted) {
+            ctx.showToast(getString(R.string.now_playing_needs_access))
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
     }
 
     private fun populateScreenTimeOnOff() {

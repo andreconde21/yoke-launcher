@@ -23,6 +23,23 @@ data class LinkEntry(
             if (token.startsWith(PIN_PREFIX)) token.removePrefix(PIN_PREFIX) else null
 
         /** Adds https:// when the user left the scheme out. Returns null for anything that is not a web URL. */
+        /** Id prefix of entries Yoke provides itself; they can't be edited or removed. */
+        const val BUILT_IN_PREFIX = "yoke:"
+
+        /** Built-in entries: open the Obsidian Cockpit Board straight away (only when Obsidian is installed). */
+        fun builtIns(context: android.content.Context): List<LinkEntry> {
+            val obsidian = try {
+                context.packageManager.getPackageInfo("md.obsidian", 0); true
+            } catch (_: Exception) {
+                false
+            }
+            if (!obsidian) return emptyList()
+            return listOf(
+                LinkEntry("${BUILT_IN_PREFIX}cockpit-board", "Cockpit board", "obsidian://cockpit-board"),
+                LinkEntry("${BUILT_IN_PREFIX}cockpit-calendar", "Cockpit calendar", "obsidian://cockpit-board?view=calendar"),
+            )
+        }
+
         fun normalizeUrl(raw: String): String? {
             val trimmed = raw.trim()
             if (trimmed.isEmpty() || trimmed.any { it.isWhitespace() }) return null

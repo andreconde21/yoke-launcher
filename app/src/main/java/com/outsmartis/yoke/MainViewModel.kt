@@ -380,7 +380,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun launchApp(packageName: String, activityClassName: String?, userHandle: UserHandle) {
         // A link pinned to a home slot or gesture is stored as a pseudo package, see LinkEntry.pinToken
         LinkEntry.idFromPinToken(packageName)?.let { id ->
-            prefs.links.find { it.id == id }?.let { openLink(it.url) }
+            prefs.allLinks().find { it.id == id }?.let { openLink(it.url) }
                 ?: appContext.showToast(appContext.getString(R.string.app_not_found))
             return
         }

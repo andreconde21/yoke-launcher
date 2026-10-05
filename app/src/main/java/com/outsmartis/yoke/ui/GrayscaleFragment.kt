@@ -207,6 +207,9 @@ class GrayscaleFragment : BaseFragment() {
                             setOnClickListener {
                                 if (!selected.add(app.packageName)) selected.remove(app.packageName)
                                 render()
+                                // Saved on every tap: closing with back or outside must not lose picks.
+                                prefs.exceptions = selected.toSet()
+                                GrayscaleController.evaluate(ctx)
                             }
                         })
                     }

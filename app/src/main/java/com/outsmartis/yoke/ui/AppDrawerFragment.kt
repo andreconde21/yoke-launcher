@@ -121,6 +121,7 @@ class AppDrawerFragment : BaseFragment() {
         initAdapter()
         if (flag == Constants.FLAG_LAUNCH_APP) {
             adapter.extraRows = { q -> extraSearch.search(q).map(::extraRow) }
+            adapter.extrasReady = { extraSearch.ready }
             // The card/note/contact indexes build off the main thread; redo the search once they are in.
             extraSearch.warmUp {
                 activity?.runOnUiThread { if (_binding != null && isAdded) applyQuery(binding.search.query) }
@@ -447,7 +448,9 @@ class AppDrawerFragment : BaseFragment() {
                 findNavController().popBackStack(R.id.mainFragment, false)
             },
             linkLongClickListener = { link ->
-                LinkDialogs.showEdit(requireContext(), prefs, link.entry, onChanged = ::updateCombinedAppList)
+                if (link.entry.id.startsWith(com.outsmartis.yoke.data.LinkEntry.BUILT_IN_PREFIX))
+                    requireContext().showToast(getString(R.string.link_built_in))
+                else LinkDialogs.showEdit(requireContext(), prefs, link.entry, onChanged = ::updateCombinedAppList)
             }
         )
 
@@ -524,7 +527,7 @@ class AppDrawerFragment : BaseFragment() {
 
         // Web links sit among the apps when launching or pinning to a home slot
         if (flag == Constants.FLAG_LAUNCH_APP || flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_HOME_APP_8) {
-            val links = prefs.links
+            val links = prefs.allLinks()
             if (links.isNotEmpty()) {
                 combined.addAll(links.map { AppModel.Link(it) })
                 combined.sortWith(compareBy(Collator.getInstance()) { it.appLabel })

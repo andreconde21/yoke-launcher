@@ -185,7 +185,7 @@ class HomeNotifications(
     }
 
     private fun renderNowPlaying() {
-        val playing = if (prefs.enabled && prefs.nowPlaying) NotificationStore.nowPlaying.value else null
+        val playing = if (prefs.nowPlaying) NotificationStore.nowPlaying.value else null
         if (playing == null) {
             nowPlayingView.isVisible = false
             return

@@ -55,7 +55,8 @@ class NotificationsHomeFragment : BaseFragment() {
         binding.notesShowText.setOnClickListener { prefs.showText = !prefs.showText; changed() }
         binding.notesHideDnd.setOnClickListener { prefs.hideDuringDnd = !prefs.hideDuringDnd; changed() }
         binding.notesCounts.setOnClickListener { prefs.countsOnApps = !prefs.countsOnApps; changed() }
-        binding.notesNowPlaying.setOnClickListener { prefs.nowPlaying = !prefs.nowPlaying; changed() }
+        // Now playing lives in Settings' home screen section; it doesn't depend on this screen.
+        binding.notesNowPlaying.visibility = View.GONE
     }
 
     override fun onResume() {
@@ -144,6 +145,9 @@ class NotificationsHomeFragment : BaseFragment() {
                         setOnClickListener {
                             if (!selected.add(app.packageName)) selected.remove(app.packageName)
                             render()
+                            // Saved on every tap: closing the dialog with back or outside must not lose picks.
+                            prefs.allowed = selected.toSet()
+                            changed()
                         }
                     })
                 }

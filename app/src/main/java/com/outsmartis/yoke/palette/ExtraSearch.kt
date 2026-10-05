@@ -56,6 +56,19 @@ class ExtraSearch(context: Context) {
         }.start()
     }
 
+    /**
+     * True when every enabled index has been built at least once, so a search shows all it
+     * will show. Auto-launch waits for this, or it would fire before cards/notes/contacts arrive.
+     */
+    val ready: Boolean
+        get() {
+            if (building) return false
+            val prefs = SearchPrefs(app)
+            return (!prefs.cards || cards.builtAt != 0L || CockpitPrefs(app).vault(app) == null) &&
+                (!prefs.notes || notes.builtAt != 0L || CockpitPrefs(app).vault(app) == null) &&
+                (!prefs.contacts || contacts.builtAt != 0L || !hasContactsPermission(app))
+        }
+
     /** Rows for [query] from the sources switched on; a source with nothing to offer is skipped. */
     fun search(query: String): List<SearchHit> {
         if (query.trim().length < SearchRanking.MIN_QUERY) return emptyList()
