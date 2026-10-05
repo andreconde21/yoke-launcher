@@ -155,6 +155,17 @@
         </service>
 
 
+        <!--Notifications on home: reads the notifications of the apps the user picked, in memory only-->
+        <service
+            android:name=".notifications.YokeNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!--Shizuku: lets the Smart grayscale setup grant its one-time permission from the phone-->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
