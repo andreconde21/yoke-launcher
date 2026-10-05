@@ -55,6 +55,17 @@
             android:paddingHorizontal="3dp"
             android:textSize="@dimen/date_size"
             tools:text="Thu, 30 Dec" />
+
+        <TextView
+            android:id="@+id/weather"
+            style="@style/TextSmallLight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="3dp"
+            android:textSize="@dimen/date_size"
+            android:visibility="gone"
+            tools:text="17° · light rain · 12°/19°"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <!-- Screen time-->

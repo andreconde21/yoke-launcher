@@ -3,10 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
-    <!--Network users: weather and Omarchy wallpaper backgrounds, nothing else-->
+    <!--Network users: the weather line (Open-Meteo) and Omarchy wallpaper backgrounds, nothing
+        else. No analytics, no ads, no other requests.-->
     <uses-permission android:name="android.permission.INTERNET" />
     <!--Wallpaper screen: sets the home / lock screen wallpaper-->
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!--Asked at runtime, only when "Current location" is chosen for weather; coarse, one-off fix-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />

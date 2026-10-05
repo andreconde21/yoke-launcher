@@ -1,6 +1,6 @@
 # Yoke
 
-A minimal, text-only Android home screen launcher. No ads, no tracking, no network calls.
+A minimal, text-only Android home screen launcher. No ads, no tracking. The only network calls are the optional weather line and Omarchy wallpaper downloads.
 
 Yoke keeps what makes a minimal launcher useful (a short list of home apps, type-to-launch app drawer, swipe gestures, hidden apps, renaming, double tap to lock, Private Space support) and drops everything else.
 
@@ -31,6 +31,10 @@ followed PC (`/pc_theme` on its launcher-details provider , permission `com.outs
 
 The optional JetBrains Mono font is bundled under the SIL Open Font License
 1.1 (`app/src/main/res/raw/jetbrains_mono_ofl.txt`).
+
+## Weather
+
+Optional one-line weather under the date (off by default) from [Open-Meteo](https://open-meteo.com/), no account or key. Besides Omarchy wallpaper downloads it is the only network access in Yoke; a manually chosen city sends only its coordinates (2 decimals), and "Current location" asks for coarse location only when you pick it.
 
 ## License
 

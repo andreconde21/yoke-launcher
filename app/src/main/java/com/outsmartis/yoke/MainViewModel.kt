@@ -97,6 +97,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             Constants.FLAG_SET_GESTURE_SHORTCUT_APP -> if (appModel is AppModel.App) gestureShortcutApp.value = appModel
             Constants.FLAG_SET_CLOCK_APP -> saveClockApp(appModel)
             Constants.FLAG_SET_CALENDAR_APP -> saveCalendarApp(appModel)
+            Constants.FLAG_SET_WEATHER_APP -> saveWeatherApp(appModel)
             Constants.FLAG_SET_SCREEN_TIME_APP -> saveScreenTimeApp(appModel)
         }
     }
@@ -323,6 +324,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             prefs.saveGestures(
                 prefs.loadGestures().with(
                     Trigger.TAP_DATE,
+                    GestureAction.OpenApp(appModel.appPackage, appModel.activityClassName, appModel.user.toString())
+                )
+            )
+        }
+    }
+
+    private fun saveWeatherApp(appModel: AppModel) {
+        if (appModel is AppModel.App) {
+            // Tap weather runs the gesture map; long press on the weather line chooses its app
+            prefs.saveGestures(
+                prefs.loadGestures().with(
+                    Trigger.TAP_WEATHER,
                     GestureAction.OpenApp(appModel.appPackage, appModel.activityClassName, appModel.user.toString())
                 )
             )
