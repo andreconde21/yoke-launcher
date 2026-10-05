@@ -40,6 +40,9 @@ import com.outsmartis.yoke.gestures.GestureGeometry
 import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.listener.OnSwipeTouchListener
 import com.outsmartis.yoke.listener.ViewSwipeTouchListener
+import com.outsmartis.yoke.weather.WeatherFormat
+import com.outsmartis.yoke.weather.WeatherPrefs
+import com.outsmartis.yoke.weather.WeatherRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,6 +77,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     override fun onResume() {
         super.onResume()
         populateHomeScreen(false)
+        WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateWeather() }
         // Gestures may have been edited; only wait for a second tap when double tap is bound
         mainTouchListener?.setDoubleTapEnabled(gestureRunner().isBound(Trigger.DOUBLE_TAP))
         viewModel.isYokeDefault()
@@ -88,6 +92,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             // R.id.recents -> {}
             R.id.clock -> gestureRunner().run(Trigger.TAP_CLOCK)
             R.id.date -> gestureRunner().run(Trigger.TAP_DATE)
+            R.id.weather -> gestureRunner().run(Trigger.TAP_WEATHER)
             R.id.setDefaultLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.tvScreenTime -> openScreenTimeDigitalWellbeing()
 
@@ -125,6 +130,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 prefs.calendarAppClassName = ""
                 prefs.calendarAppUser = ""
             }
+
+            R.id.weather -> showAppList(Constants.FLAG_SET_WEATHER_APP)
 
             R.id.tvScreenTime -> {
                 showAppList(Constants.FLAG_SET_SCREEN_TIME_APP)
@@ -199,6 +206,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.date.setOnClickListener(this)
         binding.clock.setOnLongClickListener(this)
         binding.date.setOnLongClickListener(this)
+        binding.weather.setOnClickListener(this)
+        binding.weather.setOnLongClickListener(this)
         binding.setDefaultLauncher.setOnClickListener(this)
         binding.setDefaultLauncher.setOnLongClickListener(this)
         binding.tvScreenTime.setOnClickListener(this)
@@ -253,6 +262,17 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 dateText = getString(R.string.day_battery, dateText, battery)
         }
         binding.date.text = dateText.replace(".,", ",")
+        populateWeather()
+    }
+
+    /** One line under the date: nothing when off, no data yet, stale, or the date is hidden. */
+    private fun populateWeather() {
+        val weatherPrefs = WeatherPrefs(requireContext())
+        val text = if (weatherPrefs.enabled && Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)) {
+            WeatherFormat.line(weatherPrefs.reading, weatherPrefs.units, weatherPrefs.showHighLow, System.currentTimeMillis())
+        } else ""
+        binding.weather.text = text
+        binding.weather.isVisible = text.isNotEmpty()
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

@@ -14,6 +14,7 @@ import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModelProvider
@@ -53,6 +54,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private var dialog: YokeDialog? = null
+    private var weatherSettings: WeatherSettings? = null
+    private val locationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        weatherSettings?.onPermissionResult(granted)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
@@ -85,6 +90,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateAlignment()
         populateStatusBar()
         populateDateTime()
+        weatherSettings = WeatherSettings(
+            this, binding.weatherToggle, binding.weatherLocation, binding.weatherUnits, binding.weatherHighLow, locationPermission,
+        )
         initClickListeners()
         initObservers()
     }
@@ -524,6 +532,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         dialog?.dismiss()
         dialog = null
         applyTextSizeScale()
+        weatherSettings = null
         super.onDestroyView()
         _binding = null
     }

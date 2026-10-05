@@ -25,6 +25,7 @@ enum class Trigger(val label: String) {
     LONG_PRESS_EMPTY("Long press empty space"),
     TAP_CLOCK("Tap clock"),
     TAP_DATE("Tap date"),
+    TAP_WEATHER("Tap weather"),
     PINCH_IN("Pinch in"),
     PINCH_OUT("Pinch out"),
     VOLUME_UP("Volume up (on home)"),

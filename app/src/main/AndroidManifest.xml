@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!--Used only for the home-screen weather line (Open-Meteo). Weather is the only network
+        user in Yoke and must stay that way: no analytics, no ads, no other requests.-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--Asked at runtime, only when "Current location" is chosen for weather; coarse, one-off fix-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />

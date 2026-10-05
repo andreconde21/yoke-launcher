@@ -32,6 +32,10 @@ followed PC (`/pc_theme` on its launcher-details provider , permission `com.outs
 The optional JetBrains Mono font is bundled under the SIL Open Font License
 1.1 (`app/src/main/res/raw/jetbrains_mono_ofl.txt`).
 
+## Weather
+
+Optional one-line weather under the date (off by default) from [Open-Meteo](https://open-meteo.com/), no account or key. It is the only network access in Yoke; a manually chosen city sends only its coordinates (2 decimals), and "Current location" asks for coarse location only when you pick it.
+
 ## License
 
 [GNU GPLv3](LICENSE).

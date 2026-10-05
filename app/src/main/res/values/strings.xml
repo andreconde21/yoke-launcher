@@ -184,4 +184,23 @@
     <string name="quick_add_tomorrow">Tomorrow</string>
     <string name="quick_add_pick_date">Pick date…</string>
     <string name="quick_add_no_date">No date</string>
+    <string name="weather_setting">Weather</string>
+    <string name="weather_location">Weather location</string>
+    <string name="weather_location_none">Choose</string>
+    <string name="weather_location_current">Current location</string>
+    <string name="weather_units">Units</string>
+    <string name="weather_units_c">°C</string>
+    <string name="weather_units_f">°F</string>
+    <string name="weather_high_low">Show high/low</string>
+    <string name="weather_search_city">Search for a city…</string>
+    <string name="weather_use_current">Use current location</string>
+    <string name="weather_city_hint">City</string>
+    <string name="weather_search_title">Search city</string>
+    <string name="weather_search">Search</string>
+    <string name="weather_pick_title">Pick a place</string>
+    <string name="weather_no_results">No places found</string>
+    <string name="weather_search_failed">Could not reach the weather service</string>
+    <string name="weather_permission_denied">Location permission denied, using the chosen city</string>
+    <string name="weather_permission_denied_no_city">Location permission denied, search for a city instead</string>
+    <string name="weather_needs_location">Weather needs a location: search for a city or use the current location</string>
 </resources>
