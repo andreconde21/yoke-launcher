@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.os.bundleOf
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
@@ -31,6 +32,16 @@ object DefaultPaletteActions {
         PaletteActions.register(
             PaletteAction("add_to_cockpit", app.getString(R.string.quick_add_title)) {
                 it.context.startActivity(Intent(it.context, QuickAddActivity::class.java))
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("open_cockpit_board", app.getString(R.string.palette_cockpit_board)) {
+                CockpitLinks.openBoard(it.context)
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("open_cockpit_calendar", app.getString(R.string.palette_cockpit_calendar)) {
+                CockpitLinks.openCalendar(it.context)
             }
         )
         PaletteActions.register(

@@ -274,4 +274,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="grayscale_how_title">How this works</string>
     <string name="grayscale_how_body">Android only lets developer tools grant this permission. It is a one-time step and survives Yoke updates. Yoke uses it only to turn colour correction (grayscale) on and off.</string>
     <string name="quick_add_no_label">No label</string>
+    <string name="obsidian_missing">Obsidian isn\'t installed</string>
+    <string name="palette_cockpit_board">Open Cockpit board</string>
+    <string name="palette_cockpit_calendar">Open Cockpit calendar</string>
+    <string name="quick_add_open_board">Open board</string>
+    <string name="cockpit_agenda_setting">Cockpit agenda</string>
+    <string name="cockpit_agenda_needs_vault">Pick the vault in Cockpit quick add first</string>
 </resources>

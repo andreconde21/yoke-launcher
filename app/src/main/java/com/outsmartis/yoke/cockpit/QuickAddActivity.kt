@@ -77,6 +77,8 @@ class QuickAddActivity : AppCompatActivity() {
 
         binding.root.setOnClickListener { finish() }
         binding.card.setOnClickListener { }
+        binding.openBoard.setTextColor(theme?.secondary ?: binding.openBoard.currentTextColor)
+        binding.openBoard.setOnClickListener { CockpitLinks.openBoard(this); finish() }
         binding.pickVault.setOnClickListener { openVaultPicker() }
         binding.input.setOnEditorActionListener { _, actionId, event ->
             val enter = actionId == EditorInfo.IME_ACTION_DONE ||
@@ -289,6 +291,7 @@ class QuickAddActivity : AppCompatActivity() {
             runOnUiThread {
                 result.onSuccess {
                     Toast.makeText(this, getString(R.string.quick_add_saved, savedTo), Toast.LENGTH_SHORT).show()
+                    CockpitAgendaRepository.refreshIfNeeded(applicationContext, force = true)
                     finish()
                 }.onFailure {
                     binding.input.isEnabled = true

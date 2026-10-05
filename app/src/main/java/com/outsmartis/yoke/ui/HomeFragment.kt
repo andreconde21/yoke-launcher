@@ -40,6 +40,9 @@ import com.outsmartis.yoke.gestures.GestureGeometry
 import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.listener.OnSwipeTouchListener
 import com.outsmartis.yoke.listener.ViewSwipeTouchListener
+import com.outsmartis.yoke.cockpit.CockpitAgendaRepository
+import com.outsmartis.yoke.cockpit.CockpitLinks
+import com.outsmartis.yoke.cockpit.CockpitPrefs
 import com.outsmartis.yoke.weather.WeatherFormat
 import com.outsmartis.yoke.weather.WeatherPrefs
 import com.outsmartis.yoke.weather.WeatherRepository
@@ -78,6 +81,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         super.onResume()
         populateHomeScreen(false)
         WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateWeather() }
+        CockpitAgendaRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateAgenda() }
         // Gestures may have been edited; only wait for a second tap when double tap is bound
         mainTouchListener?.setDoubleTapEnabled(gestureRunner().isBound(Trigger.DOUBLE_TAP))
         viewModel.isYokeDefault()
@@ -93,6 +97,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             R.id.clock -> gestureRunner().run(Trigger.TAP_CLOCK)
             R.id.date -> gestureRunner().run(Trigger.TAP_DATE)
             R.id.weather -> gestureRunner().run(Trigger.TAP_WEATHER)
+            R.id.agenda -> CockpitLinks.openBoard(requireContext())
             R.id.setDefaultLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.tvScreenTime -> openScreenTimeDigitalWellbeing()
 
@@ -132,6 +137,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             }
 
             R.id.weather -> showAppList(Constants.FLAG_SET_WEATHER_APP)
+            R.id.agenda -> CockpitLinks.openCalendar(requireContext())
 
             R.id.tvScreenTime -> {
                 showAppList(Constants.FLAG_SET_SCREEN_TIME_APP)
@@ -208,6 +214,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.date.setOnLongClickListener(this)
         binding.weather.setOnClickListener(this)
         binding.weather.setOnLongClickListener(this)
+        binding.agenda.setOnClickListener(this)
+        binding.agenda.setOnLongClickListener(this)
         binding.setDefaultLauncher.setOnClickListener(this)
         binding.setDefaultLauncher.setOnLongClickListener(this)
         binding.tvScreenTime.setOnClickListener(this)
@@ -263,6 +271,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
         binding.date.text = dateText.replace(".,", ",")
         populateWeather()
+        populateAgenda()
     }
 
     /** One line under the date: nothing when off, no data yet, stale, or the date is hidden. */
@@ -273,6 +282,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } else ""
         binding.weather.text = text
         binding.weather.isVisible = text.isNotEmpty()
+    }
+
+    /** The cached Cockpit agenda line under the weather: nothing when off, empty, or the date is hidden. */
+    private fun populateAgenda() {
+        val cockpit = CockpitPrefs(requireContext())
+        val text = if (cockpit.agendaEnabled && Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)) cockpit.agendaLine else ""
+        binding.agenda.text = text
+        binding.agenda.isVisible = text.isNotEmpty()
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

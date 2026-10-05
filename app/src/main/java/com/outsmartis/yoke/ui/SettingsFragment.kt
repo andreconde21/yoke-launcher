@@ -94,8 +94,23 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         weatherSettings = WeatherSettings(
             this, binding.weatherToggle, binding.weatherLocation, binding.weatherUnits, binding.weatherHighLow, locationPermission,
         )
+        populateCockpitAgenda()
+        binding.cockpitAgendaToggle.setOnClickListener {
+            val cockpit = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext())
+            cockpit.agendaEnabled = !cockpit.agendaEnabled
+            if (cockpit.agendaEnabled) {
+                cockpit.agendaAt = 0L
+                if (cockpit.vaultUri == null) requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
+            }
+            populateCockpitAgenda()
+        }
         initClickListeners()
         initObservers()
+    }
+
+    private fun populateCockpitAgenda() {
+        val on = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).agendaEnabled
+        binding.cockpitAgendaToggle.text = getString(if (on) R.string.on else R.string.off)
     }
 
     override fun onClick(view: View) {
