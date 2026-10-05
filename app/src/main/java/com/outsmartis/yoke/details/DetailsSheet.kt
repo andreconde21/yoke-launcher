@@ -84,14 +84,8 @@ class DetailsSheet private constructor(
         val scroll = ScrollView(context).apply {
             addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
-        content.setPadding(dp(24), dp(20), dp(24), dp(20))
-        // The sheet's background runs behind the navigation bar; its content stays above it.
-        ViewCompat.setOnApplyWindowInsetsListener(scroll) { _, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            content.setPadding(dp(24) + bars.left, dp(20), dp(24) + bars.right, dp(20) + maxOf(bars.bottom, ime.bottom))
-            insets
-        }
+        // Above the navigation bar and the keyboard, measured as well as from insets.
+        com.outsmartis.yoke.helper.SheetInsets.install(scroll, content, side = dp(24), top = dp(20), bottom = dp(20))
         dialog.setContentView(scroll)
         dialog.window?.apply {
             setBackgroundDrawable(GradientDrawable().apply {

@@ -28,12 +28,16 @@ data class LinkEntry(
 
         /** Built-in entries: open the Obsidian Cockpit Board straight away (only when Obsidian is installed). */
         fun builtIns(context: android.content.Context): List<LinkEntry> {
-            val obsidian = try {
-                context.packageManager.getPackageInfo("md.obsidian", 0); true
-            } catch (_: Exception) {
-                false
-            }
-            if (!obsidian) return emptyList()
+            // Any one of these is enough: obsidian:// links open, Obsidian's package is visible,
+            // or a Cockpit vault was picked (the user clearly has the board).
+            val pm = context.packageManager
+            val opensLinks = runCatching {
+                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("obsidian://cockpit-board"))
+                    .resolveActivity(pm) != null
+            }.getOrDefault(false)
+            val packageVisible = runCatching { pm.getPackageInfo("md.obsidian", 0); true }.getOrDefault(false)
+            val hasVault = com.outsmartis.yoke.cockpit.CockpitPrefs(context).vaultUri != null
+            if (!opensLinks && !packageVisible && !hasVault) return emptyList()
             return listOf(
                 LinkEntry("${BUILT_IN_PREFIX}cockpit-board", "Cockpit board", "obsidian://cockpit-board"),
                 LinkEntry("${BUILT_IN_PREFIX}cockpit-calendar", "Cockpit calendar", "obsidian://cockpit-board?view=calendar"),

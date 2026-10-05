@@ -32,6 +32,11 @@
 
     <queries>
         <provider android:authorities="com.outsmartis.conductore.launcherdetails" />
+        <!--Built-in "Cockpit board" entries check that obsidian:// links can open-->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="obsidian" />
+        </intent>
     </queries>
 
     <application
