@@ -431,7 +431,7 @@ class DetailsSheet private constructor(
 }
 
 /** Minimal wrapping row for the option chips. */
-private class FlowLayout(context: Context) : ViewGroup(context) {
+internal class FlowLayout(context: Context) : ViewGroup(context) {
     private fun lp(v: View) = v.layoutParams as? MarginLayoutParams ?: MarginLayoutParams(0, 0)
 
     override fun onMeasure(wSpec: Int, hSpec: Int) {

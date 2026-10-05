@@ -24,6 +24,7 @@ import com.outsmartis.yoke.R
 import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.cockpit.CockpitLinks
+import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
@@ -104,6 +105,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.CockpitQuickAdd -> activity.startActivity(Intent(activity, QuickAddActivity::class.java))
                 GestureAction.CockpitBoard -> CockpitLinks.openBoard(activity)
                 GestureAction.CockpitCalendar -> CockpitLinks.openCalendar(activity)
+                GestureAction.CockpitToday -> CockpitTodaySheet.show(activity)
                 GestureAction.ConductoreSheet -> conductoreSheet()
                 GestureAction.CommandPalette -> commandPalette()
                 GestureAction.ThemePicker -> themePicker()

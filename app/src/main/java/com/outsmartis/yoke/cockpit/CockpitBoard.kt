@@ -19,6 +19,8 @@ data class CockpitBoardConfig(
     val columns: List<CockpitColumn>,
     /** The plugin's `labelColors`: only labels the user gave a custom colour. */
     val labelColors: Map<String, String> = emptyMap(),
+    /** The plugin's `clearDateOnInProgress` (default on): starting a card without a time clears its due date. */
+    val clearDateOnInProgress: Boolean = true,
 ) {
 
     companion object {
@@ -48,7 +50,7 @@ data class CockpitBoardConfig(
             }
             val colours = root.optJSONObject("labelColors")
             val labelColors = colours?.keys()?.asSequence()?.associateWith { colours.optString(it) }.orEmpty()
-            return CockpitBoardConfig(root.optString("folder", "").trim('/'), columns, labelColors)
+            return CockpitBoardConfig(root.optString("folder", "").trim('/'), columns, labelColors, root.optBoolean("clearDateOnInProgress", true))
         }
     }
 }

@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.os.bundleOf
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.cockpit.CockpitLinks
+import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.cockpit.QuickAddActivity
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
@@ -37,6 +38,11 @@ object DefaultPaletteActions {
         PaletteActions.register(
             PaletteAction("open_cockpit_board", app.getString(R.string.palette_cockpit_board)) {
                 CockpitLinks.openBoard(it.context)
+            }
+        )
+        PaletteActions.register(
+            PaletteAction("cockpit_today", app.getString(R.string.palette_cockpit_today)) {
+                CockpitTodaySheet.show(it.context)
             }
         )
         PaletteActions.register(

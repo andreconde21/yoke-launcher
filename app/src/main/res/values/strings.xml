@@ -353,4 +353,19 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="icon_row_add_app">Add app</string>
     <string name="icon_row_remove">Remove from icon row</string>
     <string name="icon_row_editor_hint">Tap an app to replace it. Up to 6 apps.</string>
+    <string name="palette_cockpit_today">Today</string>
+    <string name="today_title">Today · %1$s</string>
+    <string name="today_open_board">Open board</string>
+    <string name="today_overdue">Overdue</string>
+    <string name="today_section_today">Today</string>
+    <string name="today_in_progress">In progress</string>
+    <string name="today_empty">Nothing due today</string>
+    <string name="today_add">Add a task</string>
+    <string name="today_act_done">Done</string>
+    <string name="today_act_start">Start</string>
+    <string name="today_act_tomorrow">Tomorrow</string>
+    <string name="today_act_pick">Pick date…</string>
+    <string name="today_act_open">Open in Obsidian</string>
+    <string name="today_changed">Card changed, refreshed</string>
+    <string name="today_failed">Could not update the card</string>
 </resources>

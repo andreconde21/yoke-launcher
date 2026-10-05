@@ -53,6 +53,7 @@ import com.outsmartis.yoke.listener.ViewSwipeTouchListener
 import com.outsmartis.yoke.cockpit.CockpitAgendaRepository
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitPrefs
+import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.notifications.HomeNotifications
 import com.outsmartis.yoke.notifications.NotificationLogic
@@ -127,7 +128,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             R.id.clock -> gestureRunner().run(Trigger.TAP_CLOCK)
             R.id.date -> gestureRunner().run(Trigger.TAP_DATE)
             R.id.weather -> gestureRunner().run(Trigger.TAP_WEATHER)
-            R.id.agenda -> CockpitLinks.openBoard(requireContext())
+            R.id.agenda -> CockpitTodaySheet.show(requireContext()) { if (_binding != null) populateAgenda() }
             R.id.setDefaultLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.tvScreenTime -> openScreenTimeDigitalWellbeing()
 
@@ -167,7 +168,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             }
 
             R.id.weather -> showAppList(Constants.FLAG_SET_WEATHER_APP)
-            R.id.agenda -> CockpitLinks.openCalendar(requireContext())
+            R.id.agenda -> CockpitLinks.openBoard(requireContext())
 
             R.id.tvScreenTime -> {
                 showAppList(Constants.FLAG_SET_SCREEN_TIME_APP)
