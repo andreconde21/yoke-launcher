@@ -62,6 +62,94 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
             ?: throw IllegalStateException("Could not write $path")
     }
 
+    /** A file found by a listing: its vault-relative [path] and provider document [id]. */
+    data class VaultFile(val path: String, val id: String)
+
+    private class Entry(val id: String, val name: String, val isDir: Boolean)
+
+    private fun list(folderId: String): List<Entry> {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, folderId)
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE,
+        )
+        val out = mutableListOf<Entry>()
+        resolver.query(children, projection, null, null, null)?.use { c ->
+            while (c.moveToNext()) {
+                out += Entry(c.getString(0), c.getString(1).orEmpty(), c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR)
+            }
+        }
+        return out
+    }
+
+    /** The picked folder's name, which is the vault's name in Obsidian. */
+    fun displayName(): String {
+        val uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, rootId)
+        resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst()) c.getString(0)?.let { return it }
+        }
+        return rootId.substringAfterLast(':').substringAfterLast('/')
+    }
+
+    /** The `.md` files directly in [folder] (no recursion), at most [maxFiles]. */
+    fun listMarkdown(folder: String, maxFiles: Int = 500): List<VaultFile> {
+        val folderId = if (folder.isEmpty()) rootId else find(folder) ?: return emptyList()
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        return list(folderId).filter { !it.isDir && it.name.endsWith(".md") }.take(maxFiles).map { VaultFile(prefix + it.name, it.id) }
+    }
+
+    /** The first [bytes] of [file], or null when it cannot be read. */
+    fun readHead(file: VaultFile, bytes: Int = 1024): String? = runCatching {
+        resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(treeUri, file.id))?.use {
+            val buf = ByteArray(bytes)
+            val n = it.read(buf)
+            if (n > 0) String(buf, 0, n, Charsets.UTF_8) else null
+        }
+    }.getOrNull()
+
+    /**
+     * Every `.md` note in the vault, breadth first, as vault-relative paths. Folders named in
+     * [skip] and dot-folders are left out; stops at [maxFiles].
+     */
+    fun listAllNotes(maxFiles: Int = 3000, skip: Set<String> = setOf(".obsidian", ".trash")): List<String> {
+        val notes = mutableListOf<String>()
+        val queue = ArrayDeque<Pair<String, String>>() // folder id to its vault-relative prefix
+        queue.add(rootId to "")
+        while (queue.isNotEmpty() && notes.size < maxFiles) {
+            val (id, prefix) = queue.removeFirst()
+            for (e in runCatching { list(id) }.getOrDefault(emptyList())) {
+                if (e.isDir) {
+                    if (e.name !in skip && !e.name.startsWith(".")) queue.add(e.id to "$prefix${e.name}/")
+                } else if (e.name.endsWith(".md") && notes.size < maxFiles) notes += prefix + e.name
+            }
+        }
+        return notes
+    }
+
+    /** Creates the folder [path] (its parent must exist); fine when it is already there. */
+    fun createDirectory(path: String) {
+        if (find(path) != null) return
+        val parentPath = path.substringBeforeLast('/', "")
+        val parentId = if (parentPath.isEmpty()) rootId
+        else find(parentPath) ?: throw IllegalStateException("Folder not found in vault: $parentPath")
+        val parentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, parentId)
+        DocumentsContract.createDocument(resolver, parentUri, DocumentsContract.Document.MIME_TYPE_DIR, path.substringAfterLast('/'))
+            ?: throw IllegalStateException("Could not create folder $path")
+    }
+
+    /** Writes [content] to `path` (its folder must exist), replacing the file if it is there. */
+    fun writeText(path: String, content: String) {
+        val id = find(path)
+        if (id == null) {
+            createText(path, content)
+            return
+        }
+        val uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, id)
+        resolver.openOutputStream(uri, "wt")?.use { it.write(content.toByteArray(Charsets.UTF_8)) }
+            ?: throw IllegalStateException("Could not write $path")
+    }
+
     /** Document id for a vault-relative path, or null. */
     private fun find(path: String): String? {
         var id = rootId

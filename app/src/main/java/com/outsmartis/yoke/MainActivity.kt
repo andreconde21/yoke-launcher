@@ -182,6 +182,7 @@ class MainActivity : AppCompatActivity() {
         themeObserver?.unregister()
         themeObserver = null
         isResumed = false
+        com.outsmartis.yoke.backup.VaultBackup.maybeBackup(this)
         backToHomeScreen()
         super.onStop()
     }

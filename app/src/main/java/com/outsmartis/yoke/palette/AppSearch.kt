@@ -20,6 +20,9 @@ object AppSearch {
         return normalizedQuery.isNotEmpty() && label.normalizeForSearch().contains(normalizedQuery, true)
     }
 
+    /** [text] folded for matching: no diacritics, no separators. */
+    fun normalize(text: CharSequence): String = text.normalizeForSearch()
+
     private fun CharSequence.normalizeForSearch(): String =
         Normalizer.normalize(this, Normalizer.Form.NFD)
             .replace(diacriticsRegex, "")

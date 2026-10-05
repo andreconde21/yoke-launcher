@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!--Asked at runtime, only when "Contacts" is switched on in Search settings-->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!--Network users: the weather line (Open-Meteo) and Omarchy wallpaper backgrounds, nothing
         else. No analytics, no ads, no other requests.-->
     <uses-permission android:name="android.permission.INTERNET" />

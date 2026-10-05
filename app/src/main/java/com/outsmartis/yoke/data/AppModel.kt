@@ -53,6 +53,8 @@ sealed class AppModel : Comparable<AppModel> {
         override val appLabel: String,
         val closeDrawer: Boolean = true,
         val run: () -> Unit = {},
+        /** Small text after the label, e.g. "card · in-progress". */
+        val detail: String? = null,
     ) : AppModel() {
         override val key: CollationKey? = null
         override val appPackage: String = ""

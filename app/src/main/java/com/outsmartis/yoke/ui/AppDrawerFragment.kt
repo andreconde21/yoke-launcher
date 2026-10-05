@@ -1,8 +1,11 @@
 package com.outsmartis.yoke.ui
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -40,6 +43,10 @@ import com.outsmartis.yoke.helper.showKeyboard
 import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.helper.uninstall
 import com.outsmartis.yoke.palette.Calculator
+import com.outsmartis.yoke.palette.ExtraSearch
+import com.outsmartis.yoke.palette.SearchHit
+import com.outsmartis.yoke.palette.SearchKind
+import com.outsmartis.yoke.palette.SettingsPages
 import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.palette.DefaultPaletteActions
 import com.outsmartis.yoke.palette.PaletteActions
@@ -69,6 +76,7 @@ class AppDrawerFragment : BaseFragment() {
     private var forceKeyboard = false
     private var canRename = false
     private var paletteMode = false
+    private val extraSearch by lazy { ExtraSearch(requireContext()) }
     private var shortcutHits: List<ShortcutHit>? = null
     private var shortcutsLoading = false
     private var currentAppList: List<AppModel>? = null
@@ -111,6 +119,13 @@ class AppDrawerFragment : BaseFragment() {
         initViews()
         initSearch()
         initAdapter()
+        if (flag == Constants.FLAG_LAUNCH_APP) {
+            adapter.extraRows = { q -> extraSearch.search(q).map(::extraRow) }
+            // The card/note/contact indexes build off the main thread; redo the search once they are in.
+            extraSearch.warmUp {
+                activity?.runOnUiThread { if (_binding != null && isAdded) applyQuery(binding.search.query) }
+            }
+        }
         initObservers()
         initClickListeners()
     }
@@ -175,6 +190,35 @@ class AppDrawerFragment : BaseFragment() {
         }
         adapter.clearResults()
         adapter.filter.filter(raw)
+    }
+
+    private fun extraRow(hit: SearchHit) = AppModel.PaletteResult(
+        id = "extra_${hit.kind}_${hit.target}",
+        appLabel = hit.title,
+        detail = hit.subtitle,
+        closeDrawer = hit.target != SettingsPages.YOKE_SETTINGS,
+        run = { openExtra(hit) },
+    )
+
+    /** Never auto-launched: only a tap gets here. A missing Obsidian or settings page just toasts. */
+    private fun openExtra(hit: SearchHit) {
+        val context = requireContext()
+        try {
+            when {
+                hit.target == SettingsPages.YOKE_SETTINGS ->
+                    findNavController().navigate(R.id.action_appListFragment_to_settingsFragment2)
+                hit.target == SettingsPages.YOKE_APP_INFO ->
+                    openAppInfo(context, Process.myUserHandle(), context.packageName)
+                hit.kind == SearchKind.SETTING ->
+                    context.startActivity(Intent(hit.target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                else -> context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(hit.target)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        } catch (e: ActivityNotFoundException) {
+            context.showToast(
+                if (hit.kind == SearchKind.CARD || hit.kind == SearchKind.NOTE) R.string.search_no_obsidian
+                else R.string.search_cannot_open
+            )
+        }
     }
 
     private fun paletteContext() = PaletteContext(

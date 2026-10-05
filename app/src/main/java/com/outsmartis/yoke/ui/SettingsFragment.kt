@@ -138,6 +138,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
             R.id.grayscaleRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.notesRow -> findNavController().navigate(R.id.action_settingsFragment_to_notificationsHomeFragment)
+            R.id.searchRow -> findNavController().navigate(R.id.action_settingsFragment_to_searchSettingsFragment)
+            R.id.backupRow -> findNavController().navigate(R.id.action_settingsFragment_to_backupFragment)
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
         }
     }
@@ -176,6 +178,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.grayscaleRow.setOnClickListener(this)
         binding.notesRow.setOnClickListener(this)
         binding.notesRow.setText(if (com.outsmartis.yoke.notifications.NotificationPrefs(requireContext()).enabled) R.string.on else R.string.off)
+        binding.searchRow.setOnClickListener(this)
+        binding.backupRow.setOnClickListener(this)
         binding.grayscaleRow.setText(if (com.outsmartis.yoke.grayscale.GrayscalePrefs(requireContext()).featureOn) R.string.on else R.string.off)
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
