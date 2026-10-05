@@ -15,6 +15,9 @@ import android.os.Handler
 import android.os.Looper
 import android.os.UserHandle
 import android.view.Gravity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -68,6 +71,12 @@ class DetailsSheet private constructor(
             addView(content, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
         content.setPadding(dp(24), dp(20), dp(24), dp(20))
+        // The sheet's background runs behind the navigation bar; its content stays above it.
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.displayCutout())
+            content.setPadding(dp(24) + bars.left, dp(20), dp(24) + bars.right, dp(20) + bars.bottom)
+            insets
+        }
         dialog.setContentView(scroll)
         dialog.window?.apply {
             setBackgroundDrawable(GradientDrawable().apply {
@@ -78,6 +87,7 @@ class DetailsSheet private constructor(
             setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
             setGravity(Gravity.BOTTOM)
             setDimAmount(0.5f)
+            WindowCompat.setDecorFitsSystemWindows(this, false)
         }
         dialog.setOnDismissListener {
             dismissed = true
