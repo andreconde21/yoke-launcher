@@ -335,4 +335,19 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="details_send">Send</string>
     <string name="details_reply_hint">Reply to %1$s…</string>
     <string name="details_update_conductore_reply">Update Conductore to reply from Yoke</string>
+    <string name="palette_cockpit_today">Today</string>
+    <string name="today_title">Today · %1$s</string>
+    <string name="today_open_board">Open board</string>
+    <string name="today_overdue">Overdue</string>
+    <string name="today_section_today">Today</string>
+    <string name="today_in_progress">In progress</string>
+    <string name="today_empty">Nothing due today</string>
+    <string name="today_add">Add a task</string>
+    <string name="today_act_done">Done</string>
+    <string name="today_act_start">Start</string>
+    <string name="today_act_tomorrow">Tomorrow</string>
+    <string name="today_act_pick">Pick date…</string>
+    <string name="today_act_open">Open in Obsidian</string>
+    <string name="today_changed">Card changed, refreshed</string>
+    <string name="today_failed">Could not update the card</string>
 </resources>
