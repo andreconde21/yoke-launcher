@@ -180,4 +180,8 @@
     <string name="palette_search_web">Search the web for \u201c%1$s\u201d</string>
     <string name="palette_theme_picker">Theme picker</string>
     <string name="palette_gestures">Gestures</string>
+    <string name="quick_add_today">Today</string>
+    <string name="quick_add_tomorrow">Tomorrow</string>
+    <string name="quick_add_pick_date">Pick date…</string>
+    <string name="quick_add_no_date">No date</string>
 </resources>

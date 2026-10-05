@@ -53,4 +53,23 @@ class CockpitCardsTest {
         assertEquals(listOf(CockpitColumn("inbox", "Inbox", "#fff", null)), cfg.columns)
         assertEquals(CockpitBoardConfig.DEFAULT_COLUMNS, CockpitBoardConfig.parse("{}").columns)
     }
+
+    @Test
+    fun pickedDueDateSchedulesTheCard() {
+        val backlog = CockpitCards.fieldsFor(col("no-date"), today)
+        assertEquals(ColumnFields("scheduled", "2026-10-09", null), CockpitCards.withDue(backlog, LocalDate.of(2026, 10, 9)))
+        assertEquals(backlog, CockpitCards.withDue(backlog, null))
+        val labelled = CockpitCards.fieldsFor(col("no-date label:work"), today)
+        assertEquals(ColumnFields("scheduled", "2026-10-04", "work"), CockpitCards.withDue(labelled, today))
+        val inProgress = CockpitCards.fieldsFor(col("status:in-progress"), today)
+        assertEquals(ColumnFields("in-progress", "2026-10-05", null), CockpitCards.withDue(inProgress, today.plusDays(1)))
+    }
+
+    @Test
+    fun dateColumnsAreRecognised() {
+        assertEquals(
+            listOf("scheduled", "soon", "today"),
+            CockpitBoardConfig.DEFAULT_COLUMNS.filter { CockpitCards.isDateColumn(it) }.map { it.id },
+        )
+    }
 }

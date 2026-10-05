@@ -20,7 +20,12 @@ import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.theme.YokeTheme
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import android.app.DatePickerDialog
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 
 /**
@@ -38,6 +43,9 @@ class QuickAddActivity : AppCompatActivity() {
     private val io = Executors.newSingleThreadExecutor()
     private var config: CockpitBoardConfig? = null
     private var selected: CockpitColumn? = null
+    /** Due date for the new card; today unless the user picks otherwise, null for "No date". */
+    private var due: LocalDate? = LocalDate.now()
+    private var dueChoice = DueChoice.TODAY
     private var defaultChipText: ColorStateList? = null
 
     private val pickVault = 1
@@ -50,6 +58,15 @@ class QuickAddActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityQuickAddBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // Android 15+ draws edge to edge and ignores adjustResize, so the sheet keeps itself
+        // above the keyboard and the navigation bar from the window insets.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { root, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            root.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
+            WindowInsetsCompat.CONSUMED
+        }
         theme = ThemeStore.current(this)
         theme?.let { binding.card.setBackgroundColor(it.surface) }
         ThemeApplier.apply(binding.card)
@@ -94,27 +111,76 @@ class QuickAddActivity : AppCompatActivity() {
     private fun showSetup() {
         binding.setup.visibility = View.VISIBLE
         binding.input.visibility = View.GONE
-        binding.columns.visibility = View.GONE
+        binding.datesScroll.visibility = View.GONE
+        binding.columnsScroll.visibility = View.GONE
     }
 
     private fun showBoard(cfg: CockpitBoardConfig) {
         config = cfg
         binding.setup.visibility = View.GONE
         binding.input.visibility = View.VISIBLE
-        binding.columns.visibility = View.VISIBLE
-        binding.columns.removeAllViews()
-        val preferred = cfg.columns.firstOrNull { it.id == prefs.defaultColumn } ?: cfg.columns.first()
-        cfg.columns.filter { it.rule?.contains("status:done") != true }.forEach { column ->
-            val chip = layoutInflater.inflate(R.layout.item_quick_add_column, binding.columns, false) as TextView
-            chip.text = column.label
-            chip.tag = column
-            chip.setOnClickListener { select(column) }
-            ThemeApplier.apply(chip)
-            if (defaultChipText == null) defaultChipText = chip.textColors
-            binding.columns.addView(chip)
+        binding.datesScroll.visibility = View.VISIBLE
+        binding.columnsScroll.visibility = View.VISIBLE
+
+        binding.dates.removeAllViews()
+        DueChoice.entries.forEach { choice ->
+            addChip(binding.dates, dueLabel(choice), choice) { pickDue(choice) }
         }
-        select(preferred)
+        renderDates()
+
+        // The date decides Today / Soon / Scheduled, so those columns are not offered here.
+        binding.columns.removeAllViews()
+        val offered = cfg.columns.filter { it.rule?.contains("status:done") != true && !CockpitCards.isDateColumn(it) }
+            .ifEmpty { cfg.columns }
+        offered.forEach { column -> addChip(binding.columns, column.label, column) { select(column) } }
+        select(offered.firstOrNull { it.id == prefs.defaultColumn } ?: offered.first())
         binding.input.requestFocus()
+    }
+
+    private fun addChip(row: android.widget.LinearLayout, label: String, tag: Any, onClick: () -> Unit) {
+        val chip = layoutInflater.inflate(R.layout.item_quick_add_column, row, false) as TextView
+        chip.text = label
+        chip.tag = tag
+        chip.setOnClickListener { onClick() }
+        ThemeApplier.apply(chip)
+        if (defaultChipText == null) defaultChipText = chip.textColors
+        row.addView(chip)
+    }
+
+    private fun dueLabel(choice: DueChoice): String = when (choice) {
+        DueChoice.TODAY -> getString(R.string.quick_add_today)
+        DueChoice.TOMORROW -> getString(R.string.quick_add_tomorrow)
+        DueChoice.CUSTOM -> if (dueChoice == DueChoice.CUSTOM && due != null)
+            due!!.format(DateTimeFormatter.ofPattern("EEE d MMM")) else getString(R.string.quick_add_pick_date)
+        DueChoice.NONE -> getString(R.string.quick_add_no_date)
+    }
+
+    private fun pickDue(choice: DueChoice) {
+        val today = LocalDate.now()
+        when (choice) {
+            DueChoice.TODAY -> setDue(choice, today)
+            DueChoice.TOMORROW -> setDue(choice, today.plusDays(1))
+            DueChoice.NONE -> setDue(choice, null)
+            DueChoice.CUSTOM -> {
+                val start = due ?: today
+                DatePickerDialog(this, { _, y, m, d -> setDue(DueChoice.CUSTOM, LocalDate.of(y, m + 1, d)) },
+                    start.year, start.monthValue - 1, start.dayOfMonth).show()
+            }
+        }
+    }
+
+    private fun setDue(choice: DueChoice, date: LocalDate?) {
+        dueChoice = choice
+        due = date
+        renderDates()
+    }
+
+    private fun renderDates() {
+        for (i in 0 until binding.dates.childCount) {
+            val chip = binding.dates.getChildAt(i) as TextView
+            chip.text = dueLabel(chip.tag as DueChoice)
+        }
+        styleChips(binding.dates, theme?.accent ?: Color.GRAY) { it == dueChoice }
     }
 
     private fun select(column: CockpitColumn) {
@@ -122,10 +188,14 @@ class QuickAddActivity : AppCompatActivity() {
         // A column's own colour wins; without one the theme's accent stands in for the old grey.
         val accent = runCatching { Color.parseColor(column.color) }.getOrNull()
             ?: theme?.accent ?: Color.GRAY
+        styleChips(binding.columns, accent) { it == column }
+    }
+
+    private fun styleChips(row: android.widget.LinearLayout, accent: Int, isOn: (Any?) -> Boolean) {
         val onAccent = if (theme != null) com.outsmartis.yoke.theme.ThemeContrast.onColor(accent) else Color.WHITE
-        for (i in 0 until binding.columns.childCount) {
-            val chip = binding.columns.getChildAt(i) as TextView
-            val on = chip.tag == column
+        for (i in 0 until row.childCount) {
+            val chip = row.getChildAt(i) as TextView
+            val on = isOn(chip.tag)
             chip.isSelected = on
             val t = theme
             if (t != null) {
@@ -147,16 +217,19 @@ class QuickAddActivity : AppCompatActivity() {
         if (title.isEmpty()) return
         val vault = prefs.vault(this) ?: return showSetup()
         binding.input.isEnabled = false
+        val pickedDue = due
+        val savedTo = if (pickedDue != null) dueLabel(dueChoice) else column.label
         io.execute {
             val today = LocalDate.now()
             val result = runCatching {
                 val path = CockpitCards.pathFor(cfg.folder, title) { vault.exists(it) }
-                vault.createText(path, CockpitCards.content(title, CockpitCards.fieldsFor(column, today), today))
+                val fields = CockpitCards.withDue(CockpitCards.fieldsFor(column, today), pickedDue)
+                vault.createText(path, CockpitCards.content(title, fields, today))
             }
             runOnUiThread {
                 result.onSuccess {
                     prefs.defaultColumn = column.id
-                    Toast.makeText(this, getString(R.string.quick_add_saved, column.label), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.quick_add_saved, savedTo), Toast.LENGTH_SHORT).show()
                     finish()
                 }.onFailure {
                     binding.input.isEnabled = true
@@ -188,3 +261,6 @@ class QuickAddActivity : AppCompatActivity() {
         super.onDestroy()
     }
 }
+
+/** The date chips, in display order. */
+private enum class DueChoice { TODAY, TOMORROW, CUSTOM, NONE }

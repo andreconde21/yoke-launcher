@@ -75,6 +75,17 @@ object CockpitCards {
         }
     }
 
+    /** Columns placed by a due date (Today, Soon, Scheduled); quick-add sets the date directly instead. */
+    fun isDateColumn(column: CockpitColumn): Boolean = column.rule.orEmpty().contains("date:")
+
+    /**
+     * A column's fields with the due date the user picked. A date makes a
+     * status-less card "scheduled" (the plugin then files it by date); a
+     * status column (e.g. In Progress) keeps its status. Null keeps the column's own fields.
+     */
+    fun withDue(fields: ColumnFields, due: LocalDate?): ColumnFields =
+        if (due == null) fields else fields.copy(status = fields.status.ifEmpty { "scheduled" }, due = due.toString())
+
     /**
      * The file name stem the plugin's `createCardInColumn` uses. One
      * deviation: a title with no latin letters or digits gives "card"
