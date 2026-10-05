@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.core.os.bundleOf
@@ -28,6 +29,12 @@ import com.outsmartis.yoke.MainActivity
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.AppModel
+import com.outsmartis.yoke.iconrow.IconPosition
+import com.outsmartis.yoke.iconrow.IconRenderer
+import com.outsmartis.yoke.iconrow.IconRowPrefs
+import com.outsmartis.yoke.iconrow.IconRowView
+import com.outsmartis.yoke.iconrow.IconSlot
+import com.outsmartis.yoke.iconrow.IconSlots
 import com.outsmartis.yoke.details.DetailsSheet
 import com.outsmartis.yoke.details.SheetAction
 import com.outsmartis.yoke.data.Constants
@@ -64,6 +71,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var viewModel: MainViewModel
     private var mainTouchListener: OnSwipeTouchListener? = null
     private var notes: HomeNotifications? = null
+    private lateinit var iconPrefs: IconRowPrefs
+    private var iconRow: IconRowView? = null
+    private var appsBasePaddingBottom = 0
+    private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        if (_binding != null && isAdded) renderIconRow()
+    }
 
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
@@ -76,6 +89,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = Prefs(requireContext())
+        iconPrefs = IconRowPrefs(requireContext())
+        appsBasePaddingBottom = binding.homeAppsLayout.paddingBottom
+        iconPrefs.registerListener(iconPrefsListener)
         keepAppsBelowTopBlock()
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
@@ -339,6 +355,59 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private fun populateHomeScreen(appCountUpdated: Boolean) {
         populateHomeScreenCore(appCountUpdated)
         renderNotifications()
+        renderIconRow()
+    }
+
+    /**
+     * The optional icon row: at the bottom (the home text slots get that much extra bottom padding, plus
+     * the navigation bar inset) or as the last child of the top block, whose layout listener then moves
+     * the slots down. Rebuilt whenever its prefs, the theme or the home screen change.
+     */
+    private fun renderIconRow() {
+        val b = _binding ?: return
+        iconRow?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        iconRow = null
+        val apps = b.homeAppsLayout
+        fun setBottomPadding(px: Int) {
+            if (apps.paddingBottom != px) apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, px)
+        }
+        if (!iconPrefs.enabled || iconPrefs.slots.isEmpty()) {
+            setBottomPadding(appsBasePaddingBottom)
+            return
+        }
+        val row = IconRowView(requireContext())
+        row.bind(iconPrefs, ::iconRowTap, ::iconRowLongPressed)
+        iconRow = row
+        val underClock = iconPrefs.position == IconPosition.UNDER_CLOCK && b.dateTimeLayout.visibility == View.VISIBLE
+        if (underClock) {
+            b.dateTimeLayout.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            setBottomPadding(appsBasePaddingBottom)
+        } else {
+            val navInset = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
+                ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+            val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
+            lp.marginStart = 24.dpToPx()
+            lp.marginEnd = 24.dpToPx()
+            lp.bottomMargin = navInset + 8.dpToPx()
+            b.mainLayout.addView(row, lp)
+            setBottomPadding(appsBasePaddingBottom + IconRowView.heightPx(requireContext(), iconPrefs) + navInset)
+        }
+    }
+
+    private fun iconRowTap(slot: IconSlot) = launchApp(slot.packageName, slot.packageName, slot.activityClassName, slot.user)
+
+    private fun iconRowLongPressed(index: Int, slot: IconSlot) {
+        val ctx = requireContext()
+        val replaceFlag = Constants.FLAG_SET_ICON_ROW_APP_1 + index
+        DetailsSheet.show(
+            ctx, slot.packageName, getUserHandleFromString(ctx, slot.user), IconRenderer.label(ctx, slot),
+            listOf(
+                SheetAction(getString(R.string.details_replace)) { showAppList(replaceFlag, false, true) },
+                SheetAction(getString(R.string.icon_row_remove)) {
+                    iconPrefs.slots = IconSlots.remove(iconPrefs.slots, index)
+                },
+            ),
+        )
     }
 
     /** The notification block, now playing line and the counts after the home app labels. */
@@ -723,6 +792,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     override fun onDestroyView() {
         super.onDestroyView()
+        if (::iconPrefs.isInitialized) iconPrefs.unregisterListener(iconPrefsListener)
+        iconRow = null
         mainTouchListener = null
         notes?.release()
         notes = null

@@ -30,6 +30,7 @@ object YokeBackup {
         "yoke.cockpit",
         "yoke.search",
         "yoke.backup",
+        "yoke.iconrow",
     )
 
     /** Keys left out of an export and left alone by an import, per file. */

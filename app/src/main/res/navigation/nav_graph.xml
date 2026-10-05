@@ -66,6 +66,13 @@
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
         <action
+            android:id="@+id/action_settingsFragment_to_iconRowFragment"
+            app:destination="@id/iconRowFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
+        <action
             android:id="@+id/action_settingsFragment_to_gesturesFragment"
             app:destination="@id/gesturesFragment"
             app:enterAnim="@anim/fade_enter"
@@ -133,6 +140,19 @@
         android:layout="@layout/fragment_gestures">
         <action
             android:id="@+id/action_gesturesFragment_to_appListFragment"
+            app:destination="@id/appListFragment"
+            app:enterAnim="@anim/fade_enter"
+            app:exitAnim="@anim/fade_exit"
+            app:popEnterAnim="@anim/fade_enter"
+            app:popExitAnim="@anim/fade_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/iconRowFragment"
+        android:name="com.outsmartis.yoke.ui.IconRowFragment"
+        android:label="IconRowFragment">
+        <action
+            android:id="@+id/action_iconRowFragment_to_appListFragment"
             app:destination="@id/appListFragment"
             app:enterAnim="@anim/fade_enter"
             app:exitAnim="@anim/fade_exit"

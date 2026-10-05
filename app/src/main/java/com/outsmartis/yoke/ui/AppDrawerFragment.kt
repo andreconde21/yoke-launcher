@@ -136,6 +136,7 @@ class AppDrawerFragment : BaseFragment() {
             binding.search.queryHint = getString(R.string.hidden_apps)
         else if (flag in Constants.FLAG_SET_HOME_APP_1..Constants.FLAG_SET_CALENDAR_APP
             || flag == Constants.FLAG_SET_WEATHER_APP
+            || flag in Constants.FLAG_SET_ICON_ROW_APP_1..Constants.FLAG_SET_ICON_ROW_APP_6
             || flag == Constants.FLAG_SET_GESTURE_APP || flag == Constants.FLAG_SET_GESTURE_SHORTCUT_APP)
             binding.search.queryHint = "Please select an app"
         else if (paletteMode)

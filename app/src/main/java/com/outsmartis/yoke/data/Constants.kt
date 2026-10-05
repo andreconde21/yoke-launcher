@@ -63,6 +63,10 @@ object Constants {
     const val FLAG_SET_GESTURE_SHORTCUT_APP = 17
     const val FLAG_SET_WEATHER_APP = 18
 
+    /** Icon row slots 1..6: the flag is the base plus the slot's zero-based index. */
+    const val FLAG_SET_ICON_ROW_APP_1 = 20
+    const val FLAG_SET_ICON_ROW_APP_6 = 25
+
     const val REQUEST_CODE_ENABLE_ADMIN = 666
     const val REQUEST_CODE_LAUNCHER_SELECTOR = 678
 

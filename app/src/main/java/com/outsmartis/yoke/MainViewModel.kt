@@ -17,6 +17,9 @@ import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.LinkEntry
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.gestures.GestureAction
+import com.outsmartis.yoke.iconrow.IconRowPrefs
+import com.outsmartis.yoke.iconrow.IconSlot
+import com.outsmartis.yoke.iconrow.IconSlots
 import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.helper.SingleLiveEvent
 import com.outsmartis.yoke.helper.formattedTimeSpent
@@ -92,6 +95,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             Constants.FLAG_SET_HOME_APP_6 -> saveHomeApp(appModel, 6)
             Constants.FLAG_SET_HOME_APP_7 -> saveHomeApp(appModel, 7)
             Constants.FLAG_SET_HOME_APP_8 -> saveHomeApp(appModel, 8)
+
+            in Constants.FLAG_SET_ICON_ROW_APP_1..Constants.FLAG_SET_ICON_ROW_APP_6 ->
+                saveIconRowApp(appModel, flag - Constants.FLAG_SET_ICON_ROW_APP_1)
 
             Constants.FLAG_SET_GESTURE_APP -> saveGestureApp(appModel)
             Constants.FLAG_SET_GESTURE_SHORTCUT_APP -> if (appModel is AppModel.App) gestureShortcutApp.value = appModel
@@ -287,6 +293,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         refreshHome(false)
+    }
+
+    private fun saveIconRowApp(appModel: AppModel, index: Int) {
+        if (appModel !is AppModel.App) return
+        val iconPrefs = IconRowPrefs(appContext)
+        iconPrefs.slots = IconSlots.set(
+            iconPrefs.slots, index,
+            IconSlot(appModel.appPackage, appModel.activityClassName, appModel.user.toString()),
+        )
     }
 
     private fun saveGestureApp(appModel: AppModel) {

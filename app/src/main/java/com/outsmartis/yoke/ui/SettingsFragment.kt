@@ -135,6 +135,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.boldFont -> toggleBoldFont()
             R.id.fontText -> toggleFont()
 
+            R.id.iconRowRow -> findNavController().navigate(R.id.action_settingsFragment_to_iconRowFragment)
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
             R.id.grayscaleRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.notesRow -> findNavController().navigate(R.id.action_settingsFragment_to_notificationsHomeFragment)
@@ -176,6 +177,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.statusBar.setOnClickListener(this)
         binding.dateTime.setOnClickListener(this)
         binding.gesturesRow.setOnClickListener(this)
+        binding.iconRowRow.setOnClickListener(this)
         binding.grayscaleRow.setOnClickListener(this)
         binding.nowPlayingRow.setOnClickListener(this)
         populateNowPlaying()

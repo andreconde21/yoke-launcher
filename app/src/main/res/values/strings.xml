@@ -335,4 +335,22 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="details_send">Send</string>
     <string name="details_reply_hint">Reply to %1$s…</string>
     <string name="details_update_conductore_reply">Update Conductore to reply from Yoke</string>
+    <string name="icon_row_title">Icon row</string>
+    <string name="icon_row_enabled">Icon row</string>
+    <string name="icon_row_apps">Icon row apps</string>
+    <string name="icon_row_apps_count">%1$d of 6</string>
+    <string name="icon_row_style">Icon style</string>
+    <string name="icon_row_style_mono">Monochrome</string>
+    <string name="icon_row_style_original">Original</string>
+    <string name="icon_row_labels">Icon labels</string>
+    <string name="icon_row_size">Icon size</string>
+    <string name="icon_row_size_small">Small</string>
+    <string name="icon_row_size_medium">Medium</string>
+    <string name="icon_row_size_large">Large</string>
+    <string name="icon_row_position">Icon row position</string>
+    <string name="icon_row_position_bottom">Bottom</string>
+    <string name="icon_row_position_clock">Under the clock</string>
+    <string name="icon_row_add_app">Add app</string>
+    <string name="icon_row_remove">Remove from icon row</string>
+    <string name="icon_row_editor_hint">Tap an app to replace it. Up to 6 apps.</string>
 </resources>
