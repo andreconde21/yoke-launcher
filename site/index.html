@@ -53,7 +53,7 @@
             <div class="sheet" id="sheet" aria-hidden="true">
               <h3>Conductore · 3 agents</h3>
               <div class="agent urgent"><span>mobile</span><span>needs input</span></div>
-              <div class="agent"><span>api</span><span>working</span><div class="bar"><i style="width:62%"></i></div></div>
+              <div class="agent"><span>api</span><span>working</span></div>
               <div class="agent"><span>docs</span><span>done</span></div>
             </div>
           </div>
@@ -68,7 +68,7 @@
         <h2>Hold an app to see inside it</h2>
         <div class="body">
           <p>Long-press an app and Yoke asks it what's going on. Apps that support it answer with a small live sheet; the rest show their shortcuts and app info.</p>
-          <p><strong>Conductore is the first.</strong> Hold it to see which coding agents are working, which ones are waiting on you, and how far along they are, without opening anything. The sheet updates while it's open.</p>
+          <p><strong>Conductore is the first.</strong> Hold it to see your coding agents grouped by project, the way Conductore's home shows them, with the ones waiting on you counted at the top. Answer a question or pick Allow or Deny right in the sheet, without opening anything. The sheet updates while it's open.</p>
           <p>Any app can join through a small, documented ContentProvider contract. Only apps signed with Yoke's key can read the data.</p>
         </div>
       </section>
@@ -78,6 +78,7 @@
         <div class="body">
           <p>Swipe left on the home screen, type a task, pick a column and press Enter. Yoke writes the card straight into your Obsidian vault in the same format the <strong>Cockpit Board</strong> plugin uses, so Syncthing carries it to your desk and it lands in the right column.</p>
           <p>Yoke reads your board's own settings from the vault, so your folder and columns are always the ones you set up in Obsidian. Sharing text from any app works too.</p>
+          <p>A line under the clock shows what's due today. Tap it for a Today sheet where you can finish, reschedule or open a card; long-press it to open the board.</p>
           <div class="card-sample" aria-label="Example card file">---
 title: "Call the accountant"
 status: scheduled
@@ -111,8 +112,17 @@ source: yoke
       <section class="feature" id="palette">
         <h2>Type to do anything</h2>
         <div class="body">
-          <p>Search apps and your own web links as you type, and Yoke opens the app when only one is left. Start with <code>=</code> for a calculator, <code>&gt;</code> for Yoke's actions, or <code>/</code> to jump straight into an app shortcut.</p>
+          <p>Search apps, web links, Cockpit cards, vault notes, contacts and settings as you type. Yoke opens the app when it is the only result left. Start with <code>=</code> for a calculator, <code>&gt;</code> for Yoke's actions, or <code>/</code> to jump straight into an app shortcut.</p>
           <p>The themes come from <strong>Omarchy</strong>, so your phone can match your desktop. Try one above.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="calm">
+        <h2>Calm by default</h2>
+        <div class="body">
+          <p><strong>Smart grayscale</strong> turns the screen gray, except in the apps you choose, so the colourful ones stop pulling at you. Grant its permission from the phone with Shizuku, no computer needed.</p>
+          <p>Notifications only appear on home for the apps you pick. Weather is one quiet line. The wallpaper follows your theme, or uses an Omarchy background or your own photo. An optional row of monochrome icons sits under your apps.</p>
+          <p>Export your whole setup to a file, or keep a copy in your vault, and bring it to your next phone.</p>
         </div>
       </section>
 
