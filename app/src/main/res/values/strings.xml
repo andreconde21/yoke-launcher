@@ -368,4 +368,7 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="today_act_open">Open in Obsidian</string>
     <string name="today_changed">Card changed, refreshed</string>
     <string name="today_failed">Could not update the card</string>
+    <string name="next_background_none">This theme has no Omarchy backgrounds</string>
+    <string name="next_background_failed">Could not load the background</string>
+    <string name="grayscale_recent">Recently in front. Tap to keep one in colour</string>
 </resources>

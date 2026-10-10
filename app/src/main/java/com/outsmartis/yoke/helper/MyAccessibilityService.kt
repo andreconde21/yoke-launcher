@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import com.outsmartis.yoke.R
 import androidx.core.content.ContextCompat
 import com.outsmartis.yoke.data.Prefs
@@ -51,8 +52,9 @@ class MyAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            // Smart grayscale: which app is in front. Only the package name is read.
-            GrayscaleController.evaluate(applicationContext, event.packageName?.toString())
+            // Smart grayscale: which app is in front. Only the package name is read. The focused app
+            // window decides, so floating panels and pop-ups from other packages don't flip the screen.
+            GrayscaleController.evaluate(applicationContext, focusedAppPackage() ?: event.packageName?.toString())
             return
         }
         // The lock click only counts on Yoke's own views; the service now hears every app.
@@ -74,6 +76,15 @@ class MyAccessibilityService : AccessibilityService() {
         } catch (e: Exception) {
             return
         }
+    }
+
+    /** Package of the focused application window, or null when it can't be told. */
+    private fun focusedAppPackage(): String? = try {
+        val window = windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isFocused }
+            ?: windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_APPLICATION && it.isActive }
+        window?.root?.packageName?.toString()
+    } catch (e: Exception) {
+        null
     }
 
     override fun onInterrupt() {

@@ -25,6 +25,21 @@ object WallpaperLogic {
     fun backgroundsFor(themeId: String): List<String> =
         OMARCHY_THEMES.firstOrNull { it.id == themeId }?.backgrounds.orEmpty()
 
+    /** The first of [candidates] that ships backgrounds: the selected theme, else the one it resolved to (Omarchy PC). */
+    fun backgroundTheme(vararg candidates: String?): String? =
+        candidates.firstOrNull { it != null && backgroundsFor(it).isNotEmpty() }
+
+    /**
+     * The background "Next background" moves to, like Omarchy's background cycling: the one after
+     * the current file when an Omarchy background of [themeId] is showing, else its first one.
+     */
+    fun nextBackground(themeId: String, current: WallpaperChoice, applied: Boolean): String? {
+        val files = backgroundsFor(themeId)
+        if (files.isEmpty()) return null
+        if (!applied || current.source != WallpaperSource.OMARCHY || current.omarchyTheme != themeId) return files.first()
+        return files[(files.indexOf(current.omarchyFile) + 1) % files.size]
+    }
+
     /** A file name that is safe to use inside the cache directory. */
     fun cacheName(value: String): String = value.replace(Regex("[^A-Za-z0-9._-]"), "_").trimStart('.').ifEmpty { "_" }
 

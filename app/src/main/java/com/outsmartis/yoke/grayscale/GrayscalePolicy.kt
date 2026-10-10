@@ -41,6 +41,12 @@ object GrayscalePolicy {
 
     fun isPaused(pausedUntil: Long, now: Long): Boolean = pausedUntil > now
 
+    /** [recent] with [pkg] moved to the front, at most [max] long. */
+    fun pushRecent(recent: List<String>, pkg: String, max: Int = RECENT_MAX): List<String> =
+        (listOf(pkg) + recent.filter { it != pkg }).take(max)
+
+    const val RECENT_MAX = 8
+
     /** What to remember as "the user's own setting" when Yoke takes over for the first time. */
     fun previousToRemember(current: DaltonizerState): DaltonizerState =
         if (current.enabled && current.mode != DaltonizerState.MONOCHROMACY) current else DaltonizerState.COLOUR

@@ -90,10 +90,45 @@ class GrayscaleFragment : BaseFragment() {
         )
         binding.grayscaleExceptions.text =
             "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, prefs.exceptions.size)}"
+        renderRecent()
         val pausedUntil = prefs.pausedUntil
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
         } else getString(R.string.grayscale_pause)
+    }
+
+    /**
+     * The apps seen in front lately, each tappable to toggle its exception. This is how helpers
+     * without a launcher icon (a gallery's video player or editor) get exempted.
+     */
+    private fun renderRecent() {
+        val ctx = requireContext()
+        val box = binding.grayscaleRecent
+        box.removeAllViews()
+        val recent = prefs.recent.filter { it != ctx.packageName }
+        if (recent.isEmpty()) return
+        val density = resources.displayMetrics.density
+        box.addView(TextView(ctx, null, 0, R.style.TextSmall).apply {
+            setText(R.string.grayscale_recent)
+            alpha = 0.7f
+            setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+        })
+        val pm = ctx.packageManager
+        for (pkg in recent) {
+            val label = try { pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString() } catch (e: Exception) { pkg }
+            box.addView(TextView(ctx, null, 0, R.style.TextSmall).apply {
+                val mark = if (pkg in prefs.exceptions) "[x] " else "[ ] "
+                text = if (label == pkg) mark + pkg else "$mark$label  ·  $pkg"
+                setPadding(0, (8 * density).toInt(), 0, (8 * density).toInt())
+                setOnClickListener {
+                    val ex = prefs.exceptions.toMutableSet()
+                    if (!ex.add(pkg)) ex.remove(pkg)
+                    prefs.exceptions = ex
+                    GrayscaleController.evaluate(ctx)
+                    refresh()
+                }
+            })
+        }
     }
 
     private fun refreshShizuku(ctx: android.content.Context) {

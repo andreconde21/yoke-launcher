@@ -22,6 +22,11 @@ class GrayscalePrefs(context: Context) {
         get() = prefs.getString(LAST_PACKAGE, null)
         set(value) = prefs.edit { putString(LAST_PACKAGE, value) }
 
+    /** Apps most recently seen in front, newest first, for exempting helpers that have no launcher icon. */
+    var recent: List<String>
+        get() = prefs.getString(RECENT, null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
+        set(value) = prefs.edit { putString(RECENT, value.joinToString("\n")) }
+
     /** Exceptions; the defaults (Yoke itself) until the user saves a list. */
     var exceptions: Set<String>
         get() = PackageSetCodec.decode(prefs.getString(EXCEPTIONS, null)) ?: DEFAULT_EXCEPTIONS
@@ -50,6 +55,7 @@ class GrayscalePrefs(context: Context) {
         private const val PAUSED_UNTIL = "GRAYSCALE_PAUSED_UNTIL"
         private const val LAST_PACKAGE = "GRAYSCALE_LAST_PACKAGE"
         private const val EXCEPTIONS = "GRAYSCALE_EXCEPTIONS"
+        private const val RECENT = "GRAYSCALE_RECENT"
         private const val TAKEN_OVER = "GRAYSCALE_TAKEN_OVER"
         private const val PREV_ENABLED = "GRAYSCALE_PREV_ENABLED"
         private const val PREV_MODE = "GRAYSCALE_PREV_MODE"

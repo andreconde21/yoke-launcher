@@ -23,6 +23,9 @@ import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
+import com.outsmartis.yoke.wallpaper.WallpaperPrefs
+import com.outsmartis.yoke.wallpaper.WallpaperApplier
+import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.cockpit.QuickAddActivity
@@ -115,6 +118,8 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.ToggleGrayscale -> GrayscaleController.toggle(activity)
                 GestureAction.PauseGrayscale -> GrayscaleController.pause(activity)
                 GestureAction.ToggleIconRow -> IconRowPrefs(activity).toggle()
+                GestureAction.NextTheme -> ThemeStore.cycleNext(activity)
+                GestureAction.NextBackground -> nextBackground()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -128,6 +133,16 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
     private fun commandPalette() = CommandPalette.open(navController)
 
     private fun themePicker() = ThemePickerActivity.open(activity)
+
+    private fun nextBackground() {
+        val hadImage = WallpaperPrefs(activity).imageChoice != null
+        val started = WallpaperApplier.nextBackground(activity) { error ->
+            if (error != null) activity.showToast(activity.getString(R.string.next_background_failed))
+            // Home stops painting the theme colour over the wallpaper once an image is showing.
+            else if (!hadImage && !activity.isFinishing) activity.recreate()
+        }
+        if (!started) activity.showToast(activity.getString(R.string.next_background_none))
+    }
 
     private fun comingSoon() = activity.showToast(activity.getString(R.string.coming_soon))
 

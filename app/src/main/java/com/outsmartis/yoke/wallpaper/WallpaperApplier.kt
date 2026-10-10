@@ -1,5 +1,7 @@
 package com.outsmartis.yoke.wallpaper
 
+import com.outsmartis.yoke.theme.ThemePrefs
+
 import android.app.WallpaperManager
 import android.content.Context
 import android.content.res.Configuration
@@ -89,6 +91,15 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val choice = prefs.choice
+        // Like Omarchy: an Omarchy background follows the theme to the new theme's first background.
+        if (prefs.applied && choice.source == WallpaperSource.OMARCHY) {
+            val theme = currentBackgroundTheme(app) ?: return
+            if (theme == choice.omarchyTheme) return
+            val file = WallpaperLogic.backgroundsFor(theme).first()
+            prefs.choice = choice.copy(omarchyTheme = theme, omarchyFile = file)
+            applyOmarchy(app, theme, file)
+            return
+        }
         if (!prefs.applied || choice.source != WallpaperSource.THEME_COLOUR) return
         if (prefs.lastSolid == "${themeColour(app)}:${choice.target.name}") return
         applyThemeColour(app)
@@ -142,6 +153,25 @@ object WallpaperApplier {
             tmp.delete()
             null
         }
+    }
+
+    /** The Omarchy theme whose backgrounds go with the current theme, or null when it has none. */
+    fun currentBackgroundTheme(context: Context): String? =
+        WallpaperLogic.backgroundTheme(ThemePrefs(context).themeId, ThemeStore.current(context)?.id)
+
+    /**
+     * For the "Next background" gesture: shows the current theme's next Omarchy background on home
+     * and lock (keeping the chosen target and dim). Returns false when the theme has no backgrounds.
+     */
+    fun nextBackground(context: Context, callback: Callback? = null): Boolean {
+        val app = context.applicationContext
+        val prefs = WallpaperPrefs(app)
+        val theme = currentBackgroundTheme(app) ?: return false
+        val file = WallpaperLogic.nextBackground(theme, prefs.choice, prefs.applied) ?: return false
+        prefs.choice = prefs.choice.copy(source = WallpaperSource.OMARCHY, omarchyTheme = theme, omarchyFile = file)
+        prefs.applied = true
+        applyOmarchy(app, theme, file, callback)
+        return true
     }
 
     fun applyOmarchy(context: Context, themeId: String, file: String, callback: Callback? = null) {

@@ -62,6 +62,8 @@ object GrayscaleController {
                 lastPackage = prefs.lastPackage,
             )
             if (decision.rememberedPackage != prefs.lastPackage) prefs.lastPackage = decision.rememberedPackage
+            val seen = foregroundPackage?.takeIf { it.isNotBlank() && it !in ignoredPackages(app) }
+            if (seen != null && prefs.recent.firstOrNull() != seen) prefs.recent = GrayscalePolicy.pushRecent(prefs.recent, seen)
             if (hasPermission(app)) {
                 if (decision.grayscale && prefs.previous == null) {
                     prefs.previous = GrayscalePolicy.previousToRemember(read(app))
