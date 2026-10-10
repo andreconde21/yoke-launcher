@@ -9,6 +9,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.omarchy.DotStyle
+import com.outsmartis.yoke.omarchy.Edge
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.theme.ThemeApplier
 
@@ -42,6 +44,10 @@ class OmarchyStyleFragment : BaseFragment() {
         super.onResume()
         render()
     }
+
+    private fun <T> next(all: List<T>, current: T): T = all[(all.indexOf(current) + 1) % all.size]
+
+    private fun edge(e: Edge) = getString(if (e == Edge.TOP) R.string.omarchy_top else R.string.omarchy_bottom)
 
     private fun onOff(on: Boolean) = getString(if (on) R.string.on else R.string.off)
 
@@ -77,6 +83,16 @@ class OmarchyStyleFragment : BaseFragment() {
         if (prefs.toastEnabled) row(R.string.omarchy_toast_duration, getString(
             if (prefs.toastLong) R.string.omarchy_long else R.string.omarchy_short,
         )) { prefs.toastLong = !prefs.toastLong }
+
+        heading(getString(R.string.omarchy_dots_section))
+        row(R.string.omarchy_dots, onOff(prefs.dotsEnabled)) { prefs.dotsEnabled = !prefs.dotsEnabled }
+        if (prefs.dotsEnabled) {
+            row(R.string.omarchy_dots_style, getString(
+                if (prefs.dotsStyle == DotStyle.DOTS) R.string.omarchy_dots_style_dots else R.string.omarchy_dots_style_numbers,
+            )) { prefs.dotsStyle = next(DotStyle.entries, prefs.dotsStyle) }
+            row(R.string.omarchy_position, edge(prefs.dotsPosition)) { prefs.dotsPosition = next(Edge.entries, prefs.dotsPosition) }
+            column.addView(text(false, getString(R.string.omarchy_dots_hint)).apply { alpha = 0.7f })
+        }
 
         ThemeApplier.apply(column)
     }

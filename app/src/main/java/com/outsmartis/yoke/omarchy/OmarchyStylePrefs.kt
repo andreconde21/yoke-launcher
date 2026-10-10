@@ -18,8 +18,20 @@ class OmarchyStylePrefs(context: Context) {
         get() = prefs.getBoolean(TOAST_LONG, false)
         set(value) = prefs.edit { putBoolean(TOAST_LONG, value) }
 
+    var dotsEnabled: Boolean
+        get() = prefs.getBoolean(DOTS, false)
+        set(value) = prefs.edit { putBoolean(DOTS, value) }
+
+    var dotsStyle: DotStyle
+        get() = DotStyle.fromId(prefs.getString(DOTS_STYLE, null))
+        set(value) = prefs.edit { putString(DOTS_STYLE, value.id) }
+
+    var dotsPosition: Edge
+        get() = Edge.fromId(prefs.getString(DOTS_POSITION, null))
+        set(value) = prefs.edit { putString(DOTS_POSITION, value.id) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -28,5 +40,8 @@ class OmarchyStylePrefs(context: Context) {
         const val FILE = "yoke.omarchy"
         private const val TOAST = "toast"
         private const val TOAST_LONG = "toast_long"
+        private const val DOTS = "dots"
+        private const val DOTS_STYLE = "dots_style"
+        private const val DOTS_POSITION = "dots_position"
     }
 }

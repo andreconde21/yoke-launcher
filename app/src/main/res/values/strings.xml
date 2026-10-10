@@ -404,4 +404,13 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_toast_section">Theme-change notice</string>
     <string name="omarchy_toast">Notice after next theme / background</string>
     <string name="omarchy_toast_duration">Notice duration</string>
+    <string name="omarchy_top">Top</string>
+    <string name="omarchy_bottom">Bottom</string>
+    <string name="omarchy_position">Position</string>
+    <string name="omarchy_dots_section">Workspace dots</string>
+    <string name="omarchy_dots">Page indicators</string>
+    <string name="omarchy_dots_style">Indicator style</string>
+    <string name="omarchy_dots_style_numbers">Numbers</string>
+    <string name="omarchy_dots_style_dots">Dots</string>
+    <string name="omarchy_dots_hint">Home, the widget page and Today, when a gesture (or the agenda line) opens them. Tap one to jump there.</string>
 </resources>
