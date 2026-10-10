@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.omarchy.FloatingDrawer
 import com.outsmartis.yoke.omarchy.TerminalStyle
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
@@ -120,6 +121,10 @@ class AppDrawerFragment : BaseFragment() {
         initViews()
         initSearch()
         initAdapter()
+        // Omarchy style: the launching drawer (and palette) can float; app pickers keep the full list.
+        if (flag == Constants.FLAG_LAUNCH_APP) {
+            FloatingDrawer.install(binding.root, binding.search.parent as View, binding.recyclerView) { closeDrawer() }
+        }
         if (flag == Constants.FLAG_LAUNCH_APP) {
             adapter.extraRows = { q -> extraSearch.search(q).map(::extraRow) }
             adapter.extrasReady = { extraSearch.ready }

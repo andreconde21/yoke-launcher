@@ -15,8 +15,11 @@ import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.omarchy.BorderMode
 import com.outsmartis.yoke.omarchy.DotStyle
+import com.outsmartis.yoke.omarchy.DrawerStyle
 import com.outsmartis.yoke.omarchy.Edge
 import com.outsmartis.yoke.omarchy.FadeMode
+import com.outsmartis.yoke.omarchy.FloatPosition
+import com.outsmartis.yoke.omarchy.FloatingDrawerSpec
 import com.outsmartis.yoke.omarchy.HomeTiles
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.TerminalLabel
@@ -200,6 +203,22 @@ class OmarchyStyleFragment : BaseFragment() {
             FadeMode.QUICK -> R.string.omarchy_fade_quick
         })) { prefs.fadeMode = next(FadeMode.entries, prefs.fadeMode) }
         if (prefs.fadeMode != FadeMode.OFF) column.addView(text(false, getString(R.string.omarchy_fade_hint)).apply { alpha = 0.7f })
+
+        heading(getString(R.string.omarchy_drawer_section))
+        row(R.string.omarchy_drawer, getString(
+            if (prefs.drawerStyle == DrawerStyle.FLOATING) R.string.omarchy_drawer_floating else R.string.omarchy_drawer_list,
+        )) { prefs.drawerStyle = next(DrawerStyle.entries, prefs.drawerStyle) }
+        if (prefs.drawerStyle == DrawerStyle.FLOATING) {
+            row(R.string.omarchy_position, getString(
+                if (prefs.drawerPosition == FloatPosition.TOP) R.string.omarchy_top else R.string.omarchy_centre,
+            )) { prefs.drawerPosition = next(FloatPosition.entries, prefs.drawerPosition) }
+            row(R.string.omarchy_drawer_width, "${prefs.drawerWidthPct}%") {
+                prefs.drawerWidthPct = FloatingDrawerSpec.next(prefs.drawerWidthPct, FloatingDrawerSpec.WIDTHS_PCT)
+            }
+            row(R.string.omarchy_drawer_max_results, "${prefs.drawerMaxResults}") {
+                prefs.drawerMaxResults = FloatingDrawerSpec.next(prefs.drawerMaxResults, FloatingDrawerSpec.MAX_RESULTS)
+            }
+        }
 
         heading(getString(R.string.omarchy_dots_section))
         row(R.string.omarchy_dots, onOff(prefs.dotsEnabled)) { prefs.dotsEnabled = !prefs.dotsEnabled }

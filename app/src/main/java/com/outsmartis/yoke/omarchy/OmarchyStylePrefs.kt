@@ -87,8 +87,24 @@ class OmarchyStylePrefs(context: Context) {
         get() = FadeMode.fromId(prefs.getString(FADE, null))
         set(value) = prefs.edit { putString(FADE, value.id) }
 
+    var drawerStyle: DrawerStyle
+        get() = DrawerStyle.fromId(prefs.getString(DRAWER_STYLE, null))
+        set(value) = prefs.edit { putString(DRAWER_STYLE, value.id) }
+
+    var drawerPosition: FloatPosition
+        get() = FloatPosition.fromId(prefs.getString(DRAWER_POSITION, null))
+        set(value) = prefs.edit { putString(DRAWER_POSITION, value.id) }
+
+    var drawerWidthPct: Int
+        get() = FloatingDrawerSpec.valid(prefs.getInt(DRAWER_WIDTH, FloatingDrawerSpec.DEFAULT_WIDTH_PCT), FloatingDrawerSpec.WIDTHS_PCT, FloatingDrawerSpec.DEFAULT_WIDTH_PCT)
+        set(value) = prefs.edit { putInt(DRAWER_WIDTH, value) }
+
+    var drawerMaxResults: Int
+        get() = FloatingDrawerSpec.valid(prefs.getInt(DRAWER_MAX_RESULTS, FloatingDrawerSpec.DEFAULT_MAX_RESULTS), FloatingDrawerSpec.MAX_RESULTS, FloatingDrawerSpec.DEFAULT_MAX_RESULTS)
+        set(value) = prefs.edit { putInt(DRAWER_MAX_RESULTS, value) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF, fadeMode != FadeMode.OFF).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF, fadeMode != FadeMode.OFF, drawerStyle == DrawerStyle.FLOATING).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -114,5 +130,9 @@ class OmarchyStylePrefs(context: Context) {
         private const val BORDER_RADIUS = "border_radius"
         private const val BORDER_GAP = "border_gap"
         private const val FADE = "fade"
+        private const val DRAWER_STYLE = "drawer_style"
+        private const val DRAWER_POSITION = "drawer_position"
+        private const val DRAWER_WIDTH = "drawer_width"
+        private const val DRAWER_MAX_RESULTS = "drawer_max_results"
     }
 }
