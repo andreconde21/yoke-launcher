@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yoke's screensaver: its gear in Android's screensaver settings opens the Omarchy style options -->
+<dream xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.outsmartis.yoke/com.outsmartis.yoke.omarchy.DreamSettingsActivity" />

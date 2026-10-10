@@ -450,4 +450,15 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_drawer_floating">Floating box</string>
     <string name="omarchy_drawer_width">Box width</string>
     <string name="omarchy_drawer_max_results">Results shown</string>
+    <string name="dream_label">Yoke</string>
+    <string name="omarchy_minutes">%1$d min</string>
+    <string name="omarchy_dream_section">Screensaver</string>
+    <string name="omarchy_dream_content">Screensaver shows</string>
+    <string name="omarchy_dream_logo">Yoke logo animation</string>
+    <string name="omarchy_dream_clock">Clock</string>
+    <string name="omarchy_dream_clock_agenda">Clock and agenda line</string>
+    <string name="omarchy_dream_dim">Dim after</string>
+    <string name="omarchy_dream_open">Open screensaver settings</string>
+    <string name="omarchy_dream_hint">Pick Yoke as the screensaver there; it shows while charging or docked. It moves a little every minute against burn-in.</string>
+    <string name="omarchy_dream_unavailable">This phone has no screensaver settings</string>
 </resources>

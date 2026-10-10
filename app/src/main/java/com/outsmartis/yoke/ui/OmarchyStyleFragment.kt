@@ -1,6 +1,9 @@
 package com.outsmartis.yoke.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputFilter
 import android.text.InputType
 import android.view.LayoutInflater
@@ -13,8 +16,11 @@ import android.widget.TextView
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.omarchy.BorderMode
 import com.outsmartis.yoke.omarchy.DotStyle
+import com.outsmartis.yoke.omarchy.DreamContent
+import com.outsmartis.yoke.omarchy.DreamSpec
 import com.outsmartis.yoke.omarchy.DrawerStyle
 import com.outsmartis.yoke.omarchy.Edge
 import com.outsmartis.yoke.omarchy.FadeMode
@@ -230,6 +236,26 @@ class OmarchyStyleFragment : BaseFragment() {
             column.addView(text(false, getString(R.string.omarchy_dots_hint)).apply { alpha = 0.7f })
         }
 
+        heading(getString(R.string.omarchy_dream_section))
+        row(R.string.omarchy_dream_content, getString(when (prefs.dreamContent) {
+            DreamContent.LOGO -> R.string.omarchy_dream_logo
+            DreamContent.CLOCK -> R.string.omarchy_dream_clock
+            DreamContent.CLOCK_AGENDA -> R.string.omarchy_dream_clock_agenda
+        })) { prefs.dreamContent = next(DreamContent.entries, prefs.dreamContent) }
+        row(R.string.omarchy_dream_dim, getString(R.string.omarchy_minutes, prefs.dreamDimAfterMin)) {
+            prefs.dreamDimAfterMin = DreamSpec.next(prefs.dreamDimAfterMin)
+        }
+        column.addView(text(true, getString(R.string.omarchy_dream_open)) { openDreamSettings() })
+        column.addView(text(false, getString(R.string.omarchy_dream_hint)).apply { alpha = 0.7f })
+
         ThemeApplier.apply(column)
+    }
+
+    private fun openDreamSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_DREAM_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            requireContext().showToast(getString(R.string.omarchy_dream_unavailable))
+        }
     }
 }

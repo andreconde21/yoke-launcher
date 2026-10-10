@@ -103,6 +103,15 @@ class OmarchyStylePrefs(context: Context) {
         get() = FloatingDrawerSpec.valid(prefs.getInt(DRAWER_MAX_RESULTS, FloatingDrawerSpec.DEFAULT_MAX_RESULTS), FloatingDrawerSpec.MAX_RESULTS, FloatingDrawerSpec.DEFAULT_MAX_RESULTS)
         set(value) = prefs.edit { putInt(DRAWER_MAX_RESULTS, value) }
 
+    /** Screensaver options; whether it runs at all is chosen in Android's screensaver settings. */
+    var dreamContent: DreamContent
+        get() = DreamContent.fromId(prefs.getString(DREAM_CONTENT, null))
+        set(value) = prefs.edit { putString(DREAM_CONTENT, value.id) }
+
+    var dreamDimAfterMin: Int
+        get() = DreamSpec.valid(prefs.getInt(DREAM_DIM_AFTER, DreamSpec.DEFAULT_DIM_AFTER_MIN))
+        set(value) = prefs.edit { putInt(DREAM_DIM_AFTER, value) }
+
     /** How many of the features are switched on, for the Settings row. */
     fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF, fadeMode != FadeMode.OFF, drawerStyle == DrawerStyle.FLOATING).count { it }
 
@@ -134,5 +143,7 @@ class OmarchyStylePrefs(context: Context) {
         private const val DRAWER_POSITION = "drawer_position"
         private const val DRAWER_WIDTH = "drawer_width"
         private const val DRAWER_MAX_RESULTS = "drawer_max_results"
+        private const val DREAM_CONTENT = "dream_content"
+        private const val DREAM_DIM_AFTER = "dream_dim_after"
     }
 }

@@ -173,6 +173,27 @@
             </intent-filter>
         </service>
 
+        <!--Omarchy style screensaver: chosen by the user in Android's screensaver settings-->
+        <service
+            android:name=".omarchy.YokeDream"
+            android:exported="true"
+            android:label="@string/dream_label"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/yoke_dream" />
+        </service>
+
+        <activity
+            android:name=".omarchy.DreamSettingsActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/omarchy_title" />
+
         <!--Shizuku: lets the Smart grayscale setup grant its one-time permission from the phone-->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
