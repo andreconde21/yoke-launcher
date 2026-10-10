@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.helper.isEinkDisplay
+import com.outsmartis.yoke.omarchy.ThemeNotice
+import com.outsmartis.yoke.omarchy.ThemeNoticeText
 import com.outsmartis.yoke.wallpaper.WallpaperApplier
 import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
@@ -64,7 +66,8 @@ object ThemeStore {
 
     /** For a "Next theme" gesture: select the next theme and repaint [activity]. */
     fun cycleNext(activity: Activity) {
-        selectNext(activity)
+        val id = selectNext(activity)
+        ThemeNotice.postAfterRecreate(activity, ThemeNoticeText.theme(id))
         activity.recreate()
     }
 

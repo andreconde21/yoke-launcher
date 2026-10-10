@@ -134,6 +134,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.gesturesRow.text = getString(R.string.settings_count_set, gestures)
         val icons = com.outsmartis.yoke.iconrow.IconRowPrefs(ctx)
         binding.iconRowRow.text = if (icons.enabled) getString(R.string.settings_count_apps, icons.slots.size) else getString(R.string.off)
+        val omarchy = com.outsmartis.yoke.omarchy.OmarchyStylePrefs(ctx).enabledCount()
+        binding.omarchyRow.text = if (omarchy > 0) getString(R.string.settings_count_on_short, omarchy) else getString(R.string.off)
         val search = com.outsmartis.yoke.palette.SearchPrefs(ctx)
         val sources = listOf(search.cards, search.notes, search.contacts, search.settings).count { it }
         binding.searchRow.text = getString(R.string.settings_count_on, sources, 4)
@@ -214,6 +216,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.fontText -> toggleFont()
 
             R.id.iconRowRow -> findNavController().navigate(R.id.action_settingsFragment_to_iconRowFragment)
+            R.id.omarchyRow -> findNavController().navigate(R.id.action_settingsFragment_to_omarchyStyleFragment)
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
             R.id.grayscaleRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.notesRow -> findNavController().navigate(R.id.action_settingsFragment_to_notificationsHomeFragment)
@@ -259,6 +262,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.dateTime.setOnClickListener(this)
         binding.gesturesRow.setOnClickListener(this)
         binding.iconRowRow.setOnClickListener(this)
+        binding.omarchyRow.setOnClickListener(this)
         binding.grayscaleRow.setOnClickListener(this)
         binding.nowPlayingRow.setOnClickListener(this)
         populateNowPlaying()

@@ -25,6 +25,9 @@ import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 import com.outsmartis.yoke.wallpaper.WallpaperApplier
+import com.outsmartis.yoke.wallpaper.WallpaperLogic
+import com.outsmartis.yoke.omarchy.ThemeNotice
+import com.outsmartis.yoke.omarchy.ThemeNoticeText
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitTodaySheet
@@ -137,9 +140,17 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
     private fun nextBackground() {
         val hadImage = WallpaperPrefs(activity).imageChoice != null
         val started = WallpaperApplier.nextBackground(activity) { error ->
-            if (error != null) activity.showToast(activity.getString(R.string.next_background_failed))
+            if (error != null) {
+                activity.showToast(activity.getString(R.string.next_background_failed))
+                return@nextBackground
+            }
+            val choice = WallpaperPrefs(activity).choice
+            val notice = ThemeNoticeText.background(WallpaperLogic.backgroundsFor(choice.omarchyTheme), choice.omarchyFile)
             // Home stops painting the theme colour over the wallpaper once an image is showing.
-            else if (!hadImage && !activity.isFinishing) activity.recreate()
+            if (!hadImage && !activity.isFinishing) {
+                notice?.let { ThemeNotice.postAfterRecreate(activity, it) }
+                activity.recreate()
+            } else notice?.let { ThemeNotice.post(activity, it) }
         }
         if (!started) activity.showToast(activity.getString(R.string.next_background_none))
     }

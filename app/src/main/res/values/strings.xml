@@ -384,6 +384,7 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_count_set">%1$d set</string>
     <string name="settings_count_apps">%1$d apps</string>
     <string name="settings_count_on">%1$d of %2$d</string>
+    <string name="settings_count_on_short">%1$d on</string>
     <string name="settings_on_exceptions">On, %1$d exceptions</string>
     <string name="settings_on_apps">On, %1$d apps</string>
     <string name="settings_backup_auto">Auto to vault</string>
@@ -396,4 +397,11 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_status_update_needed">Update needed</string>
     <string name="settings_status_no_access">No access</string>
     <string name="settings_status_connected">Connected</string>
+    <string name="omarchy_title">Omarchy style</string>
+    <string name="omarchy_hint">Pieces of the Omarchy desktop look, in the active theme\'s colours. Everything is off until you switch it on.</string>
+    <string name="omarchy_short">Short</string>
+    <string name="omarchy_long">Long</string>
+    <string name="omarchy_toast_section">Theme-change notice</string>
+    <string name="omarchy_toast">Notice after next theme / background</string>
+    <string name="omarchy_toast_duration">Notice duration</string>
 </resources>

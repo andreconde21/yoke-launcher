@@ -37,6 +37,7 @@ import com.outsmartis.yoke.helper.isTablet
 import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
+import com.outsmartis.yoke.omarchy.ThemeNotice
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
@@ -145,6 +146,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isResumed = true
+        ThemeNotice.showPending(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }
