@@ -425,4 +425,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_module_weather">Weather</string>
     <string name="omarchy_module_agenda">Agenda count</string>
     <string name="omarchy_module_conductore">Conductore needs input</string>
+    <string name="omarchy_terminal_section">Terminal mode</string>
+    <string name="omarchy_terminal">Terminal mode</string>
+    <string name="omarchy_terminal_prompt">Prompt before home apps</string>
+    <string name="omarchy_terminal_prompt_edit">Change the prompt text</string>
+    <string name="omarchy_terminal_lowercase">Lowercase home app labels</string>
+    <string name="omarchy_terminal_cursor">Block cursor in search</string>
 </resources>

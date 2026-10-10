@@ -26,6 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.omarchy.TerminalStyle
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
@@ -144,6 +145,7 @@ class AppDrawerFragment : BaseFragment() {
         try {
             searchTextView = binding.search.findViewById(R.id.search_src_text)
             searchTextView?.gravity = prefs.appLabelAlignment
+            searchTextView?.let(TerminalStyle::applyCursor)
         } catch (e: Exception) {
             e.printStackTrace()
         }

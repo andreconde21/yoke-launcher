@@ -1,21 +1,27 @@
 package com.outsmartis.yoke.ui
 
 import android.os.Bundle
+import android.text.InputFilter
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.omarchy.DotStyle
 import com.outsmartis.yoke.omarchy.Edge
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
+import com.outsmartis.yoke.omarchy.TerminalLabel
 import com.outsmartis.yoke.omarchy.TopLine
 import com.outsmartis.yoke.omarchy.TopLineClock
 import com.outsmartis.yoke.omarchy.TopModule
 import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemePrefs
 
 /** Settings > Look > Omarchy style: every option of the Omarchy-like pieces, built in code. All off by default. */
 class OmarchyStyleFragment : BaseFragment() {
@@ -108,6 +114,38 @@ class OmarchyStyleFragment : BaseFragment() {
         }
     }
 
+    /** Turning terminal mode on also picks JetBrains Mono (Look > Font can change it back). */
+    private fun toggleTerminal() {
+        prefs.terminalEnabled = !prefs.terminalEnabled
+        val font = ThemePrefs(requireContext())
+        if (prefs.terminalEnabled && !font.jetBrainsMono) {
+            font.jetBrainsMono = true
+            requireActivity().recreate()
+        }
+    }
+
+    private fun editPrompt() {
+        val ctx = requireContext()
+        var field: EditText? = null
+        ctx.createDialog(
+            title = R.string.omarchy_terminal_prompt,
+            action = R.string.save,
+            onAction = {
+                prefs.terminalPromptText = field?.text?.toString().orEmpty()
+                if (isAdded) render()
+            },
+        ) { container ->
+            EditText(container.context).apply {
+                setText(prefs.terminalPromptText)
+                inputType = InputType.TYPE_CLASS_TEXT
+                maxLines = 1
+                filters = arrayOf(InputFilter.LengthFilter(TerminalLabel.MAX_PROMPT))
+                setTextColor(ctx.getColorFromAttr(R.attr.primaryColor))
+                field = this
+            }
+        }.showRespectingStatusBar()
+    }
+
     private fun render() {
         column.removeAllViews()
         column.addView(text(true, getString(R.string.omarchy_title)).apply { textSize = 22f })
@@ -127,6 +165,17 @@ class OmarchyStyleFragment : BaseFragment() {
                 if (prefs.topLineClock == TopLineClock.ABOVE) R.string.omarchy_top_line_clock_above else R.string.omarchy_top_line_clock_replace,
             )) { prefs.topLineClock = next(TopLineClock.entries, prefs.topLineClock) }
             moduleEditor()
+        }
+
+        heading(getString(R.string.omarchy_terminal_section))
+        row(R.string.omarchy_terminal, onOff(prefs.terminalEnabled)) { toggleTerminal() }
+        if (prefs.terminalEnabled) {
+            row(R.string.omarchy_terminal_prompt, if (prefs.terminalPrompt) "\"${prefs.terminalPromptText}\"" else getString(R.string.off)) {
+                prefs.terminalPrompt = !prefs.terminalPrompt
+            }
+            if (prefs.terminalPrompt) column.addView(text(true, getString(R.string.omarchy_terminal_prompt_edit)) { editPrompt() })
+            row(R.string.omarchy_terminal_lowercase, onOff(prefs.terminalLowercase)) { prefs.terminalLowercase = !prefs.terminalLowercase }
+            row(R.string.omarchy_terminal_cursor, onOff(prefs.terminalCursor)) { prefs.terminalCursor = !prefs.terminalCursor }
         }
 
         heading(getString(R.string.omarchy_dots_section))

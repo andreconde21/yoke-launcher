@@ -63,6 +63,7 @@ import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.Page
 import com.outsmartis.yoke.omarchy.PageDots
 import com.outsmartis.yoke.omarchy.PageDotsView
+import com.outsmartis.yoke.omarchy.TerminalStyle
 import com.outsmartis.yoke.omarchy.TopLineClock
 import com.outsmartis.yoke.omarchy.TopLineView
 import com.outsmartis.yoke.theme.ThemeStore
@@ -519,7 +520,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             if (tv.text.isEmpty()) continue
             val pkg = prefs.getAppPackage(slot)
             val suffix = NotificationLogic.labelCountSuffix(counts[pkg] ?: 0, true)
-            val base = prefs.getAppName(slot)
+            val base = TerminalStyle.homeLabel(requireContext(), prefs.getAppName(slot))
             tv.text = if (suffix.isEmpty()) base else SpannableStringBuilder(base).apply {
                 val start = length
                 append("  ").append(suffix)
@@ -606,7 +607,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         // A pinned web link has no package to check, only a stored link to look up
         if (LinkEntry.idFromPinToken(packageName) != null) {
             val exists = prefs.allLinks().any { it.pinToken == packageName }
-            textView.text = if (exists) appName else ""
+            textView.text = if (exists) TerminalStyle.homeLabel(requireContext(), appName) else ""
             return exists
         }
 
@@ -627,7 +628,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 val shortcuts = launcherApps.getShortcuts(query, userHandle)
                 // Check if our shortcut still exists
                 if (shortcuts?.any { it.id == shortcutId } == true) {
-                    textView.text = appName
+                    textView.text = TerminalStyle.homeLabel(requireContext(), appName)
                     return true
                 }
                 textView.text = ""
@@ -641,7 +642,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
         // Regular app check
         if (isPackageInstalled(requireContext(), packageName, userString)) {
-            textView.text = appName
+            textView.text = TerminalStyle.homeLabel(requireContext(), appName)
             return true
         }
         textView.text = ""

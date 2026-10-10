@@ -46,8 +46,29 @@ class OmarchyStylePrefs(context: Context) {
         get() = TopLineClock.fromId(prefs.getString(TOP_LINE_CLOCK, null))
         set(value) = prefs.edit { putString(TOP_LINE_CLOCK, value.id) }
 
+    /** Terminal mode; its parts below only count while it is on. */
+    var terminalEnabled: Boolean
+        get() = prefs.getBoolean(TERMINAL, false)
+        set(value) = prefs.edit { putBoolean(TERMINAL, value) }
+
+    var terminalPrompt: Boolean
+        get() = prefs.getBoolean(TERMINAL_PROMPT, true)
+        set(value) = prefs.edit { putBoolean(TERMINAL_PROMPT, value) }
+
+    var terminalPromptText: String
+        get() = TerminalLabel.prompt(prefs.getString(TERMINAL_PROMPT_TEXT, null))
+        set(value) = prefs.edit { putString(TERMINAL_PROMPT_TEXT, TerminalLabel.prompt(value)) }
+
+    var terminalLowercase: Boolean
+        get() = prefs.getBoolean(TERMINAL_LOWERCASE, true)
+        set(value) = prefs.edit { putBoolean(TERMINAL_LOWERCASE, value) }
+
+    var terminalCursor: Boolean
+        get() = prefs.getBoolean(TERMINAL_CURSOR, true)
+        set(value) = prefs.edit { putBoolean(TERMINAL_CURSOR, value) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -63,5 +84,10 @@ class OmarchyStylePrefs(context: Context) {
         private const val TOP_LINE_POSITION = "top_line_position"
         private const val TOP_LINE_MODULES = "top_line_modules"
         private const val TOP_LINE_CLOCK = "top_line_clock"
+        private const val TERMINAL = "terminal"
+        private const val TERMINAL_PROMPT = "terminal_prompt"
+        private const val TERMINAL_PROMPT_TEXT = "terminal_prompt_text"
+        private const val TERMINAL_LOWERCASE = "terminal_lowercase"
+        private const val TERMINAL_CURSOR = "terminal_cursor"
     }
 }
