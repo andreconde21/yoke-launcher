@@ -38,6 +38,7 @@ import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
 import com.outsmartis.yoke.omarchy.ThemeNotice
+import com.outsmartis.yoke.omarchy.ThemeTransition
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
+        ThemeTransition.reveal(this)
 
         navController = this.findNavController(R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
@@ -135,11 +137,11 @@ class MainActivity : AppCompatActivity() {
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             com.outsmartis.yoke.wallpaper.WallpaperApplier.onThemeChanged(this)
-            recreate()
+            ThemeTransition.recreate(this)
             return
         }
         themeObserver?.unregister()
-        themeObserver = ThemeStore.observeConductore(this) { recreate() }
+        themeObserver = ThemeStore.observeConductore(this) { ThemeTransition.recreate(this) }
         restartLauncherOrCheckTheme()
     }
 

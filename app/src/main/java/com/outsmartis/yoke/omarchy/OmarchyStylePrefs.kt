@@ -83,8 +83,12 @@ class OmarchyStylePrefs(context: Context) {
         get() = HomeTiles.valid(prefs.getInt(BORDER_GAP, HomeTiles.DEFAULT_GAP_DP), HomeTiles.GAPS_DP, HomeTiles.DEFAULT_GAP_DP)
         set(value) = prefs.edit { putInt(BORDER_GAP, value) }
 
+    var fadeMode: FadeMode
+        get() = FadeMode.fromId(prefs.getString(FADE, null))
+        set(value) = prefs.edit { putString(FADE, value.id) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF, fadeMode != FadeMode.OFF).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -109,5 +113,6 @@ class OmarchyStylePrefs(context: Context) {
         private const val BORDER_WIDTH = "border_width"
         private const val BORDER_RADIUS = "border_radius"
         private const val BORDER_GAP = "border_gap"
+        private const val FADE = "fade"
     }
 }

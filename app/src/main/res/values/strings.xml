@@ -438,4 +438,9 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_borders_width">Border width</string>
     <string name="omarchy_borders_radius">Corner radius</string>
     <string name="omarchy_borders_gap">Gap between apps</string>
+    <string name="omarchy_fade_section">Theme switch</string>
+    <string name="omarchy_fade">Animated theme switch</string>
+    <string name="omarchy_fade_fade">Fade</string>
+    <string name="omarchy_fade_quick">Quick fade</string>
+    <string name="omarchy_fade_hint">Cross-fades to the new theme or background. Skipped when Android\'s animations are removed.</string>
 </resources>

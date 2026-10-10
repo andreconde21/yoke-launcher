@@ -16,6 +16,7 @@ import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.omarchy.BorderMode
 import com.outsmartis.yoke.omarchy.DotStyle
 import com.outsmartis.yoke.omarchy.Edge
+import com.outsmartis.yoke.omarchy.FadeMode
 import com.outsmartis.yoke.omarchy.HomeTiles
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.TerminalLabel
@@ -191,6 +192,14 @@ class OmarchyStyleFragment : BaseFragment() {
             row(R.string.omarchy_borders_radius, "${prefs.borderRadiusDp} dp") { prefs.borderRadiusDp = HomeTiles.next(prefs.borderRadiusDp, HomeTiles.RADII_DP) }
             row(R.string.omarchy_borders_gap, "${prefs.borderGapDp} dp") { prefs.borderGapDp = HomeTiles.next(prefs.borderGapDp, HomeTiles.GAPS_DP) }
         }
+
+        heading(getString(R.string.omarchy_fade_section))
+        row(R.string.omarchy_fade, getString(when (prefs.fadeMode) {
+            FadeMode.OFF -> R.string.off
+            FadeMode.FADE -> R.string.omarchy_fade_fade
+            FadeMode.QUICK -> R.string.omarchy_fade_quick
+        })) { prefs.fadeMode = next(FadeMode.entries, prefs.fadeMode) }
+        if (prefs.fadeMode != FadeMode.OFF) column.addView(text(false, getString(R.string.omarchy_fade_hint)).apply { alpha = 0.7f })
 
         heading(getString(R.string.omarchy_dots_section))
         row(R.string.omarchy_dots, onOff(prefs.dotsEnabled)) { prefs.dotsEnabled = !prefs.dotsEnabled }

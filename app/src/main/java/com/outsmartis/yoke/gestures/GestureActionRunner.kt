@@ -28,6 +28,7 @@ import com.outsmartis.yoke.wallpaper.WallpaperApplier
 import com.outsmartis.yoke.wallpaper.WallpaperLogic
 import com.outsmartis.yoke.omarchy.ThemeNotice
 import com.outsmartis.yoke.omarchy.ThemeNoticeText
+import com.outsmartis.yoke.omarchy.ThemeTransition
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitTodaySheet
@@ -149,7 +150,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
             // Home stops painting the theme colour over the wallpaper once an image is showing.
             if (!hadImage && !activity.isFinishing) {
                 notice?.let { ThemeNotice.postAfterRecreate(activity, it) }
-                activity.recreate()
+                ThemeTransition.recreate(activity)
             } else notice?.let { ThemeNotice.post(activity, it) }
         }
         if (!started) activity.showToast(activity.getString(R.string.next_background_none))
