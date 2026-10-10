@@ -30,8 +30,24 @@ class OmarchyStylePrefs(context: Context) {
         get() = Edge.fromId(prefs.getString(DOTS_POSITION, null))
         set(value) = prefs.edit { putString(DOTS_POSITION, value.id) }
 
+    var topLineEnabled: Boolean
+        get() = prefs.getBoolean(TOP_LINE, false)
+        set(value) = prefs.edit { putBoolean(TOP_LINE, value) }
+
+    var topLinePosition: Edge
+        get() = Edge.fromId(prefs.getString(TOP_LINE_POSITION, null))
+        set(value) = prefs.edit { putString(TOP_LINE_POSITION, value.id) }
+
+    var topLineModules: List<TopModule>
+        get() = TopLine.decode(prefs.getString(TOP_LINE_MODULES, null))
+        set(value) = prefs.edit { putString(TOP_LINE_MODULES, TopLine.encode(value)) }
+
+    var topLineClock: TopLineClock
+        get() = TopLineClock.fromId(prefs.getString(TOP_LINE_CLOCK, null))
+        set(value) = prefs.edit { putString(TOP_LINE_CLOCK, value.id) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -43,5 +59,9 @@ class OmarchyStylePrefs(context: Context) {
         private const val DOTS = "dots"
         private const val DOTS_STYLE = "dots_style"
         private const val DOTS_POSITION = "dots_position"
+        private const val TOP_LINE = "top_line"
+        private const val TOP_LINE_POSITION = "top_line_position"
+        private const val TOP_LINE_MODULES = "top_line_modules"
+        private const val TOP_LINE_CLOCK = "top_line_clock"
     }
 }

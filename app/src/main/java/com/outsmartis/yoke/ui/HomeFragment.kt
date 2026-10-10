@@ -63,6 +63,8 @@ import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.Page
 import com.outsmartis.yoke.omarchy.PageDots
 import com.outsmartis.yoke.omarchy.PageDotsView
+import com.outsmartis.yoke.omarchy.TopLineClock
+import com.outsmartis.yoke.omarchy.TopLineView
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.weather.WeatherFormat
 import com.outsmartis.yoke.weather.WeatherPrefs
@@ -298,6 +300,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.dateTimeLayout.isVisible = prefs.dateTimeVisibility != Constants.DateTime.OFF
         binding.clock.isVisible = Constants.DateTime.isTimeVisible(prefs.dateTimeVisibility)
         binding.date.isVisible = Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)
+        // An Omarchy top line set to "replace" hides the big clock and date; the weather and agenda lines stay.
+        val style = OmarchyStylePrefs(requireContext())
+        if (style.topLineEnabled && style.topLineClock == TopLineClock.REPLACE) {
+            binding.clock.isVisible = false
+            binding.date.isVisible = false
+        }
 
 //        var dateText = SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())
         val dateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
@@ -370,7 +378,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     /**
-     * Omarchy style pieces pinned to an edge (page dots). The top bar pushes the clock block down;
+     * Omarchy style pieces pinned to an edge (top line, page dots). The top bar pushes the clock block down;
      * the bottom bar sits above a bottom icon row and adds its height to the home apps' bottom padding.
      */
     private fun renderOmarchyBars() {
@@ -382,6 +390,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val style = OmarchyStylePrefs(ctx)
         val top = mutableListOf<View>()
         val bottom = mutableListOf<View>()
+        val line = if (style.topLineEnabled) TopLineView(ctx, style.topLineModules).apply { gravity = prefs.homeAlignment } else null
+        // The line sits at the very edge, the dots next to it.
+        if (line != null && style.topLinePosition == Edge.TOP) top.add(line)
         if (style.dotsEnabled) {
             val pages = PageDotsView.pages(ctx)
             if (PageDots.visible(pages)) {
@@ -389,6 +400,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 (if (style.dotsPosition == Edge.TOP) top else bottom).add(dots)
             }
         }
+        if (line != null && style.topLinePosition == Edge.BOTTOM) bottom.add(line)
         val insets = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
         val dateLp = b.dateTimeLayout.layoutParams as ViewGroup.MarginLayoutParams
         fun setDateTop(px: Int) {

@@ -12,6 +12,9 @@ import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.omarchy.DotStyle
 import com.outsmartis.yoke.omarchy.Edge
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
+import com.outsmartis.yoke.omarchy.TopLine
+import com.outsmartis.yoke.omarchy.TopLineClock
+import com.outsmartis.yoke.omarchy.TopModule
 import com.outsmartis.yoke.theme.ThemeApplier
 
 /** Settings > Look > Omarchy style: every option of the Omarchy-like pieces, built in code. All off by default. */
@@ -73,6 +76,38 @@ class OmarchyStyleFragment : BaseFragment() {
         column.addView(text(true, "${getString(label)}: $value") { onClick(); render() })
     }
 
+    private fun moduleName(m: TopModule) = getString(when (m) {
+        TopModule.CLOCK -> R.string.omarchy_module_clock
+        TopModule.DATE -> R.string.omarchy_module_date
+        TopModule.BATTERY -> R.string.omarchy_module_battery
+        TopModule.WEATHER -> R.string.omarchy_module_weather
+        TopModule.AGENDA -> R.string.omarchy_module_agenda
+        TopModule.CONDUCTORE -> R.string.omarchy_module_conductore
+    })
+
+    /** The shown modules in order (move up / down, remove), then the ones that can be added. */
+    private fun moduleEditor() {
+        val ctx = requireContext()
+        val pad = (14 * resources.displayMetrics.density).toInt()
+        val shown = prefs.topLineModules
+        column.addView(text(false, getString(R.string.omarchy_top_line_modules_hint)).apply { alpha = 0.7f })
+        for ((i, m) in shown.withIndex()) {
+            val line = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+            line.addView(text(false, "${i + 1}. ${moduleName(m)}"), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            fun btn(s: String, enabled: Boolean, f: () -> Unit) = text(true, s) { if (enabled) { f(); render() } }.apply {
+                setPadding(pad, paddingTop, pad, paddingBottom)
+                alpha = if (enabled) 1f else 0.3f
+            }
+            line.addView(btn("↑", i > 0) { prefs.topLineModules = TopLine.move(prefs.topLineModules, i, -1) })
+            line.addView(btn("↓", i < shown.size - 1) { prefs.topLineModules = TopLine.move(prefs.topLineModules, i, 1) })
+            line.addView(btn("✕", true) { prefs.topLineModules = TopLine.toggle(prefs.topLineModules, m) })
+            column.addView(line)
+        }
+        for (m in TopModule.entries - shown.toSet()) {
+            column.addView(text(true, "+ ${moduleName(m)}") { prefs.topLineModules = TopLine.toggle(prefs.topLineModules, m); render() })
+        }
+    }
+
     private fun render() {
         column.removeAllViews()
         column.addView(text(true, getString(R.string.omarchy_title)).apply { textSize = 22f })
@@ -83,6 +118,16 @@ class OmarchyStyleFragment : BaseFragment() {
         if (prefs.toastEnabled) row(R.string.omarchy_toast_duration, getString(
             if (prefs.toastLong) R.string.omarchy_long else R.string.omarchy_short,
         )) { prefs.toastLong = !prefs.toastLong }
+
+        heading(getString(R.string.omarchy_top_line_section))
+        row(R.string.omarchy_top_line, onOff(prefs.topLineEnabled)) { prefs.topLineEnabled = !prefs.topLineEnabled }
+        if (prefs.topLineEnabled) {
+            row(R.string.omarchy_position, edge(prefs.topLinePosition)) { prefs.topLinePosition = next(Edge.entries, prefs.topLinePosition) }
+            row(R.string.omarchy_top_line_clock, getString(
+                if (prefs.topLineClock == TopLineClock.ABOVE) R.string.omarchy_top_line_clock_above else R.string.omarchy_top_line_clock_replace,
+            )) { prefs.topLineClock = next(TopLineClock.entries, prefs.topLineClock) }
+            moduleEditor()
+        }
 
         heading(getString(R.string.omarchy_dots_section))
         row(R.string.omarchy_dots, onOff(prefs.dotsEnabled)) { prefs.dotsEnabled = !prefs.dotsEnabled }

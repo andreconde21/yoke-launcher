@@ -413,4 +413,16 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_dots_style_numbers">Numbers</string>
     <string name="omarchy_dots_style_dots">Dots</string>
     <string name="omarchy_dots_hint">Home, the widget page and Today, when a gesture (or the agenda line) opens them. Tap one to jump there.</string>
+    <string name="omarchy_top_line_section">Top line</string>
+    <string name="omarchy_top_line">Waybar-like line</string>
+    <string name="omarchy_top_line_clock">Big clock</string>
+    <string name="omarchy_top_line_clock_replace">Replaced by the line</string>
+    <string name="omarchy_top_line_clock_above">Line sits above it</string>
+    <string name="omarchy_top_line_modules_hint">Modules, in order. Empty ones (no weather yet, nothing due) are left out.</string>
+    <string name="omarchy_module_clock">Clock</string>
+    <string name="omarchy_module_date">Date</string>
+    <string name="omarchy_module_battery">Battery</string>
+    <string name="omarchy_module_weather">Weather</string>
+    <string name="omarchy_module_agenda">Agenda count</string>
+    <string name="omarchy_module_conductore">Conductore needs input</string>
 </resources>
