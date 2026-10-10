@@ -27,6 +27,7 @@ import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.DialogTextSizeBinding
 import com.outsmartis.yoke.databinding.FragmentSettingsBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
+import com.outsmartis.yoke.helper.asTextField
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemePickerActivity
@@ -106,6 +107,83 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         }
         initClickListeners()
         initObservers()
+        SettingsOrganizer(requireContext(), listOf(
+            SettingsOrganizer.Section("home", binding.sectionHome, binding.sectionHomeTitle, binding.sectionHomeRows),
+            SettingsOrganizer.Section("look", binding.sectionLook, binding.sectionLookTitle, binding.sectionLookRows),
+            SettingsOrganizer.Section("behaviour", binding.sectionBehaviour, binding.sectionBehaviourTitle, binding.sectionBehaviourRows),
+            SettingsOrganizer.Section("focus", binding.sectionFocus, binding.sectionFocusTitle, binding.sectionFocusRows),
+            SettingsOrganizer.Section("connections", binding.sectionConnections, binding.sectionConnectionsTitle, binding.sectionConnectionsRows),
+            SettingsOrganizer.Section("data", binding.sectionData, binding.sectionDataTitle, binding.sectionDataRows),
+        ), binding.settingsSearch.asTextField()).install()
+    }
+
+    private val pickVault = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val ctx = requireContext()
+        ctx.contentResolver.takePersistableUriPermission(
+            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+        )
+        com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).apply { vaultUri = uri.toString(); agendaAt = 0L }
+        if (_binding != null) populateConnections()
+    }
+
+    /** The values shown at the end of rows that open their own screen. */
+    private fun populateSummaries() {
+        val ctx = requireContext()
+        val gestures = prefs.loadGestures().bound().size
+        binding.gesturesRow.text = getString(R.string.settings_count_set, gestures)
+        val icons = com.outsmartis.yoke.iconrow.IconRowPrefs(ctx)
+        binding.iconRowRow.text = if (icons.enabled) getString(R.string.settings_count_apps, icons.slots.size) else getString(R.string.off)
+        val search = com.outsmartis.yoke.palette.SearchPrefs(ctx)
+        val sources = listOf(search.cards, search.notes, search.contacts, search.settings).count { it }
+        binding.searchRow.text = getString(R.string.settings_count_on, sources, 4)
+        binding.webLinks.text = prefs.links.size.toString()
+        val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
+        val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
+        binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
+        val notes = com.outsmartis.yoke.notifications.NotificationPrefs(ctx)
+        binding.notesRow.text = if (notes.enabled) getString(R.string.settings_on_apps, notes.allowed.size) else getString(R.string.off)
+        binding.backupRow.text = getString(
+            if (com.outsmartis.yoke.backup.VaultBackup.keepCopy(ctx)) R.string.settings_backup_auto else R.string.settings_backup_manual
+        )
+    }
+
+    /** Vault, Conductore and the secure-settings permission: whether each is set up. */
+    private fun populateConnections() {
+        val ctx = requireContext().applicationContext
+        binding.secureRow.setText(
+            if (com.outsmartis.yoke.grayscale.GrayscaleController.hasPermission(ctx)) R.string.settings_status_granted
+            else R.string.settings_status_missing
+        )
+        binding.vaultRow.setText(R.string.settings_status_checking)
+        binding.conductoreRow.setText(R.string.settings_status_checking)
+        Thread {
+            val vault = runCatching { com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).vault(ctx)?.displayName() }.getOrNull()
+            val conductore = conductoreStatus(ctx)
+            binding.root.post {
+                if (_binding == null) return@post
+                if (vault != null) binding.vaultRow.text = vault else binding.vaultRow.setText(R.string.settings_status_not_linked)
+                binding.conductoreRow.setText(conductore)
+            }
+        }.start()
+    }
+
+    private fun conductoreStatus(ctx: Context): Int {
+        val pkg = com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE
+        val installed = runCatching { ctx.packageManager.getPackageInfo(pkg, 0) }.isSuccess
+        if (!installed) return R.string.settings_status_not_installed
+        val client = com.outsmartis.yoke.details.AppDetailsClient(ctx)
+        val authority = client.authorityOf(pkg) ?: return R.string.settings_status_update_needed
+        return when (val r = client.load(authority)) {
+            is com.outsmartis.yoke.details.AppDetailsClient.Result.Ok ->
+                if ((r.details.summary?.contractVersion ?: 1) >= 2) R.string.settings_status_connected else R.string.settings_status_update_needed
+            else -> R.string.settings_status_no_access
+        }
+    }
+
+    private fun openConductore() {
+        val launch = requireContext().packageManager.getLaunchIntentForPackage(com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE)
+        if (launch != null) startActivity(launch) else requireContext().showToast(getString(R.string.settings_status_not_installed))
     }
 
     private fun populateCockpitAgenda() {
@@ -143,6 +221,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.backupRow -> findNavController().navigate(R.id.action_settingsFragment_to_backupFragment)
             R.id.nowPlayingRow -> toggleNowPlaying()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
+            R.id.vaultRow -> pickVault.launch(null)
+            R.id.conductoreRow -> openConductore()
+            R.id.secureRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
         }
     }
 
@@ -182,10 +263,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.nowPlayingRow.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
-        binding.notesRow.setText(if (com.outsmartis.yoke.notifications.NotificationPrefs(requireContext()).enabled) R.string.on else R.string.off)
         binding.searchRow.setOnClickListener(this)
         binding.backupRow.setOnClickListener(this)
-        binding.grayscaleRow.setText(if (com.outsmartis.yoke.grayscale.GrayscalePrefs(requireContext()).featureOn) R.string.on else R.string.off)
+        binding.vaultRow.setOnClickListener(this)
+        binding.conductoreRow.setOnClickListener(this)
+        binding.secureRow.setOnClickListener(this)
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
@@ -449,7 +531,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     override fun onResume() {
         super.onResume()
-        if (_binding != null) populateWallpaper()
+        if (_binding != null) {
+            populateWallpaper()
+            populateSummaries()
+            populateConnections()
+        }
     }
 
     private fun populateAppThemeText(appTheme: Int = prefs.appTheme) {
