@@ -4,6 +4,9 @@ import android.accessibilityservice.AccessibilityService
 import android.app.admin.DevicePolicyManager
 import android.content.ActivityNotFoundException
 import android.content.Context
+import com.outsmartis.yoke.helper.isAccessServiceEnabled
+import com.outsmartis.yoke.listener.DeviceAdmin
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.hardware.camera2.CameraAccessException
@@ -23,13 +26,6 @@ import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemePickerActivity
-import com.outsmartis.yoke.wallpaper.WallpaperPrefs
-import com.outsmartis.yoke.wallpaper.WallpaperApplier
-import com.outsmartis.yoke.wallpaper.WallpaperLogic
-import com.outsmartis.yoke.omarchy.ThemeNotice
-import com.outsmartis.yoke.omarchy.ThemeNoticeText
-import com.outsmartis.yoke.omarchy.ThemeTransition
-import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.cockpit.QuickAddActivity
@@ -122,8 +118,6 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.ToggleGrayscale -> GrayscaleController.toggle(activity)
                 GestureAction.PauseGrayscale -> GrayscaleController.pause(activity)
                 GestureAction.ToggleIconRow -> IconRowPrefs(activity).toggle()
-                GestureAction.NextTheme -> ThemeStore.cycleNext(activity)
-                GestureAction.NextBackground -> nextBackground()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -137,24 +131,6 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
     private fun commandPalette() = CommandPalette.open(navController)
 
     private fun themePicker() = ThemePickerActivity.open(activity)
-
-    private fun nextBackground() {
-        val hadImage = WallpaperPrefs(activity).imageChoice != null
-        val started = WallpaperApplier.nextBackground(activity) { error ->
-            if (error != null) {
-                activity.showToast(activity.getString(R.string.next_background_failed))
-                return@nextBackground
-            }
-            val choice = WallpaperPrefs(activity).choice
-            val notice = ThemeNoticeText.background(WallpaperLogic.backgroundsFor(choice.omarchyTheme), choice.omarchyFile)
-            // Home stops painting the theme colour over the wallpaper once an image is showing.
-            if (!hadImage && !activity.isFinishing) {
-                notice?.let { ThemeNotice.postAfterRecreate(activity, it) }
-                ThemeTransition.recreate(activity)
-            } else notice?.let { ThemeNotice.post(activity, it) }
-        }
-        if (!started) activity.showToast(activity.getString(R.string.next_background_none))
-    }
 
     private fun comingSoon() = activity.showToast(activity.getString(R.string.coming_soon))
 
@@ -237,26 +213,35 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
         }
     }
 
+    /** Locks through the accessibility service, else device admin (older setups); explains what to fix otherwise. */
     private fun lockScreen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val service = MyAccessibilityService.instance
-            if (service != null) service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
-            else lockNeedsSetup()
-        } else {
-            val manager = activity.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val service = MyAccessibilityService.instance
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && service != null &&
+            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)) return
+        val manager = activity.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (manager.isAdminActive(ComponentName(activity, DeviceAdmin::class.java))) {
             try {
                 manager.lockNow()
-            } catch (e: SecurityException) {
-                lockNeedsSetup()
+                return
             } catch (e: Exception) {
-                activity.showToast(activity.getString(R.string.launcher_failed_to_lock_device), Toast.LENGTH_LONG)
+                e.printStackTrace()
             }
         }
+        lockNeedsSetup()
     }
 
+    /** Sends the user to Android's accessibility settings, where the fix is, saying what is wrong. */
     private fun lockNeedsSetup() {
-        activity.showToast(activity.getString(R.string.please_turn_on_double_tap_to_unlock), Toast.LENGTH_LONG)
-        openSettings()
+        val enabled = isAccessServiceEnabled(activity)
+        activity.showToast(
+            activity.getString(if (enabled) R.string.lock_service_not_running else R.string.lock_service_off),
+            Toast.LENGTH_LONG,
+        )
+        try {
+            activity.startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (e: Exception) {
+            openSettings()
+        }
     }
 
     private fun recentApps() {

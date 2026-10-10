@@ -58,15 +58,6 @@ import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.notifications.HomeNotifications
 import com.outsmartis.yoke.notifications.NotificationLogic
 import com.outsmartis.yoke.notifications.NotificationStore
-import com.outsmartis.yoke.omarchy.Edge
-import com.outsmartis.yoke.omarchy.HomeBorders
-import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
-import com.outsmartis.yoke.omarchy.Page
-import com.outsmartis.yoke.omarchy.PageDots
-import com.outsmartis.yoke.omarchy.PageDotsView
-import com.outsmartis.yoke.omarchy.TerminalStyle
-import com.outsmartis.yoke.omarchy.TopLineClock
-import com.outsmartis.yoke.omarchy.TopLineView
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.weather.WeatherFormat
 import com.outsmartis.yoke.weather.WeatherPrefs
@@ -84,9 +75,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
-    private var dateTimeBaseTop = 0
-    private var omarchyTop: LinearLayout? = null
-    private var omarchyBottom: LinearLayout? = null
     private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         if (_binding != null && isAdded) renderIconRow()
     }
@@ -104,7 +92,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         prefs = Prefs(requireContext())
         iconPrefs = IconRowPrefs(requireContext())
         appsBasePaddingBottom = binding.homeAppsLayout.paddingBottom
-        dateTimeBaseTop = (binding.dateTimeLayout.layoutParams as ViewGroup.MarginLayoutParams).topMargin
         iconPrefs.registerListener(iconPrefsListener)
         keepAppsBelowTopBlock()
         viewModel = activity?.run {
@@ -302,12 +289,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.dateTimeLayout.isVisible = prefs.dateTimeVisibility != Constants.DateTime.OFF
         binding.clock.isVisible = Constants.DateTime.isTimeVisible(prefs.dateTimeVisibility)
         binding.date.isVisible = Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)
-        // An Omarchy top line set to "replace" hides the big clock and date; the weather and agenda lines stay.
-        val style = OmarchyStylePrefs(requireContext())
-        if (style.topLineEnabled && style.topLineClock == TopLineClock.REPLACE) {
-            binding.clock.isVisible = false
-            binding.date.isVisible = false
-        }
 
 //        var dateText = SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())
         val dateFormat = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
@@ -375,83 +356,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private fun populateHomeScreen(appCountUpdated: Boolean) {
         populateHomeScreenCore(appCountUpdated)
         renderNotifications()
-        HomeBorders.apply(homeSlots())
         renderIconRow()
-        renderOmarchyBars()
-    }
-
-    /**
-     * Omarchy style pieces pinned to an edge (top line, page dots). The top bar pushes the clock block down;
-     * the bottom bar sits above a bottom icon row and adds its height to the home apps' bottom padding.
-     */
-    private fun renderOmarchyBars() {
-        val b = _binding ?: return
-        val ctx = requireContext()
-        listOfNotNull(omarchyTop, omarchyBottom).forEach { b.mainLayout.removeView(it) }
-        omarchyTop = null
-        omarchyBottom = null
-        val style = OmarchyStylePrefs(ctx)
-        val top = mutableListOf<View>()
-        val bottom = mutableListOf<View>()
-        val line = if (style.topLineEnabled) TopLineView(ctx, style.topLineModules).apply { gravity = prefs.homeAlignment } else null
-        // The line sits at the very edge, the dots next to it.
-        if (line != null && style.topLinePosition == Edge.TOP) top.add(line)
-        if (style.dotsEnabled) {
-            val pages = PageDotsView.pages(ctx)
-            if (PageDots.visible(pages)) {
-                val dots = PageDotsView(ctx).apply { bind(pages, Page.HOME, style.dotsStyle, ::jumpToPage) }
-                (if (style.dotsPosition == Edge.TOP) top else bottom).add(dots)
-            }
-        }
-        if (line != null && style.topLinePosition == Edge.BOTTOM) bottom.add(line)
-        val insets = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
-        val dateLp = b.dateTimeLayout.layoutParams as ViewGroup.MarginLayoutParams
-        fun setDateTop(px: Int) {
-            if (dateLp.topMargin != px) b.dateTimeLayout.post {
-                dateLp.topMargin = px
-                b.dateTimeLayout.layoutParams = dateLp
-            }
-        }
-        if (top.isEmpty()) setDateTop(dateTimeBaseTop)
-        else {
-            val statusTop = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())?.top ?: 0
-            val bar = edgeBar(ctx, top)
-            val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP)
-            lp.topMargin = statusTop + 4.dpToPx()
-            b.mainLayout.addView(bar, lp)
-            bar.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> setDateTop(maxOf(dateTimeBaseTop, v.bottom + 8.dpToPx())) }
-            omarchyTop = bar
-        }
-        if (bottom.isNotEmpty()) {
-            val navInset = insets?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
-            val iconRowBelow = iconRow?.parent == b.mainLayout
-            val bar = edgeBar(ctx, bottom)
-            val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
-            lp.bottomMargin = navInset + 8.dpToPx() + if (iconRowBelow) IconRowView.heightPx(ctx, iconPrefs) + 4.dpToPx() else 0
-            b.mainLayout.addView(bar, lp)
-            val apps = b.homeAppsLayout
-            val base = apps.paddingBottom
-            bar.addOnLayoutChangeListener { v, _, top2, _, bottom2, _, _, _, _ ->
-                val wanted = base + (bottom2 - top2) + if (iconRowBelow) 0 else navInset
-                if (apps.paddingBottom != wanted) apps.post { apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, wanted) }
-            }
-            omarchyBottom = bar
-        }
-    }
-
-    private fun edgeBar(ctx: Context, children: List<View>) = LinearLayout(ctx).apply {
-        orientation = LinearLayout.VERTICAL
-        setPadding(24.dpToPx(), 0, 24.dpToPx(), 0)
-        children.forEach { addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)) }
-    }
-
-    /** A page dot was tapped on home. */
-    private fun jumpToPage(page: Page) {
-        when (page) {
-            Page.HOME -> {}
-            Page.WIDGETS -> gestureRunner().run(com.outsmartis.yoke.gestures.GestureAction.WidgetPage)
-            Page.TODAY -> CockpitTodaySheet.show(requireContext()) { if (_binding != null) populateAgenda() }
-        }
     }
 
     /**
@@ -506,11 +411,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         )
     }
 
-    private fun homeSlots() = listOf(
-        binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
-        binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
-    )
-
     /** The notification block, now playing line and the counts after the home app labels. */
     private fun renderNotifications() {
         val n = notes ?: return
@@ -518,12 +418,16 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val counts = n.counts()
         val accent = ThemeStore.current(requireContext())?.accentText
             ?: requireContext().getColorFromAttr(R.attr.primaryColor)
-        for ((i, tv) in homeSlots().withIndex()) {
+        val slots = listOf(
+            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+        )
+        for ((i, tv) in slots.withIndex()) {
             val slot = i + 1
             if (tv.text.isEmpty()) continue
             val pkg = prefs.getAppPackage(slot)
             val suffix = NotificationLogic.labelCountSuffix(counts[pkg] ?: 0, true)
-            val base = TerminalStyle.homeLabel(requireContext(), prefs.getAppName(slot))
+            val base = prefs.getAppName(slot)
             tv.text = if (suffix.isEmpty()) base else SpannableStringBuilder(base).apply {
                 val start = length
                 append("  ").append(suffix)
@@ -610,7 +514,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         // A pinned web link has no package to check, only a stored link to look up
         if (LinkEntry.idFromPinToken(packageName) != null) {
             val exists = prefs.allLinks().any { it.pinToken == packageName }
-            textView.text = if (exists) TerminalStyle.homeLabel(requireContext(), appName) else ""
+            textView.text = if (exists) appName else ""
             return exists
         }
 
@@ -631,7 +535,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 val shortcuts = launcherApps.getShortcuts(query, userHandle)
                 // Check if our shortcut still exists
                 if (shortcuts?.any { it.id == shortcutId } == true) {
-                    textView.text = TerminalStyle.homeLabel(requireContext(), appName)
+                    textView.text = appName
                     return true
                 }
                 textView.text = ""
@@ -645,7 +549,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
         // Regular app check
         if (isPackageInstalled(requireContext(), packageName, userString)) {
-            textView.text = TerminalStyle.homeLabel(requireContext(), appName)
+            textView.text = appName
             return true
         }
         textView.text = ""
@@ -891,8 +795,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         super.onDestroyView()
         if (::iconPrefs.isInitialized) iconPrefs.unregisterListener(iconPrefsListener)
         iconRow = null
-        omarchyTop = null
-        omarchyBottom = null
         mainTouchListener = null
         notes?.release()
         notes = null

@@ -73,13 +73,6 @@
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
         <action
-            android:id="@+id/action_settingsFragment_to_omarchyStyleFragment"
-            app:destination="@id/omarchyStyleFragment"
-            app:enterAnim="@anim/fade_enter"
-            app:exitAnim="@anim/fade_exit"
-            app:popEnterAnim="@anim/fade_enter"
-            app:popExitAnim="@anim/fade_exit" />
-        <action
             android:id="@+id/action_settingsFragment_to_gesturesFragment"
             app:destination="@id/gesturesFragment"
             app:enterAnim="@anim/fade_enter"
@@ -153,11 +146,6 @@
             app:popEnterAnim="@anim/fade_enter"
             app:popExitAnim="@anim/fade_exit" />
     </fragment>
-
-    <fragment
-        android:id="@+id/omarchyStyleFragment"
-        android:name="com.outsmartis.yoke.ui.OmarchyStyleFragment"
-        android:label="OmarchyStyleFragment" />
 
     <fragment
         android:id="@+id/iconRowFragment"

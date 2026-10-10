@@ -49,8 +49,6 @@ sealed class GestureAction(val type: String, val label: String) {
     object ToggleGrayscale : GestureAction("toggle_grayscale", "Toggle grayscale")
     object PauseGrayscale : GestureAction("pause_grayscale", "Pause grayscale 15 min")
     object ToggleIconRow : GestureAction("toggle_icon_row", "Toggle icon row")
-    object NextTheme : GestureAction("next_theme", "Next theme")
-    object NextBackground : GestureAction("next_background", "Next background")
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("type", type)
@@ -71,12 +69,15 @@ sealed class GestureAction(val type: String, val label: String) {
     }
 
     companion object {
+        /** Action types Yoke no longer offers. */
+        val RETIRED = setOf("next_theme", "next_background")
+
         /** Actions without parameters, in the order the picker lists them. */
         val simple: List<GestureAction> = listOf(
             None, AppDrawer, Search, Notifications, QuickSettings, Lock, RecentApps, Torch,
             MediaPlayPause, MediaNext, MediaPrevious, CockpitQuickAdd, CockpitBoard, CockpitCalendar, CockpitToday, ConductoreSheet,
             CommandPalette, ThemePicker, GestureCheatSheet, Settings,
-            WidgetPage, ToggleGrayscale, PauseGrayscale, ToggleIconRow, NextTheme, NextBackground,
+            WidgetPage, ToggleGrayscale, PauseGrayscale, ToggleIconRow,
         )
 
         /** Throws [IllegalArgumentException] with a readable message when [json] is not a valid action. */
@@ -103,6 +104,8 @@ sealed class GestureAction(val type: String, val label: String) {
                     require(uri.isNotBlank()) { "open_uri needs a uri" }
                     OpenUri(uri)
                 }
+                // Removed actions read as None, so a saved setup that used one still loads.
+                in RETIRED -> None
                 else -> simple.firstOrNull { it.type == type }
                     ?: throw IllegalArgumentException("unknown action type \"$type\"")
             }

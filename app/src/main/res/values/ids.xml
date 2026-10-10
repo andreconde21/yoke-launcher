@@ -3,7 +3,4 @@
     <!-- Remembers whether ThemeApplier treated a TextView as primary or secondary text -->
     <item name="theme_text_role" type="id" />
     <item name="themePickerScroll" type="id" />
-    <!-- A home label's own padding, margins and background before Omarchy tiles styled it -->
-    <item name="omarchy_base" type="id" />
-    <item name="dreamSettingsHost" type="id" />
 </resources>

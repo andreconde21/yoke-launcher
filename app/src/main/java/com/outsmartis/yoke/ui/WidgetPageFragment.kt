@@ -22,19 +22,11 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.navigation.fragment.findNavController
 import com.outsmartis.yoke.R
-import com.outsmartis.yoke.cockpit.CockpitTodaySheet
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.dpToPx
 import com.outsmartis.yoke.helper.showToast
-import com.outsmartis.yoke.omarchy.Edge
-import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
-import com.outsmartis.yoke.omarchy.Page
-import com.outsmartis.yoke.omarchy.PageDots
-import com.outsmartis.yoke.omarchy.PageDotsView
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.widgets.WidgetEntry
 import com.outsmartis.yoke.widgets.WidgetList
@@ -80,35 +72,7 @@ class WidgetPageFragment : BaseFragment() {
         scroll.setOnTouchListener { _, ev -> detector.onTouchEvent(ev); false }
         return FrameLayout(ctx).apply {
             addView(scroll, FrameLayout.LayoutParams(-1, -1))
-            pageDots(ctx)?.let { (dots, lp) -> addView(dots, lp) }
         }
-    }
-
-    /** Omarchy style page dots over the page, when on; Home goes back, Today goes back and opens the sheet. */
-    private fun pageDots(ctx: android.content.Context): Pair<View, FrameLayout.LayoutParams>? {
-        val style = OmarchyStylePrefs(ctx)
-        if (!style.dotsEnabled) return null
-        val pages = PageDotsView.pages(ctx)
-        if (!PageDots.visible(pages)) return null
-        val dots = PageDotsView(ctx)
-        dots.bind(pages, Page.WIDGETS, style.dotsStyle) { page ->
-            val activity = requireActivity()
-            findNavController().popBackStack()
-            if (page == Page.TODAY) CockpitTodaySheet.show(activity)
-        }
-        val top = style.dotsPosition == Edge.TOP
-        val lp = FrameLayout.LayoutParams(-2, -2, (if (top) Gravity.TOP else Gravity.BOTTOM) or Gravity.CENTER_HORIZONTAL)
-        // The window draws under the bars; keep clear of them once insets are known.
-        ViewCompat.setOnApplyWindowInsetsListener(dots) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            (v.layoutParams as FrameLayout.LayoutParams).apply {
-                topMargin = if (top) bars.top + 4.dpToPx() else 0
-                bottomMargin = if (top) 0 else bars.bottom + 8.dpToPx()
-                v.layoutParams = this
-            }
-            insets
-        }
-        return dots to lp
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

@@ -16,9 +16,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.R
-import com.outsmartis.yoke.omarchy.ThemeNotice
-import com.outsmartis.yoke.omarchy.ThemeNoticeText
-import com.outsmartis.yoke.omarchy.ThemeTransition
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
 
@@ -33,11 +30,6 @@ import com.outsmartis.yoke.helper.getColorFromAttr
 class ThemePickerActivity : AppCompatActivity() {
 
     private var observer: ThemeStore.Registration? = null
-
-    override fun onResume() {
-        super.onResume()
-        ThemeNotice.showPending(this)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, Prefs(this).appTheme))
@@ -95,7 +87,6 @@ class ThemePickerActivity : AppCompatActivity() {
             setBackgroundColor(theme?.background ?: getColorFromAttr(R.attr.primaryColorInverseTrans90))
         }
         setContentView(scroll)
-        ThemeTransition.reveal(this)
         ThemeApplier.applyWindow(this)
         // Only the title takes the theme here; rows carry their own palette.
         theme?.let { title.setTextColor(it.foreground) }
@@ -140,9 +131,8 @@ class ThemePickerActivity : AppCompatActivity() {
             listOf(bg, fg, accent).forEach { addView(swatch(it, fg)) }
             setOnClickListener {
                 ThemeStore.setThemeId(this@ThemePickerActivity, id)
-                ThemeNotice.postAfterRecreate(this@ThemePickerActivity, ThemeNoticeText.theme(id))
                 setResult(Activity.RESULT_OK)
-                ThemeTransition.recreate(this@ThemePickerActivity)
+                recreate()
             }
         }
     }
