@@ -431,4 +431,11 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_terminal_prompt_edit">Change the prompt text</string>
     <string name="omarchy_terminal_lowercase">Lowercase home app labels</string>
     <string name="omarchy_terminal_cursor">Block cursor in search</string>
+    <string name="omarchy_borders_section">Window borders</string>
+    <string name="omarchy_borders">Home app borders</string>
+    <string name="omarchy_borders_press">On press only</string>
+    <string name="omarchy_borders_always">Always</string>
+    <string name="omarchy_borders_width">Border width</string>
+    <string name="omarchy_borders_radius">Corner radius</string>
+    <string name="omarchy_borders_gap">Gap between apps</string>
 </resources>

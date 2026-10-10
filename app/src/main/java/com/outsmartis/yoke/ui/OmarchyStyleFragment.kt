@@ -13,8 +13,10 @@ import android.widget.TextView
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.omarchy.BorderMode
 import com.outsmartis.yoke.omarchy.DotStyle
 import com.outsmartis.yoke.omarchy.Edge
+import com.outsmartis.yoke.omarchy.HomeTiles
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.TerminalLabel
 import com.outsmartis.yoke.omarchy.TopLine
@@ -176,6 +178,18 @@ class OmarchyStyleFragment : BaseFragment() {
             if (prefs.terminalPrompt) column.addView(text(true, getString(R.string.omarchy_terminal_prompt_edit)) { editPrompt() })
             row(R.string.omarchy_terminal_lowercase, onOff(prefs.terminalLowercase)) { prefs.terminalLowercase = !prefs.terminalLowercase }
             row(R.string.omarchy_terminal_cursor, onOff(prefs.terminalCursor)) { prefs.terminalCursor = !prefs.terminalCursor }
+        }
+
+        heading(getString(R.string.omarchy_borders_section))
+        row(R.string.omarchy_borders, getString(when (prefs.borderMode) {
+            BorderMode.OFF -> R.string.off
+            BorderMode.PRESS -> R.string.omarchy_borders_press
+            BorderMode.ALWAYS -> R.string.omarchy_borders_always
+        })) { prefs.borderMode = next(BorderMode.entries, prefs.borderMode) }
+        if (prefs.borderMode != BorderMode.OFF) {
+            row(R.string.omarchy_borders_width, "${prefs.borderWidthDp} dp") { prefs.borderWidthDp = HomeTiles.next(prefs.borderWidthDp, HomeTiles.WIDTHS_DP) }
+            row(R.string.omarchy_borders_radius, "${prefs.borderRadiusDp} dp") { prefs.borderRadiusDp = HomeTiles.next(prefs.borderRadiusDp, HomeTiles.RADII_DP) }
+            row(R.string.omarchy_borders_gap, "${prefs.borderGapDp} dp") { prefs.borderGapDp = HomeTiles.next(prefs.borderGapDp, HomeTiles.GAPS_DP) }
         }
 
         heading(getString(R.string.omarchy_dots_section))

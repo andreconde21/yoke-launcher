@@ -67,8 +67,24 @@ class OmarchyStylePrefs(context: Context) {
         get() = prefs.getBoolean(TERMINAL_CURSOR, true)
         set(value) = prefs.edit { putBoolean(TERMINAL_CURSOR, value) }
 
+    var borderMode: BorderMode
+        get() = BorderMode.fromId(prefs.getString(BORDER_MODE, null))
+        set(value) = prefs.edit { putString(BORDER_MODE, value.id) }
+
+    var borderWidthDp: Int
+        get() = HomeTiles.valid(prefs.getInt(BORDER_WIDTH, HomeTiles.DEFAULT_WIDTH_DP), HomeTiles.WIDTHS_DP, HomeTiles.DEFAULT_WIDTH_DP)
+        set(value) = prefs.edit { putInt(BORDER_WIDTH, value) }
+
+    var borderRadiusDp: Int
+        get() = HomeTiles.valid(prefs.getInt(BORDER_RADIUS, HomeTiles.DEFAULT_RADIUS_DP), HomeTiles.RADII_DP, HomeTiles.DEFAULT_RADIUS_DP)
+        set(value) = prefs.edit { putInt(BORDER_RADIUS, value) }
+
+    var borderGapDp: Int
+        get() = HomeTiles.valid(prefs.getInt(BORDER_GAP, HomeTiles.DEFAULT_GAP_DP), HomeTiles.GAPS_DP, HomeTiles.DEFAULT_GAP_DP)
+        set(value) = prefs.edit { putInt(BORDER_GAP, value) }
+
     /** How many of the features are switched on, for the Settings row. */
-    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled).count { it }
+    fun enabledCount(): Int = listOf(toastEnabled, dotsEnabled, topLineEnabled, terminalEnabled, borderMode != BorderMode.OFF).count { it }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
     fun unregisterListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.unregisterOnSharedPreferenceChangeListener(l)
@@ -89,5 +105,9 @@ class OmarchyStylePrefs(context: Context) {
         private const val TERMINAL_PROMPT_TEXT = "terminal_prompt_text"
         private const val TERMINAL_LOWERCASE = "terminal_lowercase"
         private const val TERMINAL_CURSOR = "terminal_cursor"
+        private const val BORDER_MODE = "border_mode"
+        private const val BORDER_WIDTH = "border_width"
+        private const val BORDER_RADIUS = "border_radius"
+        private const val BORDER_GAP = "border_gap"
     }
 }

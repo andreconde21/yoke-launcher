@@ -59,6 +59,7 @@ import com.outsmartis.yoke.notifications.HomeNotifications
 import com.outsmartis.yoke.notifications.NotificationLogic
 import com.outsmartis.yoke.notifications.NotificationStore
 import com.outsmartis.yoke.omarchy.Edge
+import com.outsmartis.yoke.omarchy.HomeBorders
 import com.outsmartis.yoke.omarchy.OmarchyStylePrefs
 import com.outsmartis.yoke.omarchy.Page
 import com.outsmartis.yoke.omarchy.PageDots
@@ -374,6 +375,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private fun populateHomeScreen(appCountUpdated: Boolean) {
         populateHomeScreenCore(appCountUpdated)
         renderNotifications()
+        HomeBorders.apply(homeSlots())
         renderIconRow()
         renderOmarchyBars()
     }
@@ -504,6 +506,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         )
     }
 
+    private fun homeSlots() = listOf(
+        binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+        binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+    )
+
     /** The notification block, now playing line and the counts after the home app labels. */
     private fun renderNotifications() {
         val n = notes ?: return
@@ -511,11 +518,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val counts = n.counts()
         val accent = ThemeStore.current(requireContext())?.accentText
             ?: requireContext().getColorFromAttr(R.attr.primaryColor)
-        val slots = listOf(
-            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
-            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
-        )
-        for ((i, tv) in slots.withIndex()) {
+        for ((i, tv) in homeSlots().withIndex()) {
             val slot = i + 1
             if (tv.text.isEmpty()) continue
             val pkg = prefs.getAppPackage(slot)
