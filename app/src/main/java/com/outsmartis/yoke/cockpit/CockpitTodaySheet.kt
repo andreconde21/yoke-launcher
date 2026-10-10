@@ -82,6 +82,8 @@ class CockpitTodaySheet private constructor(
             WindowCompat.setDecorFitsSystemWindows(this, false)
         }
         dialog.setOnDismissListener { dismissed = true }
+        // The last list shows at once; the fresh one replaces it when read.
+        last?.let { cards = it.cards; cfg = it.config; vaultName = it.vaultName; loaded = true }
         render()
         dialog.show()
         reload()
@@ -97,8 +99,7 @@ class CockpitTodaySheet private constructor(
             val result = if (vault == null) emptyList() else runCatching {
                 config = vault.readText(VaultAccess.SETTINGS_PATH)?.let { CockpitBoardConfig.parse(it) } ?: config
                 name = vault.displayName()
-                vault.listMarkdown(config.folder).mapNotNull { f ->
-                    val head = vault.readHead(f) ?: return@mapNotNull null
+                CardHeads.read(vault, config.folder).mapNotNull { (f, head) ->
                     val h = CockpitAgenda.parseHead(head) ?: return@mapNotNull null
                     TodayCard(f.path, f.id, h.title, h.status, h.due, h.time, CockpitCards.parseLabels(head), CockpitToday.headHash(head))
                 }
@@ -106,7 +107,10 @@ class CockpitTodaySheet private constructor(
             main.post {
                 if (dismissed || seq != loadSeq) return@post
                 noVault = vault == null
-                if (result != null) { cards = result; cfg = config; vaultName = name }
+                if (result != null) {
+                    cards = result; cfg = config; vaultName = name
+                    last = Snapshot(result, config, name)
+                }
                 loaded = true
                 render()
             }
@@ -265,7 +269,11 @@ class CockpitTodaySheet private constructor(
             head == null || CockpitToday.headHash(head) != card.headHash -> Outcome.CHANGED
             else -> {
                 val updated = vault.readText(card.path)?.let { CockpitFrontmatter.update(it, changes) }
-                if (updated == null) Outcome.FAILED else { vault.writeText(card.path, updated); Outcome.OK }
+                if (updated == null) Outcome.FAILED else {
+                    vault.writeText(card.path, updated)
+                    CardHeads.invalidate(vault, VaultAccess.VaultFile(card.path, card.fileId))
+                    Outcome.OK
+                }
             }
         }
     } catch (e: Exception) {
@@ -286,8 +294,11 @@ class CockpitTodaySheet private constructor(
         if (v is ViewGroup) for (i in 0 until v.childCount) applyFont(v.getChildAt(i), f)
     }
 
+    private class Snapshot(val cards: List<TodayCard>, val config: CockpitBoardConfig, val vaultName: String)
+
     companion object {
         private val io = Executors.newSingleThreadExecutor()
+        @Volatile private var last: Snapshot? = null
 
         /** [onChanged] runs on the main thread after the home agenda line was refreshed. */
         fun show(context: Context, onChanged: () -> Unit = {}) {

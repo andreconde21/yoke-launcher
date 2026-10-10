@@ -176,7 +176,7 @@ class QuickAddActivity : AppCompatActivity() {
         val vault = prefs.vault(this) ?: return
         io.execute {
             val found = runCatching {
-                vault.readHeads(cfg.folder).flatMap { CockpitCards.parseLabels(it) }.toSet()
+                CardHeads.read(vault, cfg.folder).flatMap { CockpitCards.parseLabels(it.second) }.toSet()
             }.getOrNull() ?: return@execute
             if (found == prefs.knownLabels) return@execute
             prefs.knownLabels = found

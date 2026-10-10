@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
+import com.outsmartis.yoke.cockpit.CardHeads
 import com.outsmartis.yoke.cockpit.CockpitBoardConfig
 import com.outsmartis.yoke.cockpit.CockpitPrefs
 import com.outsmartis.yoke.cockpit.VaultAccess
@@ -87,8 +88,7 @@ class ExtraSearch(context: Context) {
     private fun buildCards(vault: VaultAccess, vaultName: String): List<SearchHit> {
         val folder = vault.readText(VaultAccess.SETTINGS_PATH)
             ?.let { runCatching { CockpitBoardConfig.parse(it).folder }.getOrNull() } ?: return emptyList()
-        return vault.listMarkdown(folder, MAX_CARDS).mapNotNull { file ->
-            val head = vault.readHead(file) ?: return@mapNotNull null
+        return CardHeads.read(vault, folder, MAX_CARDS).map { (file, head) ->
             val card = CardFrontmatter.parse(file.path, head)
             SearchHit(SearchKind.CARD, card.title, card.subtitle, ObsidianLinks.open(vaultName, card.path))
         }

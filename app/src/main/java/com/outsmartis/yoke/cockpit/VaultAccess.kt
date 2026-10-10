@@ -13,6 +13,9 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
 
     private val rootId: String = DocumentsContract.getTreeDocumentId(treeUri)
 
+    /** Identifies this vault in process-wide caches. */
+    val cacheKey: String get() = treeUri.toString()
+
     fun exists(path: String): Boolean = find(path) != null
 
     fun readText(path: String): String? {
@@ -62,10 +65,13 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
             ?: throw IllegalStateException("Could not write $path")
     }
 
-    /** A file found by a listing: its vault-relative [path] and provider document [id]. */
-    data class VaultFile(val path: String, val id: String)
+    /**
+     * A file found by a listing: its vault-relative [path] and provider document [id], plus its
+     * last-modified time and size when the provider reports them (0 and -1 when not).
+     */
+    data class VaultFile(val path: String, val id: String, val modified: Long = 0L, val size: Long = -1L)
 
-    private class Entry(val id: String, val name: String, val isDir: Boolean)
+    private class Entry(val id: String, val name: String, val isDir: Boolean, val modified: Long = 0L, val size: Long = -1L)
 
     private fun list(folderId: String): List<Entry> {
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, folderId)
@@ -73,11 +79,16 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
             DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE,
+            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+            DocumentsContract.Document.COLUMN_SIZE,
         )
         val out = mutableListOf<Entry>()
         resolver.query(children, projection, null, null, null)?.use { c ->
             while (c.moveToNext()) {
-                out += Entry(c.getString(0), c.getString(1).orEmpty(), c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR)
+                out += Entry(
+                    c.getString(0), c.getString(1).orEmpty(), c.getString(2) == DocumentsContract.Document.MIME_TYPE_DIR,
+                    if (c.isNull(3)) 0L else c.getLong(3), if (c.isNull(4)) -1L else c.getLong(4),
+                )
             }
         }
         return out
@@ -96,7 +107,7 @@ class VaultAccess(private val resolver: ContentResolver, private val treeUri: Ur
     fun listMarkdown(folder: String, maxFiles: Int = 500): List<VaultFile> {
         val folderId = if (folder.isEmpty()) rootId else find(folder) ?: return emptyList()
         val prefix = if (folder.isEmpty()) "" else "$folder/"
-        return list(folderId).filter { !it.isDir && it.name.endsWith(".md") }.take(maxFiles).map { VaultFile(prefix + it.name, it.id) }
+        return list(folderId).filter { !it.isDir && it.name.endsWith(".md") }.take(maxFiles).map { VaultFile(prefix + it.name, it.id, it.modified, it.size) }
     }
 
     /** The first [bytes] of [file], or null when it cannot be read. */

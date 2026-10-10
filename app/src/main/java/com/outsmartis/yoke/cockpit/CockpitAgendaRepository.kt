@@ -25,7 +25,7 @@ object CockpitAgendaRepository {
             val line = if (vault == null) "" else runCatching {
                 val cfg = vault.readText(VaultAccess.SETTINGS_PATH)?.let { CockpitBoardConfig.parse(it) }
                     ?: CockpitBoardConfig("", CockpitBoardConfig.DEFAULT_COLUMNS)
-                CockpitAgenda.lineFromTexts(vault.readHeads(cfg.folder), LocalDate.now())
+                CockpitAgenda.lineFromTexts(CardHeads.read(vault, cfg.folder).map { it.second }, LocalDate.now())
             }.getOrNull() ?: return@execute  // a failed read keeps the last line
             prefs.agendaLine = line
             prefs.agendaAt = System.currentTimeMillis()
