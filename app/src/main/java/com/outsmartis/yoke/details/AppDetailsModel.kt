@@ -180,3 +180,32 @@ sealed class DetailsFilter(val key: String) {
         }
     }
 }
+
+/** One project box of the agent sheet; [name] null is "Other" (or the only box before contract v3). */
+data class AgentGroup(val name: String?, val items: List<DetailsItem>)
+
+/** Groups the sheet's agents like Conductore's home page "Projects" mode. */
+object AgentGroups {
+
+    /**
+     * Applies [filter] and [query], then groups by project in the provider's order with "Other"
+     * last. Without any project (pre-v3 providers) it is one box, urgent first then newest.
+     */
+    fun group(items: List<DetailsItem>, filter: DetailsFilter, query: String): List<AgentGroup> {
+        val byProject = items.any { it.project != null }
+        val shown = filter.apply(if (byProject) items else DetailsMapper.order(items)).filter { matches(it, query) }
+        if (!byProject) return if (shown.isEmpty()) emptyList() else listOf(AgentGroup(null, shown))
+        val named = shown.filter { it.project != null }.groupBy { it.project }.map { (n, rows) -> AgentGroup(n, rows) }
+        val other = shown.filter { it.project == null }
+        return named + if (other.isEmpty()) emptyList() else listOf(AgentGroup(null, other))
+    }
+
+    /** Every word of [query] appears in the title, subtitle or project, ignoring case. */
+    fun matches(item: DetailsItem, query: String): Boolean {
+        val hay = listOfNotNull(item.title, item.subtitle, item.project).joinToString(" ").lowercase()
+        return query.lowercase().split(' ').filter { it.isNotBlank() }.all { it in hay }
+    }
+
+    /** Finished and idle rows are drawn dimmed, as in Conductore. */
+    fun dimmed(item: DetailsItem): Boolean = item.state == ItemState.Finished || item.state == ItemState.Idle
+}

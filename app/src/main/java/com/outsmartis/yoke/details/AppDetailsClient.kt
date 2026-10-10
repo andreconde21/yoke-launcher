@@ -72,7 +72,7 @@ class AppDetailsClient(context: Context) {
         return try {
             val items = query(authority, "items") { DetailsMapper.item(it) }
             val summary = query(authority, "summary") { DetailsMapper.summary(it) }.firstOrNull()
-            Result.Ok(AppDetails(authority, summary, DetailsMapper.order(items)))
+            Result.Ok(AppDetails(authority, summary, items))
         } catch (_: SecurityException) {
             Result.Unavailable
         } catch (_: RuntimeException) {

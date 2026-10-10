@@ -73,6 +73,10 @@ class YokeTheme(
     val selection: Int,
     /** Raised surfaces: dialogs, menus, cards. */
     val surface: Int,
+    /** "Needs you" (the palette's orange), readable on the background. */
+    val attention: Int = accentText,
+    /** "Done" (the palette's green), readable on the background. */
+    val success: Int = accentText,
 ) {
     companion object {
         const val SYSTEM_ID = "system"
@@ -99,6 +103,8 @@ class YokeTheme(
                 onAccent = ThemeContrast.onColor(accent),
                 selection = p.selection or (0xFF shl 24),
                 surface = p.lighterBackground.takeIf { it != p.background } ?: ThemeContrast.blend(bg, fg, 0.08),
+                attention = ThemeContrast.ensure(p.orange or (0xFF shl 24), bg, 3.0, fg),
+                success = ThemeContrast.ensure(p.green or (0xFF shl 24), bg, 3.0, fg),
             )
         }
     }

@@ -64,6 +64,12 @@ class DetailsSheet private constructor(
     private val fg = theme?.foreground ?: context.getColorFromAttr(R.attr.primaryColor)
     private val secondary = theme?.secondary ?: context.getColorFromAttr(R.attr.primaryColorTrans50)
     private val accent = theme?.accentText ?: fg
+    private val muted = theme?.muted ?: secondary
+    private val attention = theme?.attention ?: ATTENTION_FALLBACK
+    private val success = theme?.success ?: SUCCESS_FALLBACK
+    private var query = ""
+    private var firstWaiting: View? = null
+    private var keptFocus: Triple<String?, Int, Int>? = null
     private val fonts = ThemeApplier.fonts(context)
 
     private var authority: String? = null
@@ -127,6 +133,11 @@ class DetailsSheet private constructor(
     }
 
     private fun present(result: AppDetailsClient.Result?, shortcuts: List<ShortcutInfo>) {
+        // Keep the caret where the user left it: read it from the fields still on screen before
+        // the rows below build their replacements.
+        val focused = fields.entries.firstOrNull { it.value.hasFocus() }
+        keptFocus = focused?.let { Triple(it.key, it.value.selectionStart, it.value.selectionEnd) }
+        fields.clear()
         lastResult = result
         lastShortcuts = shortcuts
         val isConductore = packageName == CONDUCTORE_PACKAGE
@@ -141,10 +152,7 @@ class DetailsSheet private constructor(
                 val rows = when {
                     s != null && !s.monitoring -> listOf(note(context.getString(R.string.details_not_watching)))
                     d.items.isEmpty() -> listOf(note(context.getString(R.string.details_no_agents)))
-                    else -> filtered(d.items).let { (bar, shown) ->
-                        listOfNotNull(bar) + if (shown.isEmpty()) listOf(note(context.getString(R.string.details_filter_empty)))
-                        else shown.map { itemBlock(it, now, s?.contractVersion ?: 1, d.authority) }
-                    }
+                    else -> agentsView(d.items, s?.contractVersion ?: 1, d.authority)
                 }
                 render(label, head, rows, null, shortcuts)
             }
@@ -161,12 +169,8 @@ class DetailsSheet private constructor(
         render(header, "", body, hint, shortcuts)
 
     private fun render(header: String, summary: String, body: List<View>, hint: String?, shortcuts: List<ShortcutInfo>) {
-        // Keep the caret where the user left it when a reload re-renders the reply field.
-        val focused = fields.entries.firstOrNull { it.value.hasFocus() }
-        val focusedId = focused?.key
-        val selStart = focused?.value?.selectionStart ?: 0
-        val selEnd = focused?.value?.selectionEnd ?: 0
-        fields.clear()
+        val (focusedId, selStart, selEnd) = keptFocus ?: Triple(null, 0, 0)
+        keptFocus = null
         content.removeAllViews()
         content.addView(text(header, 22f, fg, bold = true))
         if (summary.isNotEmpty()) content.addView(text(summary, 13f, secondary).apply { setPadding(0, dp(4), 0, 0) })
@@ -197,33 +201,30 @@ class DetailsSheet private constructor(
         if (v is ViewGroup) for (i in 0 until v.childCount) applyFont(v.getChildAt(i), f)
     }
 
-    private fun itemRow(item: DetailsItem, now: Long): View {
-        val color = if (item.state.urgent) accent else fg
+    private fun itemRow(item: DetailsItem, compact: Boolean): View {
         val row = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(if (compact) 7 else 10), 0, dp(if (compact) 7 else 10))
             setOnClickListener { openItem(item) }
+            if (AgentGroups.dimmed(item)) alpha = 0.5f
         }
-        val top = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        top.addView(
-            text((if (item.state.urgent) "● " else "") + item.title, 16f, color, bold = item.state.urgent),
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
-        )
-        DetailsText.relativeTime(item.updatedAt, now).takeIf { it.isNotEmpty() }?.let { top.addView(text(it, 12f, secondary)) }
-        row.addView(top)
-        item.subtitle?.let { row.addView(text(it, 13f, if (item.state.urgent) accent else secondary)) }
-        item.progress?.let { p ->
-            row.addView(android.widget.ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
-                max = 100; progress = p
-                progressTintList = android.content.res.ColorStateList.valueOf(color)
-            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(4)).apply { topMargin = dp(4) })
+        val texts = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        texts.addView(text(item.title, if (compact) 15f else 16f, fg, bold = true).apply {
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        if (!compact) item.subtitle?.let {
+            texts.addView(text(it, 13f, secondary).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
         }
+        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(stateDot(item.state))
         return row
     }
 
     /** The row (tap = deep link) plus, for contract v2 needsInput/blocked rows, the question and reply controls. */
-    private fun itemBlock(item: DetailsItem, now: Long, version: Int, auth: String): View {
-        val row = itemRow(item, now)
+    private fun itemBlock(item: DetailsItem, compact: Boolean, version: Int, auth: String): View {
+        val row = itemRow(item, compact)
         val ui = ReplyUi.of(item, version)
         if (ui == ReplyUi.None) return row
         val block = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -251,24 +252,127 @@ class DetailsSheet private constructor(
         return block
     }
 
-    /** The filter chips (Active, All, one per project) and the items they let through. */
-    private fun filtered(items: List<DetailsItem>): Pair<View?, List<DetailsItem>> {
-        val prefs = context.getSharedPreferences("com.outsmartis.yoke", 0)
-        val filter = DetailsFilter.parse(prefs.getString(FILTER_KEY, null), items)
-        val options = listOf(DetailsFilter.Active, DetailsFilter.All) + DetailsFilter.projects(items).map { DetailsFilter.Project(it) }
-        val flow = FlowLayout(context)
-        for (o in options) {
-            val label = when (o) {
-                DetailsFilter.Active -> context.getString(R.string.details_filter_active, DetailsFilter.Active.apply(items).size)
-                DetailsFilter.All -> context.getString(R.string.details_filter_all, items.size)
-                is DetailsFilter.Project -> o.name
+    private val sheetPrefs get() = context.getSharedPreferences("com.outsmartis.yoke", 0)
+
+    /**
+     * The agents laid out like Conductore's home page in Projects mode: an optional search, the
+     * view bar (all agents / active, needs-you count, detailed / compact), then one box per project.
+     */
+    private fun agentsView(items: List<DetailsItem>, version: Int, auth: String): List<View> {
+        val prefs = sheetPrefs
+        val filter = if (prefs.getString(FILTER_KEY, null) == DetailsFilter.All.key) DetailsFilter.All else DetailsFilter.Active
+        val compact = prefs.getBoolean(COMPACT_KEY, false)
+        val folded = prefs.getStringSet(FOLDED_KEY, null) ?: emptySet()
+        val out = mutableListOf<View>()
+        if (items.size >= SEARCH_FROM) out += searchField()
+        out += viewBar(items, filter, compact)
+        firstWaiting = null
+        val groups = AgentGroups.group(items, filter, query)
+        if (groups.isEmpty()) out += note(context.getString(R.string.details_filter_empty))
+        val headers = groups.size > 1 || groups.any { it.name != null }
+        groups.forEach { out += box(it, headers, folded, compact, version, auth) }
+        return out
+    }
+
+    private fun searchField(): View = EditText(context, null, 0, R.style.TextSmall).asTextField().apply {
+        hint = context.getString(R.string.details_search_hint)
+        setTextColor(fg)
+        setHintTextColor(secondary)
+        textSize = 14f
+        setSingleLine(true)
+        setText(query)
+        setPadding(dp(14), dp(10), dp(14), dp(10))
+        background = GradientDrawable().apply { cornerRadius = 10 * density; setStroke(dp(1), muted) }
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            .apply { bottomMargin = dp(10) }
+        addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(e: Editable?) {
+                val q = e?.toString().orEmpty()
+                if (q != query) { query = q; repaint() }
             }
-            flow.addView(chip(label, o != filter, true) {
-                prefs.edit().putString(FILTER_KEY, o.key).apply()
-                repaint()
-            })
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+        })
+        fields[SEARCH_FIELD] = this
+    }
+
+    private fun viewBar(items: List<DetailsItem>, filter: DetailsFilter, compact: Boolean): View {
+        val bar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(2), 0, dp(10))
         }
-        return flow to filter.apply(items)
+        val all = filter == DetailsFilter.All
+        bar.addView(text((if (all) "○ " else "● ") + context.getString(if (all) R.string.details_view_all else R.string.details_view_active), 14f, fg).apply {
+            setPadding(0, dp(6), dp(14), dp(6))
+            setOnClickListener {
+                sheetPrefs.edit().putString(FILTER_KEY, if (all) DetailsFilter.Active.key else DetailsFilter.All.key).apply()
+                repaint()
+            }
+        })
+        val waiting = items.count { it.state.urgent }
+        if (waiting > 0) bar.addView(text("● $waiting", 14f, attention, bold = true).apply {
+            setPadding(0, dp(6), dp(14), dp(6))
+            setOnClickListener { scrollToFirstWaiting() }
+        })
+        bar.addView(View(context), LinearLayout.LayoutParams(0, 1, 1f))
+        bar.addView(text(context.getString(if (compact) R.string.details_density_compact else R.string.details_density_detailed), 14f, secondary).apply {
+            setPadding(dp(14), dp(6), 0, dp(6))
+            setOnClickListener {
+                sheetPrefs.edit().putBoolean(COMPACT_KEY, !compact).apply()
+                repaint()
+            }
+        })
+        return bar
+    }
+
+    private fun box(group: AgentGroup, header: Boolean, folded: Set<String>, compact: Boolean, version: Int, auth: String): View {
+        val key = group.name ?: OTHER_KEY
+        val open = key !in folded || query.isNotBlank()
+        val box = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(if (header) 6 else 8), dp(14), dp(8))
+            background = GradientDrawable().apply { cornerRadius = 12 * density; setStroke(dp(1), muted) }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { bottomMargin = dp(12) }
+        }
+        if (header) box.addView(text((if (open) "⌄  " else "›  ") + (group.name ?: context.getString(R.string.details_group_other)), 16f, fg, bold = true).apply {
+            setPadding(0, dp(10), 0, dp(if (open) 6 else 10))
+            setOnClickListener {
+                val f = (sheetPrefs.getStringSet(FOLDED_KEY, null) ?: emptySet()).toMutableSet()
+                if (!f.add(key)) f.remove(key)
+                sheetPrefs.edit().putStringSet(FOLDED_KEY, f).apply()
+                repaint()
+            }
+        })
+        if (open) group.items.forEach { item ->
+            val v = itemBlock(item, compact, version, auth)
+            if (item.state.urgent && firstWaiting == null) firstWaiting = v
+            box.addView(v)
+        }
+        return box
+    }
+
+    private fun scrollToFirstWaiting() {
+        val target = firstWaiting ?: return
+        val scroll = generateSequence(content.parent) { it.parent }.filterIsInstance<ScrollView>().firstOrNull() ?: return
+        val a = IntArray(2).also { target.getLocationInWindow(it) }
+        val b = IntArray(2).also { content.getLocationInWindow(it) }
+        scroll.smoothScrollTo(0, (a[1] - b[1] - dp(12)).coerceAtLeast(0))
+    }
+
+    /** Conductore's state dot: needs you filled orange, working accent, done green, idle a hollow ring. */
+    private fun stateDot(state: ItemState): View = View(context).apply {
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            when (state) {
+                ItemState.NeedsInput, ItemState.Blocked -> setColor(attention)
+                ItemState.Working -> setColor(accent)
+                ItemState.Finished -> setColor(success)
+                ItemState.Idle, ItemState.Unknown -> { setColor(Color.TRANSPARENT); setStroke(dp(2), secondary) }
+            }
+        }
+        layoutParams = LinearLayout.LayoutParams(dp(11), dp(11)).apply { leftMargin = dp(12) }
     }
 
     private fun choiceRow(item: DetailsItem, options: List<String>, busy: Boolean, auth: String): View {
@@ -424,6 +528,13 @@ class DetailsSheet private constructor(
     companion object {
         const val CONDUCTORE_PACKAGE = "com.outsmartis.conductore"
         private const val FILTER_KEY = "DETAILS_FILTER"
+        private const val COMPACT_KEY = "DETAILS_COMPACT"
+        private const val FOLDED_KEY = "DETAILS_FOLDED_PROJECTS"
+        private const val OTHER_KEY = "\u0000other"
+        private const val SEARCH_FIELD = "\u0000search"
+        private const val SEARCH_FROM = 6
+        private const val ATTENTION_FALLBACK = 0xFFE69875.toInt()
+        private const val SUCCESS_FALLBACK = 0xFFA7C080.toInt()
         private val sharedDrafts = java.util.concurrent.ConcurrentHashMap<String, String>()
         private val io = Executors.newSingleThreadExecutor()
         /** Separate from [io]: a reply can block ~5 s and must not hold up reloads. */

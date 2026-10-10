@@ -466,4 +466,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="details_filter_empty">No agents here right now</string>
     <string name="details_pending_unlock">Will send when you unlock Conductore</string>
     <string name="details_failed_kept">%1$s. Your text is kept.</string>
+    <string name="details_view_all">all agents</string>
+    <string name="details_view_active">active</string>
+    <string name="details_density_detailed">detailed</string>
+    <string name="details_density_compact">compact</string>
+    <string name="details_group_other">Other</string>
+    <string name="details_search_hint">Search agents</string>
 </resources>
