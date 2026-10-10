@@ -1,47 +1,66 @@
-![Olauncher](https://repository-images.githubusercontent.com/278638069/db0acb80-661b-11eb-803e-926cae5dccb4)
+# Yoke
 
+A minimal, text-only Android home screen launcher. No ads, no tracking. The only network calls are the optional weather line and Omarchy wallpaper downloads.
 
-# Olauncher | Minimal AF Launcher
-AF stands for Ad-Free! :D
+Yoke keeps what makes a minimal launcher useful (a short list of home apps, type-to-launch app drawer, swipe gestures, hidden apps, renaming, double tap to lock, Private Space support) and drops everything else.
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-    alt="Get it on Play Store"
-    height="80" align="middle">](https://play.google.com/store/apps/details?id=app.olauncher)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80" align="middle">](https://f-droid.org/packages/app.olauncher)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroidButtonGreyBorder_nofont.png"
-    alt="Get it on IzzyOnDroid"
-    height="54" hspace="13" align="middle">](https://apt.izzysoft.de/packages/app.olauncher)
+## Planned
 
-### Install using [Play Store](https://play.google.com/store/apps/details?id=app.olauncher), [F-Droid](https://f-droid.org/packages/app.olauncher), [IzzyOnDroid](https://apt.izzysoft.de/packages/app.olauncher) or the [latest APK](https://github.com/tanujnotes/Olauncher/releases/).
+- **Long-press app details** via a ContentProvider contract that apps can implement to expose a small status/summary view. Conductore is the first provider.
+- **Quick-add to the Obsidian Cockpit Board** straight from the launcher.
+- **Omarchy themes** for colours and typography.
 
-- To maintain the simplicity of the launcher, a few niche features are available but hidden.
+## Build
 
-- Please check out the **[About](https://tanujnotes.substack.com/p/olauncher-minimal-af-launcher?utm_source=github)** page in the Olauncher settings for a complete list of features and **FAQs**.
+Requirements: JDK 17 and the Android SDK (compileSdk 36, minSdk 24).
 
-##
+```sh
+export ANDROID_HOME=/path/to/Android/Sdk
+./gradlew assembleDebug testDebugUnitTest
+```
 
-License: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.en.html)
+The debug APK ends up in `app/build/outputs/apk/debug/` (application id `com.outsmartis.yoke.debug`).
 
-Contact: [X/Twitter](https://x.com/tanujnotes) • [Reddit](https://reddit.com/user/tanujnotes/) • [Bluesky](https://bsky.app/profile/tanujnotes.bsky.social)
+## Themes and font
 
-##
+Yoke ships every [Omarchy](https://github.com/basecamp/omarchy) theme (MIT,
+Copyright (c) David Heinemeier Hansson), regenerated with
+`tools/generate_omarchy_themes.py <omarchy-checkout>` at the same pinned commit
+Conductore uses. "Follow my Omarchy PC" reads the theme Conductore last synced from the
+followed PC (`/pc_theme` on its launcher-details provider , permission `com.outsmartis.permission.READ_LAUNCHER_DETAILS`) and updates live.
 
-### My other apps:
+The optional JetBrains Mono font is bundled under the SIL Open Font License
+1.1 (`app/src/main/res/raw/jetbrains_mono_ofl.txt`).
 
-- [Pro Launcher](https://play.google.com/store/apps/details?id=app.prolauncher) - Pro version of Olauncher with extra features like widgets, weather, folders, etc.
+## Weather
 
-- [Note to Self](https://play.google.com/store/apps/details?id=com.makenotetoself) - Free and [open source](https://github.com/jeerovan/ntsapp) notes app with chat like interface and end-to-end encryption.
+Optional one-line weather under the date (off by default) from [Open-Meteo](https://open-meteo.com/), no account or key. Besides Omarchy wallpaper downloads it is the only network access in Yoke; a manually chosen city sends only its coordinates (2 decimals), and "Current location" asks for coarse location only when you pick it.
 
-- [Pentastic](https://play.google.com/store/apps/details?id=app.pentastic) - Minimal todo lists. Free and [open source](https://github.com/tanujnotes/Pentastic).
+## License
 
-##
+[GNU GPLv3](LICENSE).
 
-### Help me get a new phone for testing:
+Yoke is a fork of Olauncher by Tanuj (github.com/tanujnotes/Olauncher), GPLv3.
 
-[<img src="https://img.buymeacoffee.com/button-api/?emoji=&slug=tanujnotes&button_colour=FFDD00&font_colour=000000&font_family=Cookie&outline_colour=000000&coffee_colour=ffffff"
-    alt="Get it on Play Store"
-    height="80">](https://www.buymeacoffee.com/tanujnotes)
+## Smart grayscale
 
-Thank you!
+The whole phone is grayscale except while an exception app is in front. It uses Android's colour-correction
+grayscale, so it needs a one-time permission (WRITE_SECURE_SETTINGS). Android lets only developer tools grant it;
+the grant survives Yoke updates and is used only to switch colour correction on and off. Two ways:
+
+**On the phone, with Shizuku:** install Shizuku (Google Play or shizuku.rikka.app), start it with Wireless
+debugging (no computer needed), then open Yoke, Settings, Smart grayscale and tap Grant with Shizuku. Allow the
+Shizuku prompt. Yoke runs only `pm grant` for itself.
+
+**From a computer, with adb:**
+
+```
+adb shell pm grant com.outsmartis.yoke android.permission.WRITE_SECURE_SETTINGS
+```
+
+(debug build: `com.outsmartis.yoke.debug`).
+
+Then turn on Yoke's accessibility service. Android 13+, sideloaded: App info, three dots, Allow restricted
+settings first, then enable the accessibility service. Switch on Settings, Smart grayscale. The
+service reads only the name of the app in front. Yoke itself is an exception by default; pick the rest under Exceptions.
+Also available as gesture actions, palette commands and a Quick Settings tile.

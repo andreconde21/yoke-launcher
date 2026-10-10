@@ -2,14 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!--Asked at runtime, only when "Contacts" is switched on in Search settings-->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!--Network users: the weather line (Open-Meteo) and Omarchy wallpaper backgrounds, nothing
+        else. No analytics, no ads, no other requests.-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--Wallpaper screen: sets the home / lock screen wallpaper-->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <!--Asked at runtime, only when "Current location" is chosen for weather; coarse, one-off fix-->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
-    <!--Used only for downloading wallpapers-->
-    <uses-permission android:name="android.permission.INTERNET" />
     <!--Used only for opening alarm app-->
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission
@@ -17,6 +23,21 @@
         tools:ignore="ProtectedPermissions" />
     <!--Used for Private Space support on Android 15+-->
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
+    <!--Smart grayscale: granted once with adb (see README), lets Yoke switch the colour-correction grayscale-->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
+    <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
+
+    <queries>
+        <provider android:authorities="com.outsmartis.conductore.launcherdetails" />
+        <!--Built-in "Cockpit board" entries check that obsidian:// links can open-->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="obsidian" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -47,6 +68,30 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".cockpit.QuickAddActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/quick_add_title"
+            android:taskAffinity=""
+            android:theme="@style/QuickAddTheme"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".theme.ThemePickerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/theme_picker_title" />
+        <activity
+            android:name=".wallpaper.WallpaperActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/wallpaper_title" />
         <activity
             android:name=".helper.PinItemActivity"
             android:exported="true"
@@ -92,8 +137,7 @@
             android:name=".helper.MyAccessibilityService"
             android:exported="false"
             android:label="@string/app_name"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:process=":serviceProcess">
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
@@ -102,6 +146,41 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".grayscale.GrayscaleReceiver"
+            android:exported="false" />
+
+        <service
+            android:name=".grayscale.GrayscaleTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_grayscale"
+            android:label="@string/grayscale_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+
+        <!--Notifications on home: reads the notifications of the apps the user picked, in memory only-->
+        <service
+            android:name=".notifications.YokeNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!--Shizuku: lets the Smart grayscale setup grant its one-time permission from the phone-->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 
 </manifest>
