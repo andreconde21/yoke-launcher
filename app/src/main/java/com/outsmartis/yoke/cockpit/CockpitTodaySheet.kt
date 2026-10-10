@@ -21,6 +21,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.helper.setSwipeDismissContent
 import com.outsmartis.yoke.details.DetailsSheet
 import com.outsmartis.yoke.details.FlowLayout
 import com.outsmartis.yoke.helper.getColorFromAttr
@@ -70,13 +71,11 @@ class CockpitTodaySheet private constructor(
         }
         // Above the navigation bar and the keyboard, measured as well as from insets.
         com.outsmartis.yoke.helper.SheetInsets.install(scroll, content, side = dp(24), top = dp(20), bottom = dp(20))
-        dialog.setContentView(scroll)
+        // Swipe the sheet down to close it.
+        dialog.setSwipeDismissContent(scroll,
+            surfaceColor = theme?.surface ?: context.getColorFromAttr(R.attr.dialogShadeColor).let { it or (0xFF shl 24) },
+            handleColor = secondary)
         dialog.window?.apply {
-            setBackgroundDrawable(GradientDrawable().apply {
-                val r = 24 * density
-                cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
-                setColor(theme?.surface ?: context.getColorFromAttr(R.attr.dialogShadeColor).let { it or (0xFF shl 24) })
-            })
             setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
             setGravity(Gravity.BOTTOM)
             setDimAmount(0.5f)

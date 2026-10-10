@@ -10,10 +10,12 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.helper.SwipeDismissFrame
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityQuickAddBinding
 import com.outsmartis.yoke.theme.ThemeApplier
@@ -77,6 +79,7 @@ class QuickAddActivity : AppCompatActivity() {
 
         binding.root.setOnClickListener { finish() }
         binding.card.setOnClickListener { }
+        wrapCardForSwipe()
         binding.openBoard.setTextColor(theme?.secondary ?: binding.openBoard.currentTextColor)
         binding.openBoard.setOnClickListener { CockpitLinks.openBoard(this); finish() }
         binding.pickVault.setOnClickListener { openVaultPicker() }
@@ -321,6 +324,17 @@ class QuickAddActivity : AppCompatActivity() {
     override fun onDestroy() {
         io.shutdown()
         super.onDestroy()
+    }
+    /** Swiping the card down closes quick-add, like the other sheets. */
+    private fun wrapCardForSwipe() {
+        val card = binding.card
+        val params = card.layoutParams
+        binding.root.removeView(card)
+        val frame = SwipeDismissFrame(this).apply {
+            onDismiss = { finish() }
+            addView(card, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
+        }
+        binding.root.addView(frame, params)
     }
 }
 

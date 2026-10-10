@@ -38,6 +38,8 @@ object SheetInsets {
             insets
         }
         scroll.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
+            // While the sheet is being swiped down it sits lower on purpose; don't pad for that.
+            if (((v.parent as? View)?.translationY ?: 0f) != 0f) return@addOnLayoutChangeListener
             val loc = IntArray(2)
             v.getLocationOnScreen(loc)
             val sheetBottom = loc[1] + v.height
