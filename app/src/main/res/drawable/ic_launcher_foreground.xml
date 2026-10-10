@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yoke placeholder glyph: a minimal aircraft control yoke, white, inside the 66dp adaptive-icon safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateY="-6">
+        <path
+            android:pathData="M32,40 L32,54 Q32,64 42,64 L66,64 Q76,64 76,54 L76,40 M54,64 L54,80"
+            android:strokeWidth="7"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M54,64 m-6,0 a6,6 0,1 1,12 0 a6,6 0,1 1,-12 0" />
+    </group>
+</vector>

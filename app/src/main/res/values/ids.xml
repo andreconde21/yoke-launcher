@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Remembers whether ThemeApplier treated a TextView as primary or secondary text -->
+    <item name="theme_text_role" type="id" />
+    <item name="themePickerScroll" type="id" />
+</resources>

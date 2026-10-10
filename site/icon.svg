@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The app icon's yoke glyph. Pages reuse it as icon.svg#glyph in their own colour. -->
+  <symbol id="glyph" viewBox="24 24 60 60">
+    <g transform="translate(0 -6)" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M32 40v14q0 10 10 10h24q10 0 10-10V40M54 64v16"/>
+      <circle cx="54" cy="64" r="6" fill="currentColor" stroke="none"/>
+    </g>
+  </symbol>
+  <rect width="32" height="32" rx="7" fill="#1A1B26"/>
+  <use href="#glyph" x="3" y="3" width="26" height="26" color="#7AA2F7"/>
+</svg>

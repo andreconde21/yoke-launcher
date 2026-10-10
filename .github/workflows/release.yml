@@ -1,0 +1,44 @@
+name: Release APK
+
+# Push a tag vX.Y.Z → signed release APK attached to a GitHub Release.
+# The landing page links to releases/latest/download/yoke.apk.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Build signed APK
+        env:
+          YOKE_KEYSTORE_B64: ${{ secrets.YOKE_KEYSTORE_B64 }}
+          YOKE_KEYSTORE_PASSWORD: ${{ secrets.YOKE_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$YOKE_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/yoke.jks"
+          export YOKE_KEYSTORE="$RUNNER_TEMP/yoke.jks"
+          export YOKE_VERSION_NAME="${GITHUB_REF_NAME#v}"
+          export YOKE_VERSION_CODE="$GITHUB_RUN_NUMBER"
+          ./gradlew --no-daemon testReleaseUnitTest assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "yoke-${YOKE_VERSION_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk yoke.apk
+          sha256sum yoke.apk | cut -d' ' -f1 > yoke.apk.sha256
+          rm -f "$RUNNER_TEMP/yoke.jks"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" yoke.apk yoke.apk.sha256 "yoke-${GITHUB_REF_NAME#v}.apk" \
+            --title "Yoke ${GITHUB_REF_NAME#v}" --generate-notes
