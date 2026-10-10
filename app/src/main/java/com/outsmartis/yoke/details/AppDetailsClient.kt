@@ -31,6 +31,8 @@ class AppDetailsClient(context: Context) {
         object Ok : ReplyResult()
         /** Still running after the provider's 5 s wait; it will complete in Conductore. */
         object Queued : ReplyResult()
+        /** Conductore is locked: it holds the answer and sends it after the next unlock. */
+        object PendingUnlock : ReplyResult()
         data class Failed(val message: String) : ReplyResult()
         /** The provider refused the caller (SecurityException): Conductore is too old to trust us. */
         object NotAllowed : ReplyResult()
@@ -46,7 +48,10 @@ class AppDetailsClient(context: Context) {
 
     private fun act(authority: String, method: String, itemId: String, extras: Bundle): ReplyResult = try {
         val out = context.contentResolver.call(Uri.parse("content://$authority"), method, itemId, extras)
-        ReplyOutcome.of(out?.containsKey("ok") == true, out?.getBoolean("ok") ?: false, out?.getString("error"), out?.getBoolean("queued") ?: false)
+        ReplyOutcome.of(
+            out?.containsKey("ok") == true, out?.getBoolean("ok") ?: false, out?.getString("error"), out?.getBoolean("queued") ?: false,
+            pendingUnlock = out?.getBoolean("pending_unlock") ?: false,
+        )
     } catch (_: SecurityException) {
         ReplyResult.NotAllowed
     } catch (e: Exception) {
@@ -104,8 +109,9 @@ class AppDetailsClient(context: Context) {
 
     /** Pure mapping of the provider's reply Bundle, kept apart so it is unit tested. */
     object ReplyOutcome {
-        fun of(hasOk: Boolean, ok: Boolean, error: String?, queued: Boolean): ReplyResult = when {
+        fun of(hasOk: Boolean, ok: Boolean, error: String?, queued: Boolean, pendingUnlock: Boolean = false): ReplyResult = when {
             !hasOk -> ReplyResult.Failed("No answer from Conductore")
+            ok && pendingUnlock -> ReplyResult.PendingUnlock
             queued && error.isNullOrBlank() -> ReplyResult.Queued
             ok -> ReplyResult.Ok
             else -> ReplyResult.Failed(error?.takeIf { it.isNotBlank() } ?: "Conductore could not send that")

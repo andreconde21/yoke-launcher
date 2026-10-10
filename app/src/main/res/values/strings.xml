@@ -461,4 +461,9 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="omarchy_dream_open">Open screensaver settings</string>
     <string name="omarchy_dream_hint">Pick Yoke as the screensaver there; it shows while charging or docked. It moves a little every minute against burn-in.</string>
     <string name="omarchy_dream_unavailable">This phone has no screensaver settings</string>
+    <string name="details_filter_active">Active %1$d</string>
+    <string name="details_filter_all">All %1$d</string>
+    <string name="details_filter_empty">No agents here right now</string>
+    <string name="details_pending_unlock">Will send when you unlock Conductore</string>
+    <string name="details_failed_kept">%1$s. Your text is kept.</string>
 </resources>

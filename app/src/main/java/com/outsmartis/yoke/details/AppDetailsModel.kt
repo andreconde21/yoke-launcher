@@ -33,6 +33,10 @@ data class DetailsItem(
     /** Contract v2: false when the provider cannot take an answer; [answerNote] says why. */
     val answerable: Boolean = false,
     val answerNote: String? = null,
+    /** Contract v3: the project the agent works in (display name), for the sheet's filter. */
+    val project: String? = null,
+    /** Contract v3: whether Conductore's "active" view shows this row; null from older providers. */
+    val active: Boolean? = null,
 )
 
 data class DetailsSummary(
@@ -69,6 +73,8 @@ object DetailsMapper {
         options = parseOptions(row.string("options")),
         answerable = row.int("answerable") == 1,
         answerNote = row.string("answer_note")?.takeIf { it.isNotBlank() },
+        project = row.string("project")?.takeIf { it.isNotBlank() },
+        active = row.int("active")?.let { it == 1 },
     )
 
     /** A JSON array of non-blank strings; null for null, malformed, empty or non-string content. */
@@ -145,5 +151,32 @@ sealed class ReplyUi {
 
         /** "Deny" is drawn as a secondary action. */
         fun isSecondary(option: String) = option.equals(DENY, ignoreCase = true)
+    }
+}
+
+/** Which agents the sheet lists: the active ones, all, or one project's. */
+sealed class DetailsFilter(val key: String) {
+    object Active : DetailsFilter("active")
+    object All : DetailsFilter("all")
+    data class Project(val name: String) : DetailsFilter("project:$name")
+
+    fun apply(items: List<DetailsItem>): List<DetailsItem> = when (this) {
+        // Conductore's own "active" view when it says so (v3), else working or waiting on André.
+        Active -> items.filter { it.active ?: (it.state.urgent || it.state == ItemState.Working) }
+        All -> items
+        is Project -> items.filter { it.project == name }
+    }
+
+    companion object {
+        /** Distinct project names in the provider's order. */
+        fun projects(items: List<DetailsItem>): List<String> = items.mapNotNull { it.project }.distinct()
+
+        /** The stored [key], or Active when it is unknown or names a project no agent is in any more. */
+        fun parse(key: String?, items: List<DetailsItem>): DetailsFilter = when {
+            key == All.key -> All
+            key != null && key.startsWith("project:") ->
+                key.removePrefix("project:").let { n -> if (n in projects(items)) Project(n) else Active }
+            else -> Active
+        }
     }
 }

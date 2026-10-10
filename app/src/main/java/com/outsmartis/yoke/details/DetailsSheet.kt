@@ -72,7 +72,8 @@ class DetailsSheet private constructor(
     private var loadSeq = 0
 
     // Reply state survives re-renders (the provider reloads the sheet while the user types).
-    private val drafts = mutableMapOf<String, String>()
+    // Drafts outlive the sheet: closing it (e.g. to unlock Conductore) must not lose a half-written answer.
+    private val drafts = sharedDrafts
     private val sending = mutableSetOf<String>()
     private val expanded = mutableSetOf<String>()
     private val fields = mutableMapOf<String, EditText>()
@@ -140,7 +141,10 @@ class DetailsSheet private constructor(
                 val rows = when {
                     s != null && !s.monitoring -> listOf(note(context.getString(R.string.details_not_watching)))
                     d.items.isEmpty() -> listOf(note(context.getString(R.string.details_no_agents)))
-                    else -> d.items.map { itemBlock(it, now, s?.contractVersion ?: 1, d.authority) }
+                    else -> filtered(d.items).let { (bar, shown) ->
+                        listOfNotNull(bar) + if (shown.isEmpty()) listOf(note(context.getString(R.string.details_filter_empty)))
+                        else shown.map { itemBlock(it, now, s?.contractVersion ?: 1, d.authority) }
+                    }
                 }
                 render(label, head, rows, null, shortcuts)
             }
@@ -247,6 +251,26 @@ class DetailsSheet private constructor(
         return block
     }
 
+    /** The filter chips (Active, All, one per project) and the items they let through. */
+    private fun filtered(items: List<DetailsItem>): Pair<View?, List<DetailsItem>> {
+        val prefs = context.getSharedPreferences("com.outsmartis.yoke", 0)
+        val filter = DetailsFilter.parse(prefs.getString(FILTER_KEY, null), items)
+        val options = listOf(DetailsFilter.Active, DetailsFilter.All) + DetailsFilter.projects(items).map { DetailsFilter.Project(it) }
+        val flow = FlowLayout(context)
+        for (o in options) {
+            val label = when (o) {
+                DetailsFilter.Active -> context.getString(R.string.details_filter_active, DetailsFilter.Active.apply(items).size)
+                DetailsFilter.All -> context.getString(R.string.details_filter_all, items.size)
+                is DetailsFilter.Project -> o.name
+            }
+            flow.addView(chip(label, o != filter, true) {
+                prefs.edit().putString(FILTER_KEY, o.key).apply()
+                repaint()
+            })
+        }
+        return flow to filter.apply(items)
+    }
+
     private fun choiceRow(item: DetailsItem, options: List<String>, busy: Boolean, auth: String): View {
         val flow = FlowLayout(context)
         options.forEachIndexed { i, o ->
@@ -258,15 +282,18 @@ class DetailsSheet private constructor(
     }
 
     private fun replyRow(item: DetailsItem, busy: Boolean, auth: String): View {
-        val line = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val line = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.BOTTOM }
         val field = EditText(context, null, 0, R.style.TextSmall).asTextField().apply {
             hint = context.getString(R.string.details_reply_hint, item.title)
             setTextColor(fg)
             setHintTextColor(secondary)
             textSize = 14f
-            setSingleLine(true)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            imeOptions = EditorInfo.IME_ACTION_SEND
+            // Multi-line: Enter adds a line, the Send chip sends.
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            isSingleLine = false
+            minLines = 1
+            maxLines = 6
+            isVerticalScrollBarEnabled = true
             isEnabled = !busy
             setText(drafts[item.id].orEmpty())
             addTextChangedListener(object : TextWatcher {
@@ -280,7 +307,6 @@ class DetailsSheet private constructor(
             val t = drafts[item.id].orEmpty().trim()
             if (t.isNotEmpty() && item.id !in sending) send(item) { client.reply(auth, item.id, t) }
         }
-        field.setOnEditorActionListener { _, action, _ -> if (action == EditorInfo.IME_ACTION_SEND) { go(); true } else false }
         line.addView(field, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         line.addView(chip(context.getString(R.string.details_send), false, !busy) { go() })
         return line
@@ -314,8 +340,9 @@ class DetailsSheet private constructor(
                 when (r) {
                     AppDetailsClient.ReplyResult.Ok -> { drafts.remove(item.id); context.showToast(context.getString(R.string.details_sent)) }
                     AppDetailsClient.ReplyResult.Queued -> { drafts.remove(item.id); context.showToast(context.getString(R.string.details_queued)) }
+                    AppDetailsClient.ReplyResult.PendingUnlock -> { drafts.remove(item.id); context.showToast(context.getString(R.string.details_pending_unlock)) }
                     AppDetailsClient.ReplyResult.NotAllowed -> context.showToast(context.getString(R.string.details_update_conductore_reply))
-                    is AppDetailsClient.ReplyResult.Failed -> context.showToast(r.message)
+                    is AppDetailsClient.ReplyResult.Failed -> context.showToast(context.getString(R.string.details_failed_kept, r.message))
                 }
                 if (!dismissed) repaint()
             }
@@ -396,6 +423,8 @@ class DetailsSheet private constructor(
 
     companion object {
         const val CONDUCTORE_PACKAGE = "com.outsmartis.conductore"
+        private const val FILTER_KEY = "DETAILS_FILTER"
+        private val sharedDrafts = java.util.concurrent.ConcurrentHashMap<String, String>()
         private val io = Executors.newSingleThreadExecutor()
         /** Separate from [io]: a reply can block ~5 s and must not hold up reloads. */
         private val actions = Executors.newCachedThreadPool()
