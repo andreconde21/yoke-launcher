@@ -25,6 +25,7 @@ import androidx.navigation.findNavController
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityMainBinding
+import com.outsmartis.yoke.gestures.GestureAction
 import com.outsmartis.yoke.gestures.GestureActionRunner
 import com.outsmartis.yoke.gestures.Trigger
 import com.outsmartis.yoke.helper.getColorFromAttr
@@ -44,6 +45,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        /** A GestureAction type to run once home is up (the assistant's long-press, see AssistActivity). */
+        const val EXTRA_RUN_ACTION = "com.outsmartis.yoke.extra.RUN_ACTION"
+    }
 
     private lateinit var prefs: Prefs
     private lateinit var navController: NavController
@@ -88,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         // Must run before firstOpen is cleared: a fresh install gets plain defaults, an upgrade migrates
         prefs.loadGestures()
         gestureRunner = GestureActionRunner(this)
+        runRequestedAction(intent)
 
         val onBackPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -192,9 +199,22 @@ class MainActivity : AppCompatActivity() {
         super.onUserLeaveHint()
     }
 
+    /** Runs [EXTRA_RUN_ACTION] once the home screen has been laid out. */
+    private fun runRequestedAction(intent: Intent?) {
+        val type = intent?.getStringExtra(EXTRA_RUN_ACTION) ?: return
+        intent.removeExtra(EXTRA_RUN_ACTION)
+        val action = runCatching { GestureAction.fromJson(org.json.JSONObject().put("type", type)) }.getOrNull() ?: return
+        window.decorView.post { if (!isFinishing) gestureRunner.run(action) }
+    }
+
     override fun onNewIntent(intent: Intent?) {
         val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
         backToHomeScreen()
+        if (intent?.hasExtra(EXTRA_RUN_ACTION) == true) {
+            runRequestedAction(intent)
+            super.onNewIntent(intent)
+            return
+        }
         if (alreadyHome && isResumed && intent?.action == Intent.ACTION_MAIN)
             gestureRunner.run(Trigger.HOME_ON_HOME)
         super.onNewIntent(intent)
