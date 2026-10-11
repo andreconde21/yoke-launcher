@@ -31,6 +31,7 @@ object YokeBackup {
         "yoke.search",
         "yoke.backup",
         "yoke.iconrow",
+        "yoke.limits",
     )
 
     /** Keys left out of an export and left alone by an import, per file. */
@@ -45,6 +46,7 @@ object YokeBackup {
         "com.outsmartis.yoke.weather" to setOf("READING", "USE_CURRENT"), // cache; the location permission is per device
         "yoke.cockpit" to setOf("vault_uri", "agenda_line", "agenda_at"),
         "yoke.backup" to setOf("last_vault_backup", "last_vault_hash"),
+        "yoke.limits" to setOf("day", "opens", "pass_pkg", "pass_at"), // today's counts and visit belong to this phone
     )
 
     fun isExcluded(file: String, key: String) = key in EXCLUDED[file].orEmpty()

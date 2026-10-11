@@ -139,6 +139,12 @@ class HomeNotifications(
     }
 
     private fun launch(pkg: String) {
+        val launcher = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
+        val component = runCatching { launcher.getActivityList(pkg, android.os.Process.myUserHandle()).firstOrNull()?.componentName }.getOrNull()
+        if (component != null && com.outsmartis.yoke.limits.LimitGate.intercept(
+                context, pkg, com.outsmartis.yoke.limits.LimitGate.Target.App(component, android.os.Process.myUserHandle())
+            )
+        ) return
         try {
             context.packageManager.getLaunchIntentForPackage(pkg)
                 ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -155,6 +161,10 @@ class HomeNotifications(
             launch(group.packageName)
             return
         }
+        if (com.outsmartis.yoke.limits.LimitGate.intercept(
+                context, group.packageName, com.outsmartis.yoke.limits.LimitGate.Target.Pending(intent)
+            )
+        ) return
         try {
             intent.send()
             if (entry.autoCancel) NotificationStore.cancel(listOf(entry.key))

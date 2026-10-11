@@ -145,6 +145,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isResumed = true
+        // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
+        com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }
