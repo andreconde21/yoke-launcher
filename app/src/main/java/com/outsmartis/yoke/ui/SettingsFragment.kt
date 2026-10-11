@@ -33,6 +33,7 @@ import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.theme.ThemePrefs
 import com.outsmartis.yoke.theme.ThemeStore
+import com.outsmartis.yoke.theme.SystemPaletteSync
 import com.outsmartis.yoke.helper.hideStatusBar
 import com.outsmartis.yoke.helper.isAccessServiceEnabled
 import com.outsmartis.yoke.helper.isTablet
@@ -214,6 +215,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.dateTime -> showDateTimeMenu(view)
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
             R.id.wallpaperRow -> com.outsmartis.yoke.wallpaper.WallpaperActivity.open(requireContext())
+            R.id.systemColoursRow -> showSystemColoursDialog()
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
             R.id.fontText -> toggleFont()
@@ -277,6 +279,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.accessibilityRow.setOnClickListener(this)
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
+        binding.systemColoursRow.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
         binding.fontText.setOnClickListener(this)
@@ -534,11 +537,56 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun populateWallpaper() {
         binding.wallpaperRow.text = com.outsmartis.yoke.wallpaper.WallpaperActivity.summary(requireContext())
+        populateSystemColours()
+    }
+
+    private fun populateSystemColours() {
+        binding.systemColoursRow.setText(when (SystemPaletteSync.status(requireContext())) {
+            SystemPaletteSync.Status.On -> R.string.on
+            SystemPaletteSync.Status.Off -> R.string.off
+            SystemPaletteSync.Status.NeedsPermission -> R.string.system_colours_needs_permission
+            SystemPaletteSync.Status.Unsupported -> R.string.system_colours_unsupported
+        })
+    }
+
+    /** Explains the setting; without the permission the action leads to the grant screen. */
+    private fun showSystemColoursDialog() {
+        val ctx = requireContext()
+        val status = SystemPaletteSync.status(ctx)
+        if (status == SystemPaletteSync.Status.Unsupported) return
+        val hasPermission = com.outsmartis.yoke.grayscale.GrayscaleController.hasPermission(ctx)
+        val on = ThemePrefs(ctx).systemColours
+        val action = when {
+            on -> R.string.system_colours_turn_off
+            hasPermission -> R.string.system_colours_turn_on
+            else -> R.string.system_colours_set_up
+        }
+        showDialog(
+            ctx.createDialog(
+                title = R.string.system_colours_title,
+                action = action,
+                message = R.string.system_colours_message,
+                onAction = {
+                    when {
+                        on -> SystemPaletteSync.setEnabled(ctx, false)
+                        hasPermission -> SystemPaletteSync.setEnabled(ctx, true)
+                        else -> {
+                            // Remember the choice; it starts working once the permission is granted.
+                            ThemePrefs(ctx).systemColours = true
+                            findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
+                        }
+                    }
+                    if (_binding != null) populateSystemColours()
+                },
+            )
+        )
     }
 
     override fun onResume() {
         super.onResume()
         if (_binding != null) {
+            // Catches a permission granted since (Smart grayscale's screen, or adb).
+            SystemPaletteSync.sync(requireContext())
             populateWallpaper()
             populateSummaries()
             populateConnections()
