@@ -36,6 +36,11 @@ object DefaultPaletteActions {
             }
         )
         PaletteActions.register(
+            PaletteAction("dictate_task", app.getString(R.string.palette_dictate_task)) {
+                it.context.startActivity(QuickAddActivity.voiceIntent(it.context))
+            }
+        )
+        PaletteActions.register(
             PaletteAction("open_cockpit_board", app.getString(R.string.palette_cockpit_board)) {
                 CockpitLinks.openBoard(it.context)
             }

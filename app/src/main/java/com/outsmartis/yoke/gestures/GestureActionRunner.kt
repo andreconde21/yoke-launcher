@@ -106,6 +106,7 @@ class GestureActionRunner(private val activity: AppCompatActivity) {
                 GestureAction.MediaNext -> mediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
                 GestureAction.MediaPrevious -> mediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                 GestureAction.CockpitQuickAdd -> activity.startActivity(Intent(activity, QuickAddActivity::class.java))
+                GestureAction.CockpitVoiceAdd -> activity.startActivity(QuickAddActivity.voiceIntent(activity))
                 GestureAction.CockpitBoard -> CockpitLinks.openBoard(activity)
                 GestureAction.CockpitCalendar -> CockpitLinks.openCalendar(activity)
                 GestureAction.CockpitToday -> CockpitTodaySheet.show(activity)

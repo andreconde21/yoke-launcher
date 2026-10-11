@@ -155,13 +155,20 @@ object CockpitCards {
     }
 
     /** The exact file body `createCardInColumn` writes, with `source: yoke`; [extraLabels] join the column's label. */
-    fun content(title: String, fields: ColumnFields, today: LocalDate, extraLabels: List<String> = emptyList()): String {
+    /** [time] is "HH:mm" or empty; the plugin reads it with the due date for reminders. */
+    fun content(
+        title: String,
+        fields: ColumnFields,
+        today: LocalDate,
+        extraLabels: List<String> = emptyList(),
+        time: String = "",
+    ): String {
         val all = (extraLabels + listOfNotNull(fields.label)).distinct()
         val labels = all.joinToString(", ", "[", "]") { "\"" + it.replace("\"", "\\\"") + "\"" }
         val escaped = title.replace("\"", "\\\"")
         // Straight into Done: completed is today, as getDropUpdates sets it.
         val completed = if (fields.status == "done") " $today" else ""
-        return "---\ntitle: \"$escaped\"\nstatus: ${fields.status}\ndue: ${fields.due}\ntime:\ncompleted:$completed\nproject:\n" +
+        return "---\ntitle: \"$escaped\"\nstatus: ${fields.status}\ndue: ${fields.due}\ntime:${if (time.isEmpty()) "" else " $time"}\ncompleted:$completed\nproject:\n" +
             "labels: $labels\ncreated: $today\nsource: yoke\n---\n\n# $title\n"
     }
 }

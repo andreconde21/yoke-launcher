@@ -410,4 +410,13 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_accessibility">Lock and app detection</string>
     <string name="settings_status_running">Running</string>
     <string name="settings_status_not_running">On, not running</string>
+    <string name="quick_add_dictate">Dictate</string>
+    <string name="quick_add_dictation_failed">Dictation stopped (error %1$d)</string>
+    <string name="quick_add_no_dictation">This phone has no speech recognition</string>
+    <string name="quick_add_mic_denied">Microphone not allowed. Typing still works.</string>
+    <string name="palette_dictate_task">Dictate task</string>
+    <string name="dictation_language_setting">Dictation language</string>
+    <string name="dictation_language_phone">Phone</string>
+    <string name="dictation_language_pt">Português</string>
+    <string name="dictation_language_en">English</string>
 </resources>

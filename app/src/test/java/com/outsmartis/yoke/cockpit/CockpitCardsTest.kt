@@ -125,4 +125,12 @@ class CockpitCardsTest {
         assertTrue(body.contains("completed: 2026-10-04\n"))
         assertTrue(CockpitCards.content("T", ColumnFields("", "", null), today).contains("completed:\nproject:"))
     }
+
+    @Test
+    fun timeIsWrittenWhenGiven() {
+        val today = java.time.LocalDate.of(2026, 10, 11)
+        val fields = ColumnFields("scheduled", "2026-10-12", null)
+        assertTrue(CockpitCards.content("T", fields, today, time = "10:00").contains("due: 2026-10-12\ntime: 10:00\n"))
+        assertTrue(CockpitCards.content("T", fields, today).contains("\ntime:\ncompleted:"))
+    }
 }

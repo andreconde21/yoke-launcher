@@ -27,10 +27,19 @@
     <uses-permission
         android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+    <!--Voice quick-add: asked on first use of the microphone, never needed for typing-->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
     <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
 
     <queries>
+        <!--Voice quick-add: the phone's speech recognition service, or its dictation dialog-->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
         <provider android:authorities="com.outsmartis.conductore.launcherdetails" />
         <!--Built-in "Cockpit board" entries check that obsidian:// links can open-->
         <intent>

@@ -40,6 +40,14 @@ import java.util.concurrent.Executors
  */
 class QuickAddActivity : AppCompatActivity() {
 
+    companion object {
+        /** Open already listening (voice gesture, `>Dictate task`, the assistant). */
+        const val EXTRA_LISTEN = "com.outsmartis.yoke.extra.LISTEN"
+
+        fun voiceIntent(context: android.content.Context): Intent =
+            Intent(context, QuickAddActivity::class.java).putExtra(EXTRA_LISTEN, true)
+    }
+
     private lateinit var binding: ActivityQuickAddBinding
     private lateinit var prefs: CockpitPrefs
     private val io = Executors.newSingleThreadExecutor()
@@ -55,6 +63,16 @@ class QuickAddActivity : AppCompatActivity() {
     private val pickVault = 1
 
     private var theme: YokeTheme? = null
+
+    /** What the text says about date and time; applied to the chips until the user picks a date. */
+    private var detected: SpokenDate.Parsed? = null
+    private var userPickedDate = false
+    private var dictation: Dictation? = null
+    private var listenWhenReady = false
+    private var dictationPrefix = ""
+    private var listening = false
+    private val micPermission = 2
+    private val dictationDialog = 3
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Cold start from a share: the launcher activity has not set the night mode yet.
@@ -89,6 +107,14 @@ class QuickAddActivity : AppCompatActivity() {
             if (enter) save()
             enter
         }
+        listenWhenReady = intent?.getBooleanExtra(EXTRA_LISTEN, false) == true
+        binding.mic.alpha = IDLE_MIC_ALPHA
+        binding.mic.setOnClickListener { toggleDictation() }
+        binding.input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(e: android.text.Editable?) = detect()
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+        })
         if (intent?.action == Intent.ACTION_SEND) {
             intent.getStringExtra(Intent.EXTRA_TEXT)?.let { binding.input.setText(it.lines().first().trim()) }
         }
@@ -117,7 +143,7 @@ class QuickAddActivity : AppCompatActivity() {
 
     private fun showSetup() {
         binding.setup.visibility = View.VISIBLE
-        binding.input.visibility = View.GONE
+        binding.inputRow.visibility = View.GONE
         binding.datesScroll.visibility = View.GONE
         binding.columnsScroll.visibility = View.GONE
         binding.labelsScroll.visibility = View.GONE
@@ -126,13 +152,13 @@ class QuickAddActivity : AppCompatActivity() {
     private fun showBoard(cfg: CockpitBoardConfig) {
         config = cfg
         binding.setup.visibility = View.GONE
-        binding.input.visibility = View.VISIBLE
+        binding.inputRow.visibility = View.VISIBLE
         binding.datesScroll.visibility = View.VISIBLE
         binding.columnsScroll.visibility = View.VISIBLE
 
         binding.dates.removeAllViews()
         DueChoice.entries.forEach { choice ->
-            addChip(binding.dates, dueLabel(choice), choice) { pickDue(choice) }
+            addChip(binding.dates, dueLabel(choice), choice) { stopDetecting(); pickDue(choice) }
         }
         renderDates()
 
@@ -145,6 +171,90 @@ class QuickAddActivity : AppCompatActivity() {
         renderLabels(cfg)
         scanLabels(cfg)
         binding.input.requestFocus()
+        detect()
+        if (listenWhenReady) {
+            listenWhenReady = false
+            toggleDictation()
+        }
+    }
+
+    /**
+     * Reads a date and time out of the text as it is typed or dictated and selects the matching
+     * date chip. A date the user picks by hand wins: detection stops for this card.
+     */
+    private fun detect() {
+        if (userPickedDate || config == null) return
+        val parsed = SpokenDate.parse(binding.input.text.toString(), java.time.LocalDateTime.now())
+        val had = detected?.found == true
+        detected = parsed.takeIf { it.found }
+        val date = detected?.date
+        val today = LocalDate.now()
+        when {
+            date != null -> setDue(
+                when (date) {
+                    today -> DueChoice.TODAY
+                    today.plusDays(1) -> DueChoice.TOMORROW
+                    else -> DueChoice.CUSTOM
+                },
+                date,
+            )
+            had -> setDue(DueChoice.NONE, null)
+        }
+    }
+
+    private fun stopDetecting() {
+        userPickedDate = true
+        detected = null
+    }
+
+    private fun toggleDictation() {
+        val d = dictation ?: Dictation(
+            this,
+            onText = { text, _ -> showDictated(text) },
+            onListening = { on ->
+                listening = on
+                binding.mic.alpha = if (on) 1f else IDLE_MIC_ALPHA
+            },
+            onError = { code ->
+                if (code == android.speech.SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) requestMic()
+                else if (code != android.speech.SpeechRecognizer.ERROR_NO_MATCH && code != android.speech.SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+                    Toast.makeText(this, getString(R.string.quick_add_dictation_failed, code), Toast.LENGTH_SHORT).show()
+            },
+        ).also { dictation = it }
+        if (listening) {
+            d.stop()
+            return
+        }
+        val language = prefs.dictationLanguage
+        if (!d.available) {
+            // No recognition service Yoke can use: the system's dictation dialog still may be there.
+            @Suppress("DEPRECATION")
+            runCatching { startActivityForResult(Dictation.dialogIntent(language), dictationDialog) }
+                .onFailure { Toast.makeText(this, R.string.quick_add_no_dictation, Toast.LENGTH_SHORT).show() }
+            return
+        }
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestMic()
+            return
+        }
+        dictationPrefix = binding.input.text.toString().trim()
+        d.start(language)
+    }
+
+    private fun requestMic() = requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), micPermission)
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != micPermission) return
+        if (grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) toggleDictation()
+        else Toast.makeText(this, R.string.quick_add_mic_denied, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Dictated text goes after what was already typed, and replaces the previous partial result. */
+    private fun showDictated(text: String) {
+        val full = if (dictationPrefix.isEmpty()) text.replaceFirstChar { it.uppercaseChar() } else "$dictationPrefix $text"
+        binding.input.setText(full)
+        binding.input.setSelection(full.length)
     }
 
     /** "No label" plus every label the board knows: custom colours, column rules, and labels seen on cards. */
@@ -194,7 +304,13 @@ class QuickAddActivity : AppCompatActivity() {
         row.addView(chip)
     }
 
-    private fun dueLabel(choice: DueChoice): String = when (choice) {
+    private fun dueLabel(choice: DueChoice): String {
+        val base = dueBaseLabel(choice)
+        val time = detected?.time ?: return base
+        return if (choice == dueChoice && choice != DueChoice.NONE) "$base · ${time.format(TIME)}" else base
+    }
+
+    private fun dueBaseLabel(choice: DueChoice): String = when (choice) {
         DueChoice.TODAY -> getString(R.string.quick_add_today)
         DueChoice.TOMORROW -> getString(R.string.quick_add_tomorrow)
         DueChoice.CUSTOM -> if (dueChoice == DueChoice.CUSTOM && due != null)
@@ -240,6 +356,7 @@ class QuickAddActivity : AppCompatActivity() {
     private fun select(column: CockpitColumn, fromUser: Boolean = false) {
         selected = column
         if (fromUser) {
+            if (CockpitCards.isDateColumn(column)) stopDetecting()
             // Tapping a date column picks its date.
             val today = LocalDate.now()
             val rule = column.rule.orEmpty()
@@ -275,7 +392,10 @@ class QuickAddActivity : AppCompatActivity() {
     }
 
     private fun save() {
-        val title = binding.input.text.toString().trim()
+        val typed = binding.input.text.toString().trim()
+        val found = detected?.takeIf { !userPickedDate && it.title.isNotEmpty() }
+        val title = found?.title ?: typed
+        val time = found?.time?.takeIf { due != null }?.format(TIME).orEmpty()
         val cfg = config ?: return
         val column = selected ?: return
         if (title.isEmpty()) return
@@ -289,7 +409,7 @@ class QuickAddActivity : AppCompatActivity() {
             val result = runCatching {
                 val path = CockpitCards.pathFor(cfg.folder, title) { vault.exists(it) }
                 val fields = CockpitCards.withDue(CockpitCards.fieldsFor(column, today), pickedDue)
-                vault.createText(path, CockpitCards.content(title, fields, today, pickedLabels))
+                vault.createText(path, CockpitCards.content(title, fields, today, pickedLabels, time))
             }
             runOnUiThread {
                 result.onSuccess {
@@ -312,6 +432,13 @@ class QuickAddActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == dictationDialog) {
+            data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let {
+                dictationPrefix = binding.input.text.toString().trim()
+                showDictated(it)
+            }
+            return
+        }
         val uri: Uri = data?.data ?: return
         if (requestCode != pickVault || resultCode != Activity.RESULT_OK) return
         contentResolver.takePersistableUriPermission(
@@ -322,6 +449,7 @@ class QuickAddActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        dictation?.destroy()
         io.shutdown()
         super.onDestroy()
     }
@@ -337,6 +465,11 @@ class QuickAddActivity : AppCompatActivity() {
         binding.root.addView(frame, params)
     }
 }
+
+private val TIME = DateTimeFormatter.ofPattern("HH:mm")
+
+/** The mic is dimmed while idle and full strength while listening. */
+private const val IDLE_MIC_ALPHA = 0.55f
 
 /** The date chips, in display order. */
 private enum class DueChoice { TODAY, TOMORROW, CUSTOM, NONE }
