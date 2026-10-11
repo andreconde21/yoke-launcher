@@ -43,7 +43,7 @@ object LimitGate {
         if (prefs.limited.isEmpty() && prefs.passPackage == null) return
         val ignored = ignoredPackages(app)
         if (LimitPolicy.endsPass(pkg, prefs.passPackage, ignored)) endVisit(app)
-        if (LimitPolicy.shouldPause(pkg, prefs.limited, prefs.passPackage, ignored)) {
+        if (LimitPolicy.shouldPause(pkg, prefs.limited, prefs.passPackage, ignored) && PauseActivity.showingFor != pkg) {
             PauseActivity.start(app, pkg!!, Target.InFront)
         }
     }

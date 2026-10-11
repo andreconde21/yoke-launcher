@@ -118,8 +118,14 @@ class PauseActivity : AppCompatActivity() {
         if (!isFinishing && !opening && !isChangingConfigurations) finish()
     }
 
+    override fun onResume() {
+        super.onResume()
+        showingFor = pkg
+    }
+
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        if (showingFor == pkg) showingFor = null
         super.onDestroy()
     }
 
@@ -181,6 +187,11 @@ class PauseActivity : AppCompatActivity() {
     }
 
     companion object {
+        /** The app whose pause screen is up; a second request for it must not restart the countdown. */
+        @Volatile
+        var showingFor: String? = null
+            private set
+
         private const val EXTRA_PACKAGE = "pkg"
         private const val EXTRA_COMPONENT = "component"
         private const val EXTRA_USER = "user"
