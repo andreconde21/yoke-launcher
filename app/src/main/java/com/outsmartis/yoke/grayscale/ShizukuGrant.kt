@@ -88,20 +88,13 @@ object ShizukuGrant {
         }
     }
 
-    /** Shizuku.newProcess is private in API 13, so reach it by reflection. Returns when pm has exited. */
+    /** `pm grant` as the shell user. Returns when pm has exited. */
     private fun runPmGrant(packageName: String, output: StringBuilder) {
-        val method = Shizuku::class.java.getDeclaredMethod(
-            "newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java
-        ).apply { isAccessible = true }
-        val cmd = arrayOf("pm", "grant", packageName, Manifest.permission.WRITE_SECURE_SETTINGS)
-        val process = method.invoke(null, cmd, null, null) as Process
-        val err = StringBuilder()
-        val errReader = thread { process.errorStream.bufferedReader().use { err.append(it.readText()) } }
-        output.append(process.inputStream.bufferedReader().use { it.readText() })
-        val code = process.waitFor()
-        errReader.join(2000)
-        output.append(err)
-        if (code != 0) output.append("(exit $code)")
+        val result = com.outsmartis.yoke.system.ShizukuAccess.run(
+            "pm", "grant", packageName, Manifest.permission.WRITE_SECURE_SETTINGS
+        )
+        output.append(result.output)
+        if (!result.ok) output.append("(exit ${result.exitCode})")
     }
 
     /** Fallback: IPackageManager.grantRuntimePermission as the shell user, over Shizuku's binder. */

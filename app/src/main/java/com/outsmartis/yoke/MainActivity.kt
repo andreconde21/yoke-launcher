@@ -133,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
-            com.outsmartis.yoke.wallpaper.WallpaperApplier.onThemeChanged(this)
+            ThemeStore.onThemeChanged(this)
             recreate()
             return
         }
@@ -145,6 +145,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isResumed = true
+        // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
+        com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }

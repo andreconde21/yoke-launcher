@@ -109,6 +109,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun launchShortcut(appModel: AppModel.PinnedShortcut) {
+        if (com.outsmartis.yoke.limits.LimitGate.intercept(
+                appContext, appModel.appPackage,
+                com.outsmartis.yoke.limits.LimitGate.Target.Shortcut(appModel.shortcutId, appModel.user),
+            )
+        ) return
         val launcher = appContext.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
         val query = LauncherApps.ShortcutQuery().apply {
             setPackage(appModel.appPackage)
@@ -419,6 +424,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }.also { prefs.updateAppActivityClassName(packageName, it.className) }
         }
 
+        if (com.outsmartis.yoke.limits.LimitGate.intercept(
+                appContext, packageName, com.outsmartis.yoke.limits.LimitGate.Target.App(component, userHandle)
+            )
+        ) return
         try {
             launcher.startMainActivity(component, userHandle, null, null)
         } catch (e: SecurityException) {

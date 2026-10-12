@@ -92,6 +92,12 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".limits.PauseActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity="com.outsmartis.yoke.pause"
+            android:theme="@style/AppTheme" />
+        <activity
             android:name=".theme.ThemePickerActivity"
             android:excludeFromRecents="true"
             android:exported="false"
