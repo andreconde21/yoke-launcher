@@ -2,6 +2,7 @@
 <!-- Quick-add a Cockpit card. A dimmed full-screen root that closes on tap,
      with the card sitting just above the keyboard. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -40,19 +41,37 @@
                 android:textSize="13sp" />
         </FrameLayout>
 
-        <EditText
-            android:id="@+id/input"
+        <LinearLayout
+            android:id="@+id/inputRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:background="@null"
-            android:hint="@string/quick_add_hint"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="textCapSentences"
-            android:maxLines="1"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="22sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@null"
+                android:hint="@string/quick_add_hint"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences"
+                android:maxLines="1"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="22sp" />
+
+            <ImageView
+                android:id="@+id/mic"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:contentDescription="@string/quick_add_dictate"
+                android:padding="10dp"
+                android:src="@drawable/ic_mic"
+                app:tint="?android:attr/textColorPrimary" />
+        </LinearLayout>
 
         <HorizontalScrollView
             android:id="@+id/datesScroll"

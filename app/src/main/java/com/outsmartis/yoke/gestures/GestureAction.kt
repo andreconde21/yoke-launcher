@@ -37,6 +37,7 @@ sealed class GestureAction(val type: String, val label: String) {
     object MediaNext : GestureAction("media_next", "Media next")
     object MediaPrevious : GestureAction("media_previous", "Media previous")
     object CockpitQuickAdd : GestureAction("cockpit_quick_add", "Cockpit quick add")
+    object CockpitVoiceAdd : GestureAction("cockpit_voice_add", "Add to Cockpit (voice)")
     object CockpitBoard : GestureAction("cockpit_board", "Open Cockpit board")
     object CockpitCalendar : GestureAction("cockpit_calendar", "Open Cockpit calendar")
     object CockpitToday : GestureAction("cockpit_today", "Cockpit today sheet")
@@ -75,7 +76,7 @@ sealed class GestureAction(val type: String, val label: String) {
         /** Actions without parameters, in the order the picker lists them. */
         val simple: List<GestureAction> = listOf(
             None, AppDrawer, Search, Notifications, QuickSettings, Lock, RecentApps, Torch,
-            MediaPlayPause, MediaNext, MediaPrevious, CockpitQuickAdd, CockpitBoard, CockpitCalendar, CockpitToday, ConductoreSheet,
+            MediaPlayPause, MediaNext, MediaPrevious, CockpitQuickAdd, CockpitVoiceAdd, CockpitBoard, CockpitCalendar, CockpitToday, ConductoreSheet,
             CommandPalette, ThemePicker, GestureCheatSheet, Settings,
             WidgetPage, ToggleGrayscale, PauseGrayscale, ToggleIconRow,
         )

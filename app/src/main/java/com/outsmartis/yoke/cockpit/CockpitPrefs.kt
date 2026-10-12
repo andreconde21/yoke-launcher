@@ -31,6 +31,11 @@ class CockpitPrefs(context: Context) {
         get() = prefs.getLong("agenda_at", 0L)
         set(value) = prefs.edit().putLong("agenda_at", value).apply()
 
+    /** Dictation language for voice quick-add: "" follows the phone, else a BCP 47 tag (pt-PT, en-US). */
+    var dictationLanguage: String
+        get() = prefs.getString("dictation_language", "") ?: ""
+        set(value) = prefs.edit().putString("dictation_language", value).apply()
+
     /** The vault, if one was picked and its permission is still held. */
     fun vault(context: Context): VaultAccess? {
         val uri = vaultUri?.let(Uri::parse) ?: return null

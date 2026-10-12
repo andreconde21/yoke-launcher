@@ -196,8 +196,18 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun populateCockpitAgenda() {
-        val on = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).agendaEnabled
-        binding.cockpitAgendaToggle.text = getString(if (on) R.string.on else R.string.off)
+        val cockpit = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext())
+        binding.cockpitAgendaToggle.text = getString(if (cockpit.agendaEnabled) R.string.on else R.string.off)
+        val language = DICTATION_LANGUAGES.firstOrNull { it.first == cockpit.dictationLanguage } ?: DICTATION_LANGUAGES[0]
+        binding.dictationLanguage.setText(language.second)
+    }
+
+    /** Phone → Português → English → Phone. */
+    private fun cycleDictationLanguage() {
+        val cockpit = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext())
+        val i = DICTATION_LANGUAGES.indexOfFirst { it.first == cockpit.dictationLanguage }
+        cockpit.dictationLanguage = DICTATION_LANGUAGES[(i + 1) % DICTATION_LANGUAGES.size].first
+        populateCockpitAgenda()
     }
 
     override fun onClick(view: View) {
@@ -230,6 +240,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.searchRow -> findNavController().navigate(R.id.action_settingsFragment_to_searchSettingsFragment)
             R.id.backupRow -> findNavController().navigate(R.id.action_settingsFragment_to_backupFragment)
             R.id.nowPlayingRow -> toggleNowPlaying()
+            R.id.dictationLanguage -> cycleDictationLanguage()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
             R.id.conductoreRow -> openConductore()
@@ -274,6 +285,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.iconRowRow.setOnClickListener(this)
         binding.grayscaleRow.setOnClickListener(this)
         binding.nowPlayingRow.setOnClickListener(this)
+        binding.dictationLanguage.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
         binding.searchRow.setOnClickListener(this)
@@ -758,3 +770,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         _binding = null
     }
 }
+
+private val DICTATION_LANGUAGES = listOf(
+    "" to R.string.dictation_language_phone,
+    "pt-PT" to R.string.dictation_language_pt,
+    "en-US" to R.string.dictation_language_en,
+)
