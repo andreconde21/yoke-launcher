@@ -91,6 +91,26 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!--Optional assistant (long-press power): the alias is the ASSIST entry point and stays
+            disabled until the user turns it on in Settings, so Yoke isn't offered as an assistant before-->
+        <activity
+            android:name=".assist.AssistActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity-alias
+            android:name=".assist.AssistEntry"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:targetActivity=".assist.AssistActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
         <activity
             android:name=".limits.PauseActivity"
             android:excludeFromRecents="true"

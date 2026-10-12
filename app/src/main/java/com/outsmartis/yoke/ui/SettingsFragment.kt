@@ -139,6 +139,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         val sources = listOf(search.cards, search.notes, search.contacts, search.settings).count { it }
         binding.searchRow.text = getString(R.string.settings_count_on, sources, 4)
         binding.webLinks.text = prefs.links.size.toString()
+        com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
+        binding.assistantRow.text = AssistantDialog.summary(ctx)
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
         val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
@@ -240,6 +242,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.searchRow -> findNavController().navigate(R.id.action_settingsFragment_to_searchSettingsFragment)
             R.id.backupRow -> findNavController().navigate(R.id.action_settingsFragment_to_backupFragment)
             R.id.nowPlayingRow -> toggleNowPlaying()
+            R.id.assistantRow -> {
+                dialog?.dismiss()
+                dialog = AssistantDialog.show(requireContext()) { if (_binding != null) populateSummaries() }
+            }
             R.id.dictationLanguage -> cycleDictationLanguage()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
@@ -285,6 +291,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.iconRowRow.setOnClickListener(this)
         binding.grayscaleRow.setOnClickListener(this)
         binding.nowPlayingRow.setOnClickListener(this)
+        binding.assistantRow.setOnClickListener(this)
         binding.dictationLanguage.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)

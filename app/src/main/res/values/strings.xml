@@ -452,4 +452,16 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="dictation_language_phone">Phone</string>
     <string name="dictation_language_pt">Português</string>
     <string name="dictation_language_en">English</string>
+    <string name="assistant_setting">Long-press power</string>
+    <string name="assistant_title">Yoke as assistant</string>
+    <string name="assistant_message">Long-pressing the power button (or holding home) can open Yoke instead of Gemini or Bixby. Pick what it opens, then make Yoke the digital assistant app in the system settings.\n\nSamsung: also set Settings → Advanced features → Side button → Press and hold → Digital assistant.\n\nOff gives the button back: pick another assistant in the system settings.</string>
+    <string name="assistant_is_yoke">Yoke is the assistant now.</string>
+    <string name="assistant_is_other">Yoke is not the assistant yet.</string>
+    <string name="assistant_open_default_apps">Open assistant settings</string>
+    <string name="assistant_not_picked">Not picked yet</string>
+    <string name="assistant_voice_add">Voice quick-add</string>
+    <string name="assistant_quick_add">Quick-add</string>
+    <string name="assistant_palette">Command palette</string>
+    <string name="assistant_today">Today sheet</string>
+    <string name="assistant_conductore">Conductore sheet</string>
 </resources>
