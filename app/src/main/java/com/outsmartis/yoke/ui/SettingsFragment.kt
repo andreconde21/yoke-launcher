@@ -144,6 +144,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
         val notes = com.outsmartis.yoke.notifications.NotificationPrefs(ctx)
         binding.notesRow.text = if (notes.enabled) getString(R.string.settings_on_apps, notes.allowed.size) else getString(R.string.off)
+        val limited = com.outsmartis.yoke.limits.LimitPrefs(ctx).limited.size
+        binding.limitsRow.text = if (limited == 0) getString(R.string.off) else getString(R.string.limits_count, limited)
         binding.backupRow.text = getString(
             if (com.outsmartis.yoke.backup.VaultBackup.keepCopy(ctx)) R.string.settings_backup_auto else R.string.settings_backup_manual
         )
@@ -161,6 +163,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             isAccessServiceEnabled(ctx) -> R.string.settings_status_not_running
             else -> R.string.off
         })
+        binding.shizukuRow.setText(ShizukuDialog.statusText(ctx))
         binding.vaultRow.setText(R.string.settings_status_checking)
         binding.conductoreRow.setText(R.string.settings_status_checking)
         Thread {
@@ -232,6 +235,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.conductoreRow -> openConductore()
             R.id.secureRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.accessibilityRow -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            R.id.shizukuRow -> { dialog?.dismiss(); dialog = ShizukuDialog.show(requireContext()) { if (_binding != null) populateConnections() } }
+            R.id.limitsRow -> { dialog?.dismiss(); dialog = LimitedAppsDialog.show(requireContext()) { if (_binding != null) populateSummaries() } }
         }
     }
 
@@ -277,6 +282,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.conductoreRow.setOnClickListener(this)
         binding.secureRow.setOnClickListener(this)
         binding.accessibilityRow.setOnClickListener(this)
+        binding.shizukuRow.setOnClickListener(this)
+        binding.limitsRow.setOnClickListener(this)
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.systemColoursRow.setOnClickListener(this)
