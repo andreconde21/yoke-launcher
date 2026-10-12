@@ -1,5 +1,8 @@
 package com.outsmartis.yoke.details
 
+import com.outsmartis.yoke.limits.LimitGate
+import com.outsmartis.yoke.limits.LimitPrefs
+import com.outsmartis.yoke.limits.LimitedApps
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
@@ -185,6 +188,15 @@ class DetailsSheet private constructor(
         }
         content.addView(action(context.getString(R.string.details_open_app, label)) { openApp() })
         content.addView(action(context.getString(R.string.details_app_info)) { dismissThen { openAppInfo(context, user, packageName) } })
+        if (packageName != context.packageName) {
+            val limited = LimitPrefs(context).isLimited(packageName)
+            content.addView(action(context.getString(if (limited) R.string.limits_remove else R.string.limits_add)) {
+                dismissThen {
+                    LimitedApps.setLimited(context, packageName, !limited)
+                    context.showToast(context.getString(if (limited) R.string.limits_removed else R.string.limits_added, label))
+                }
+            })
+        }
         extraActions.forEach { a -> content.addView(action(a.label) { dismissThen(a.onClick) }) }
         ThemeApplier.fonts(context)?.let { applyFont(content, it) }
         focusedId?.let { id ->
@@ -473,6 +485,7 @@ class DetailsSheet private constructor(
         try {
             val launcher = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
             val component = launcher.getActivityList(packageName, user).firstOrNull()?.componentName
+            if (component != null && LimitGate.intercept(context, packageName, LimitGate.Target.App(component, user))) return@dismissThen
             if (component != null) launcher.startMainActivity(component, user, null, null)
             else context.startActivity(
                 context.packageManager.getLaunchIntentForPackage(packageName)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -483,6 +496,7 @@ class DetailsSheet private constructor(
     }
 
     private fun startShortcut(sc: ShortcutInfo) = dismissThen {
+        if (LimitGate.intercept(context, packageName, LimitGate.Target.Shortcut(sc.id, user))) return@dismissThen
         try {
             (context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps).startShortcut(sc, null, null)
         } catch (e: Exception) {

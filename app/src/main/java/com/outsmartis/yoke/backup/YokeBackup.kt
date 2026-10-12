@@ -31,6 +31,7 @@ object YokeBackup {
         "yoke.search",
         "yoke.backup",
         "yoke.iconrow",
+        "yoke.limits",
         "yoke.assist",
     )
 
@@ -42,10 +43,11 @@ object YokeBackup {
             "GRAYSCALE_TAKEN_OVER", "GRAYSCALE_PREV_ENABLED", "GRAYSCALE_PREV_MODE",
             "GRAYSCALE_LAST_PACKAGE", "GRAYSCALE_PAUSED_UNTIL",
         ),
-        "yoke.theme" to setOf("conductore_last_known"),
+        "yoke.theme" to setOf("conductore_last_known", "system_colours_took_over", "system_colours_previous"),
         "com.outsmartis.yoke.weather" to setOf("READING", "USE_CURRENT"), // cache; the location permission is per device
         "yoke.cockpit" to setOf("vault_uri", "agenda_line", "agenda_at"),
         "yoke.backup" to setOf("last_vault_backup", "last_vault_hash"),
+        "yoke.limits" to setOf("day", "opens", "pass_pkg", "pass_at"), // today's counts and visit belong to this phone
     )
 
     fun isExcluded(file: String, key: String) = key in EXCLUDED[file].orEmpty()

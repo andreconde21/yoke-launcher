@@ -18,6 +18,10 @@ class MyAccessibilityService : AccessibilityService() {
 
     private val screenOnReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                com.outsmartis.yoke.limits.LimitGate.onScreenOff(applicationContext)
+                return
+            }
             GrayscaleController.evaluate(applicationContext)
         }
     }
@@ -33,7 +37,7 @@ class MyAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         if (!receiverRegistered) {
             ContextCompat.registerReceiver(
-                this, screenOnReceiver, IntentFilter(Intent.ACTION_SCREEN_ON), ContextCompat.RECEIVER_NOT_EXPORTED
+                this, screenOnReceiver, IntentFilter(Intent.ACTION_SCREEN_ON).apply { addAction(Intent.ACTION_SCREEN_OFF) }, ContextCompat.RECEIVER_NOT_EXPORTED
             )
             receiverRegistered = true
         }
@@ -54,7 +58,9 @@ class MyAccessibilityService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // Smart grayscale: which app is in front. Only the package name is read. The focused app
             // window decides, so floating panels and pop-ups from other packages don't flip the screen.
-            GrayscaleController.evaluate(applicationContext, focusedAppPackage() ?: event.packageName?.toString())
+            val foreground = focusedAppPackage() ?: event.packageName?.toString()
+            GrayscaleController.evaluate(applicationContext, foreground)
+            com.outsmartis.yoke.limits.LimitGate.onForeground(applicationContext, foreground)
             return
         }
         // The lock click only counts on Yoke's own views; the service now hears every app.
