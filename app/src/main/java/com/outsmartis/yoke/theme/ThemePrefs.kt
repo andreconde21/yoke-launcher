@@ -19,4 +19,18 @@ class ThemePrefs(context: Context) {
     var jetBrainsMono: Boolean
         get() = prefs.getBoolean("font_jetbrains_mono", false)
         set(value) = prefs.edit().putBoolean("font_jetbrains_mono", value).apply()
+
+    /** Android's system colours follow the theme (see SystemPaletteSync). */
+    var systemColours: Boolean
+        get() = prefs.getBoolean("system_colours", false)
+        set(value) = prefs.edit().putBoolean("system_colours", value).apply()
+
+    /** Whether the system palette is currently ours, and the user's value to give back. */
+    var systemColoursTookOver: Boolean
+        get() = prefs.getBoolean("system_colours_took_over", false)
+        set(value) = prefs.edit().putBoolean("system_colours_took_over", value).apply()
+
+    var systemColoursPrevious: String?
+        get() = prefs.getString("system_colours_previous", null)
+        set(value) = prefs.edit().putString("system_colours_previous", value).apply()
 }

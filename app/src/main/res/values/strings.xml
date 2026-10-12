@@ -378,7 +378,7 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_search_hint">Search settings</string>
     <string name="settings_vault">Obsidian vault</string>
     <string name="settings_conductore">Conductore</string>
-    <string name="settings_secure_permission">Grayscale permission</string>
+    <string name="settings_secure_permission">Secure settings permission</string>
     <string name="settings_count_set">%1$d set</string>
     <string name="settings_count_apps">%1$d apps</string>
     <string name="settings_count_on">%1$d of %2$d</string>
@@ -410,4 +410,12 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_accessibility">Lock and app detection</string>
     <string name="settings_status_running">Running</string>
     <string name="settings_status_not_running">On, not running</string>
+    <string name="system_colours_row">System colours follow theme</string>
+    <string name="system_colours_title">System colours</string>
+    <string name="system_colours_message">Android\'s own colours (Quick Settings, the Settings app and Material You apps) follow the Yoke theme\'s accent. Turning it off, or picking System default, gives your own colours back.\n\nNeeds the secure settings permission, granted once with Shizuku or a computer (the same one Smart grayscale uses). Some phones, Samsung\'s One UI among them, may ignore it.</string>
+    <string name="system_colours_needs_permission">Needs permission</string>
+    <string name="system_colours_set_up">Set up</string>
+    <string name="system_colours_turn_on">Turn on</string>
+    <string name="system_colours_turn_off">Turn off</string>
+    <string name="system_colours_unsupported">Needs Android 12</string>
 </resources>

@@ -34,7 +34,13 @@ object ThemeStore {
     fun setThemeId(context: Context, id: String) {
         ThemePrefs(context).themeId = id
         invalidate()
+        onThemeChanged(context)
+    }
+
+    /** What follows the theme outside Yoke's own windows: the wallpaper and, optionally, the system colours. */
+    fun onThemeChanged(context: Context) {
         WallpaperApplier.onThemeChanged(context)
+        SystemPaletteSync.sync(context)
     }
 
     /** Changes whenever the painted result changes; compare to know when to recreate. */
@@ -79,7 +85,7 @@ object ThemeStore {
                 val before = signature(app)
                 invalidate()
                 if (signature(app) != before) {
-                    WallpaperApplier.onThemeChanged(app)
+                    onThemeChanged(app)
                     onChange()
                 }
             }
