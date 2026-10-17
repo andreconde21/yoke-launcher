@@ -185,6 +185,15 @@
             android:name=".grayscale.GrayscaleReceiver"
             android:exported="false" />
 
+        <!-- CarMirror: "the phone is on a car screen", keeps it in colour (Smart grayscale) -->
+        <receiver
+            android:name=".grayscale.CarMirrorReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.outsmartis.yoke.action.CAR_MIRROR" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".grayscale.GrayscaleTileService"
             android:exported="true"

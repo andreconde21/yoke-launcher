@@ -212,6 +212,8 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="grayscale_open_accessibility">Open accessibility settings</string>
     <string name="grayscale_restricted_note">Android 13 and newer: for a sideloaded app, open Yoke\'s App info, tap the three dots and choose Allow restricted settings first. Otherwise the accessibility switch stays greyed out.</string>
     <string name="grayscale_pause">Pause for 15 min</string>
+    <string name="grayscale_car_colour">Colour while CarMirror is on the car screen</string>
+    <string name="grayscale_car_colour_now">in the car now</string>
     <string name="grayscale_resume">Colour until %1$s. Tap to resume grayscale.</string>
     <string name="web_links_explainer">Websites that appear in your app list and search, marked ↗</string>
     <string name="wallpaper_title">Wallpaper</string>

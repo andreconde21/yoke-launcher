@@ -13,8 +13,8 @@ class GrayscalePolicyTest {
 
     private fun decide(
         fg: String?, last: String? = null, on: Boolean = true,
-        pausedUntil: Long = 0, now: Long = 1000, ex: Set<String> = exceptions,
-    ) = GrayscalePolicy.decide(on, pausedUntil, now, fg, ex, ignored, last)
+        pausedUntil: Long = 0, now: Long = 1000, ex: Set<String> = exceptions, car: Long = 0,
+    ) = GrayscalePolicy.decide(on, pausedUntil, now, fg, ex, ignored, last, car)
 
     @Test
     fun ordinaryAppIsGrayscaleAndExceptionIsColour() {
@@ -29,6 +29,14 @@ class GrayscalePolicyTest {
         assertTrue(decide("com.keyboard", last = "com.chat").grayscale)
         assertEquals("com.maps", decide("android", last = "com.maps").rememberedPackage)
         assertFalse(decide(null, last = "com.maps").grayscale)
+    }
+
+    @Test
+    fun carMirrorKeepsColourUntilItsSignalLapses() {
+        assertFalse(decide("com.chat", car = 2000, now = 1000).grayscale)
+        assertTrue(decide("com.chat", car = 2000, now = 2000).grayscale)
+        assertTrue(decide("com.chat", car = 0).grayscale)
+        assertFalse(decide("com.chat", on = false, car = 2000).grayscale)
     }
 
     @Test

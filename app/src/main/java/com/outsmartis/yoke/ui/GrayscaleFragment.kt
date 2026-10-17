@@ -61,6 +61,11 @@ class GrayscaleFragment : BaseFragment() {
             binding.grayscaleHowBody.isVisible = !binding.grayscaleHowBody.isVisible
         }
         binding.grayscaleExceptions.setOnClickListener { showExceptions() }
+        binding.grayscaleCarColour.setOnClickListener {
+            prefs.carColour = !prefs.carColour
+            GrayscaleController.evaluate(requireContext())
+            refresh()
+        }
         binding.grayscalePause.setOnClickListener {
             if (prefs.pausedUntil > System.currentTimeMillis()) GrayscaleController.resume(requireContext())
             else GrayscaleController.pause(requireContext())
@@ -91,6 +96,9 @@ class GrayscaleFragment : BaseFragment() {
         binding.grayscaleExceptions.text =
             "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, prefs.exceptions.size)}"
         renderRecent()
+        val inCar = prefs.carMirrorUntil > System.currentTimeMillis()
+        binding.grayscaleCarColour.text = "${getString(R.string.grayscale_car_colour)}: ${getString(if (prefs.carColour) R.string.on else R.string.off)}" +
+            if (inCar) " (${getString(R.string.grayscale_car_colour_now)})" else ""
         val pausedUntil = prefs.pausedUntil
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
