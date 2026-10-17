@@ -64,3 +64,8 @@ Then turn on Yoke's accessibility service. Android 13+, sideloaded: App info, th
 settings first, then enable the accessibility service. Switch on Settings, Smart grayscale. The
 service reads only the name of the app in front. Yoke itself is an exception by default; pick the rest under Exceptions.
 Also available as gesture actions, palette commands and a Quick Settings tile.
+
+**In the car:** while CarMirror shows the phone on a car screen, the phone stays in colour (grayscale would reach
+the car too). CarMirror sends `com.outsmartis.yoke.action.CAR_MIRROR` (`active` true every 4 min, false when the car
+disconnects); without a repeat for 10 min Yoke goes back to grayscale. Android 14+ only accepts it from CarMirror
+itself. Turn it off under Smart grayscale, "Colour while CarMirror is on the car screen".

@@ -27,6 +27,16 @@ class GrayscalePrefs(context: Context) {
         get() = prefs.getString(RECENT, null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(value) = prefs.edit { putString(RECENT, value.joinToString("\n")) }
 
+    /** Colour while CarMirror shows the phone on a car screen (on by default). */
+    var carColour: Boolean
+        get() = prefs.getBoolean(CAR_COLOUR, true)
+        set(value) = prefs.edit { putBoolean(CAR_COLOUR, value) }
+
+    /** When CarMirror's last "on the car screen" signal lapses; 0 when it said it stopped. */
+    var carMirrorUntil: Long
+        get() = prefs.getLong(CAR_MIRROR_UNTIL, 0L)
+        set(value) = prefs.edit { putLong(CAR_MIRROR_UNTIL, value) }
+
     /** Exceptions; the defaults (Yoke itself) until the user saves a list. */
     var exceptions: Set<String>
         get() = PackageSetCodec.decode(prefs.getString(EXCEPTIONS, null)) ?: DEFAULT_EXCEPTIONS
@@ -59,6 +69,8 @@ class GrayscalePrefs(context: Context) {
         private const val TAKEN_OVER = "GRAYSCALE_TAKEN_OVER"
         private const val PREV_ENABLED = "GRAYSCALE_PREV_ENABLED"
         private const val PREV_MODE = "GRAYSCALE_PREV_MODE"
+        private const val CAR_COLOUR = "GRAYSCALE_CAR_COLOUR"
+        private const val CAR_MIRROR_UNTIL = "GRAYSCALE_CAR_MIRROR_UNTIL"
         private const val NO_MODE = Int.MIN_VALUE
 
         val DEFAULT_EXCEPTIONS = setOf("com.outsmartis.yoke", "com.outsmartis.yoke.debug")

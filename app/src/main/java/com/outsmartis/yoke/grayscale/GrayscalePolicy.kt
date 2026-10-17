@@ -23,6 +23,7 @@ object GrayscalePolicy {
      * [foregroundPackage] is the package of the newest window event, null when unknown. A package in
      * [ignoredPackages] (system UI, keyboards) is transient and keeps the previous decision by falling
      * back to [lastPackage]. With no known package at all the phone stays grayscale.
+     * [carMirrorUntil] is when CarMirror's last "on the car screen" signal lapses (0 when off).
      */
     fun decide(
         featureOn: Boolean,
@@ -32,10 +33,12 @@ object GrayscalePolicy {
         exceptions: Set<String>,
         ignoredPackages: Set<String>,
         lastPackage: String?,
+        carMirrorUntil: Long = 0L,
     ): GrayscaleDecision {
         val usable = foregroundPackage?.takeIf { it.isNotBlank() && it !in ignoredPackages }
         val pkg = usable ?: lastPackage
-        val colour = !featureOn || isPaused(pausedUntil, now) || (pkg != null && pkg in exceptions)
+        val colour = !featureOn || isPaused(pausedUntil, now) || carMirrorUntil > now ||
+                (pkg != null && pkg in exceptions)
         return GrayscaleDecision(grayscale = !colour, rememberedPackage = pkg)
     }
 

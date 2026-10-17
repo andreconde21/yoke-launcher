@@ -41,7 +41,7 @@ object YokeBackup {
             "WIDGETS_JSON", // AppWidget ids belong to this device
             "SCREEN_TIME_LAST_UPDATED", "LAUNCHER_RECREATE_TIMESTAMP",
             "GRAYSCALE_TAKEN_OVER", "GRAYSCALE_PREV_ENABLED", "GRAYSCALE_PREV_MODE",
-            "GRAYSCALE_LAST_PACKAGE", "GRAYSCALE_PAUSED_UNTIL",
+            "GRAYSCALE_LAST_PACKAGE", "GRAYSCALE_PAUSED_UNTIL", "GRAYSCALE_CAR_MIRROR_UNTIL",
         ),
         "yoke.theme" to setOf("conductore_last_known", "system_colours_took_over", "system_colours_previous"),
         "com.outsmartis.yoke.weather" to setOf("READING", "USE_CURRENT"), // cache; the location permission is per device

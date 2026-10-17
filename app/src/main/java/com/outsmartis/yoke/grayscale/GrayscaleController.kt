@@ -18,6 +18,9 @@ import com.outsmartis.yoke.helper.showToast
 object GrayscaleController {
 
     const val PAUSE_MINUTES = 15
+
+    /** CarMirror repeats its signal every 4 min; without one for this long it has stopped or crashed. */
+    const val CAR_MIRROR_TTL_MS = 10 * 60_000L
     const val ADB_COMMAND = "adb shell pm grant %s android.permission.WRITE_SECURE_SETTINGS"
 
     private const val ENABLED_KEY = "accessibility_display_daltonizer_enabled"
@@ -60,6 +63,7 @@ object GrayscaleController {
                 exceptions = prefs.exceptions,
                 ignoredPackages = ignoredPackages(app),
                 lastPackage = prefs.lastPackage,
+                carMirrorUntil = if (prefs.carColour) prefs.carMirrorUntil else 0L,
             )
             if (decision.rememberedPackage != prefs.lastPackage) prefs.lastPackage = decision.rememberedPackage
             val seen = foregroundPackage?.takeIf { it.isNotBlank() && it !in ignoredPackages(app) }
@@ -70,7 +74,7 @@ object GrayscaleController {
                 }
                 write(app, decision.grayscale, prefs.previous)
             }
-            schedulePauseEnd(app, prefs.pausedUntil, now)
+            scheduleRecheck(app, prefs.pausedUntil, prefs.carMirrorUntil, now)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -81,6 +85,12 @@ object GrayscaleController {
         if (hasPermission(context)) write(context, false, previous)
         prefs.previous = null
         cancelPauseAlarm(context)
+    }
+
+    /** CarMirror says the phone is (or no longer is) on a car screen; see [CarMirrorReceiver]. */
+    fun carMirror(context: Context, active: Boolean, now: Long = System.currentTimeMillis()) {
+        GrayscalePrefs(context).carMirrorUntil = if (active) now + CAR_MIRROR_TTL_MS else 0L
+        evaluate(context, now = now)
     }
 
     private fun read(context: Context): DaltonizerState {
@@ -143,7 +153,7 @@ object GrayscaleController {
         }
     }
 
-    // Pause end
+    // Pause end, CarMirror signal lapsing
 
     private fun pauseIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
         context, 0,
@@ -151,10 +161,10 @@ object GrayscaleController {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
-    private fun schedulePauseEnd(context: Context, pausedUntil: Long, now: Long) {
-        if (pausedUntil <= now) return
+    private fun scheduleRecheck(context: Context, pausedUntil: Long, carMirrorUntil: Long, now: Long) {
+        val next = listOf(pausedUntil, carMirrorUntil).filter { it > now }.minOrNull() ?: return
         val alarms = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarms.set(AlarmManager.RTC, pausedUntil + 500, pauseIntent(context))
+        alarms.set(AlarmManager.RTC, next + 500, pauseIntent(context))
     }
 
     private fun cancelPauseAlarm(context: Context) {
@@ -162,7 +172,10 @@ object GrayscaleController {
     }
 }
 
-/** Fires when a pause ends so the screen goes grayscale again without waiting for a window change. */
+/**
+ * Fires when a pause ends, or CarMirror's signal lapses, so the screen goes grayscale again
+ * without waiting for a window change.
+ */
 class GrayscaleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         GrayscaleController.evaluate(context)
