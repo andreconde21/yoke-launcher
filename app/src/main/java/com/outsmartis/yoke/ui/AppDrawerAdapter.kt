@@ -198,7 +198,7 @@ class AppDrawerAdapter(
                         noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
                     }
                     if (lastQuery.isNotBlank()) {
-                        askRow?.invoke(lastQuery, baseCount)?.let { row -> items = (items + row).toMutableList() }
+                        runCatching { askRow?.invoke(lastQuery, baseCount) }.getOrNull()?.let { row -> items = (items + row).toMutableList() }
                     }
                     appFilteredList = items
                     submitList(appFilteredList) {
@@ -317,14 +317,20 @@ class AppDrawerAdapter(
                     .coerceAtLeast(0f)
                 val end = android.text.TextUtils.TruncateAt.END
                 val suffixPaint = android.text.TextPaint(paint).apply { textSize = paint.textSize * 0.65f }
-                var suffix = if (detail.isNullOrEmpty()) "" else "  $detail"
-                if (suffix.isNotEmpty()) {
-                    // never let the suffix push the title out: at most 40% of the row
-                    suffix = android.text.TextUtils.ellipsize(suffix, suffixPaint, avail * 0.4f, end).toString()
-                }
-                val titleSpace = (avail - suffixPaint.measureText(suffix)).coerceAtLeast(0f)
+                val rawSuffix = if (detail.isNullOrEmpty()) "" else detail
                 val q = appModel.query
                 val at = if (q.isNullOrEmpty()) -1 else title.indexOf(q)
+                // The title is the part that must stay readable. When title and suffix do not both fit on one
+                // line (long query, long agent name), the suffix goes on its own second line instead of
+                // squeezing the title.
+                val oneLine = paint.measureText(title) + suffixPaint.measureText("  $rawSuffix") <= avail
+                val twoLines = rawSuffix.isNotEmpty() && !oneLine
+                val suffix = when {
+                    rawSuffix.isEmpty() -> ""
+                    twoLines -> "\n" + android.text.TextUtils.ellipsize(rawSuffix, suffixPaint, avail, end)
+                    else -> "  $rawSuffix"
+                }
+                val titleSpace = if (twoLines) avail else (avail - suffixPaint.measureText(suffix)).coerceAtLeast(0f)
                 val fitted = if (at >= 0) {
                     val head = title.substring(0, at)
                     val tail = title.substring(at + q!!.length)
@@ -333,10 +339,12 @@ class AppDrawerAdapter(
                 } else {
                     android.text.TextUtils.ellipsize(title, paint, titleSpace, end).toString()
                 }
+                appTitle.maxLines = if (twoLines) 2 else 1
                 appTitle.text = if (suffix.isEmpty()) fitted else SpannableString(fitted + suffix).apply {
                     setSpan(RelativeSizeSpan(0.65f), fitted.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
             } else {
+                appTitle.maxLines = 1
                 appTitle.text = title
             }
             appTitle.gravity = appLabelGravity

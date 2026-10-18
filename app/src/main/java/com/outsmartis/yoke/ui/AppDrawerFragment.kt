@@ -508,7 +508,9 @@ class AppDrawerFragment : BaseFragment() {
         val agent = ask.agent
         val conductore = AskAgents.conductoreInstalled(requireContext())
         adapter.askRow = { query, baseMatches ->
-            if (!AskBarLogic.showsAskRow(true, agent, conductore, query, baseMatches)) null
+            // late filter results can arrive after Home was pressed: no context, no row
+            if (!isAdded) null
+            else if (!AskBarLogic.showsAskRow(true, agent, conductore, query, baseMatches)) null
             else AppModel.PaletteResult(
                 id = "ask",
                 appLabel = getString(R.string.ask_row, query.trim()),
