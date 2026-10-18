@@ -9,8 +9,32 @@ data class CropRect(val left: Int, val top: Int, val right: Int, val bottom: Int
     val height: Int get() = bottom - top
 }
 
+/** What a theme change does to a wallpaper Yoke set from an Omarchy background. */
+sealed class ThemeBackground {
+    /** Nothing to do: not an Omarchy wallpaper Yoke applied, or already that theme's. */
+    object Keep : ThemeBackground()
+
+    /** The new theme ships no background: fall back to its colour. */
+    object Colour : ThemeBackground()
+
+    data class Switch(val themeId: String, val file: String) : ThemeBackground()
+}
+
 /** Pure helpers for the Wallpaper feature. */
 object WallpaperLogic {
+
+    /**
+     * Only a wallpaper Yoke itself applied from an Omarchy background follows the theme; anything the
+     * user set outside Yoke ([applied] false) is never touched. The new theme's first background is used
+     * (file names like omarchy.webp repeat across themes with different images).
+     */
+    fun backgroundForTheme(choice: WallpaperChoice, applied: Boolean, newThemeId: String?): ThemeBackground {
+        if (!applied || choice.source != WallpaperSource.OMARCHY) return ThemeBackground.Keep
+        if (newThemeId != null && newThemeId == choice.omarchyTheme) return ThemeBackground.Keep
+        val files = newThemeId?.let(::backgroundsFor).orEmpty()
+        val file = files.firstOrNull() ?: return ThemeBackground.Colour
+        return ThemeBackground.Switch(newThemeId!!, file)
+    }
 
     /** The Omarchy commit OmarchyThemes.kt was generated from; background files are fetched at the same one. */
     const val OMARCHY_COMMIT = "c3e67f5d405047765d47a9336a3df115a7beecfb"

@@ -89,6 +89,26 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val choice = prefs.choice
+        when (val next = WallpaperLogic.backgroundForTheme(choice, prefs.applied, ThemeStore.resolved(app).theme?.id)) {
+            is ThemeBackground.Switch -> {
+                // Keep the old image until the new one is set; if it cannot be fetched, use the theme colour.
+                val before = prefs.choice
+                prefs.choice = before.copy(omarchyTheme = next.themeId, omarchyFile = next.file)
+                applyOmarchy(app, next.themeId, next.file) { error ->
+                    if (error != null) {
+                        prefs.choice = prefs.choice.copy(source = WallpaperSource.THEME_COLOUR)
+                        applyThemeColour(app)
+                    }
+                }
+                return
+            }
+            ThemeBackground.Colour -> {
+                prefs.choice = choice.copy(source = WallpaperSource.THEME_COLOUR)
+                applyThemeColour(app)
+                return
+            }
+            ThemeBackground.Keep -> Unit
+        }
         if (!prefs.applied || choice.source != WallpaperSource.THEME_COLOUR) return
         if (prefs.lastSolid == "${themeColour(app)}:${prefs.effectiveTarget.name}") return
         applyThemeColour(app)
