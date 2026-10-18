@@ -188,7 +188,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 prefs.calendarAppUser = ""
             }
 
-            R.id.weather -> showAppList(Constants.FLAG_SET_WEATHER_APP)
+            R.id.weather, R.id.glanceWeather -> showAppList(Constants.FLAG_SET_WEATHER_APP)
             R.id.agenda -> CockpitLinks.openBoard(requireContext())
 
             R.id.tvScreenTime -> {
@@ -269,6 +269,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.agenda.setOnClickListener(this)
         binding.glanceEvent.setOnClickListener(this)
         binding.glanceWeather.setOnClickListener(this)
+        binding.glanceWeather.setOnLongClickListener(this)
         binding.agenda.setOnLongClickListener(this)
         binding.setDefaultLauncher.setOnClickListener(this)
         binding.setDefaultLauncher.setOnLongClickListener(this)

@@ -145,6 +145,8 @@
                 <TextView
                     android:id="@+id/glanceWeatherNow"
                     style="@style/TextSmall"
+                    android:gravity="end"
+                    android:textAlignment="viewEnd"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="18° Partly cloudy" />
@@ -152,6 +154,8 @@
                 <TextView
                     android:id="@+id/glanceWeatherRange"
                     style="@style/TextSmallLight"
+                    android:gravity="end"
+                    android:textAlignment="viewEnd"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="High 21 Low 13" />
