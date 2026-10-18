@@ -9,6 +9,7 @@ import android.os.Looper
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import com.outsmartis.yoke.cockpit.CardHeads
+import com.outsmartis.yoke.cockpit.CockpitAgendaRepository
 import com.outsmartis.yoke.cockpit.CockpitAgenda
 import com.outsmartis.yoke.cockpit.CockpitBoardConfig
 import com.outsmartis.yoke.cockpit.CockpitPrefs
@@ -30,14 +31,25 @@ object GlanceRepository {
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
+    /** How long a Cockpit read is reused, like the agenda line. */
+    private val COCKPIT_MAX_AGE_MS = CockpitAgendaRepository.MAX_AGE_MS
+
     @Volatile var events: List<GlanceEvent> = emptyList()
         private set
+
+    // Bumped by clear(); a read that started before it belongs to the old source and is dropped.
+    @Volatile private var generation = 0
+    @Volatile private var cockpitReadAt = 0L
 
     fun hasCalendarPermission(context: Context): Boolean =
         ContextCompat.checkSelfPermission(context, PERMISSION) == PackageManager.PERMISSION_GRANTED
 
     /** Forgets what was read, e.g. after the source was changed. */
-    fun clear() { events = emptyList() }
+    fun clear() {
+        generation++
+        cockpitReadAt = 0L
+        events = emptyList()
+    }
 
     /** Reads the source again; [onDone] runs on the main thread. Nothing is read when the card or the source is off. */
     fun refresh(context: Context, onDone: () -> Unit) {
@@ -48,6 +60,9 @@ object GlanceRepository {
             return
         }
         val source = prefs.source
+        // Reading up to 500 vault files: reuse the last read for a while (the card still re-picks on every tick)
+        if (source == GlanceSource.COCKPIT && System.currentTimeMillis() - cockpitReadAt < COCKPIT_MAX_AGE_MS) return
+        val gen = generation
         io.execute {
             val read = runCatching {
                 when (source) {
@@ -56,6 +71,8 @@ object GlanceRepository {
                     GlanceSource.NONE -> emptyList()
                 }
             }.getOrNull() ?: return@execute  // a failed read keeps the last events
+            if (gen != generation) return@execute  // the source changed while reading
+            if (source == GlanceSource.COCKPIT) cockpitReadAt = System.currentTimeMillis()
             events = read
             main.post(onDone)
         }
@@ -81,7 +98,11 @@ object GlanceRepository {
             CalendarContract.Instances.ALL_DAY,
         )
         val out = ArrayList<GlanceEvent>()
-        context.contentResolver.query(uri, projection, null, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { c ->
+        // Visible calendars only, and no declined or cancelled events (both columns may be null)
+        val selection = "${CalendarContract.Instances.VISIBLE} = 1 AND " +
+            "(${CalendarContract.Instances.SELF_ATTENDEE_STATUS} IS NULL OR ${CalendarContract.Instances.SELF_ATTENDEE_STATUS} != ${CalendarContract.Attendees.ATTENDEE_STATUS_DECLINED}) AND " +
+            "(${CalendarContract.Instances.STATUS} IS NULL OR ${CalendarContract.Instances.STATUS} != ${CalendarContract.Events.STATUS_CANCELED})"
+        context.contentResolver.query(uri, projection, selection, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { c ->
             while (c.moveToNext() && out.size < MAX_EVENTS) {
                 val allDay = c.getInt(4) == 1
                 val begin = c.getLong(2)

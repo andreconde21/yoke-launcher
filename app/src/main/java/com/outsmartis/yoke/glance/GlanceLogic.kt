@@ -44,9 +44,13 @@ object GlanceLogic {
 
     private const val COCKPIT_EVENT_MS = 30 * 60 * 1000L
 
+    /** An ongoing timed event that began longer ago than this gives way to the next upcoming one today. */
+    const val STALE_ONGOING_MS = 2 * 60 * 60 * 1000L
+
     /**
      * The event to show at [now], looking at today and tomorrow only:
-     * 1. a timed event that is on now or still to come today (the earliest start, so an ongoing one wins),
+     * 1. a timed event that is on now or still to come today (the earliest start, so an ongoing one wins, unless it
+     *    began more than [STALE_ONGOING_MS] ago and another timed event is still to come today: then that one),
      * 2. else an all-day event covering today,
      * 3. else tomorrow's first timed event, then tomorrow's all-day ones.
      * Events that have ended, and anything after tomorrow, are ignored. Null when nothing is left.
@@ -58,7 +62,14 @@ object GlanceLogic {
         val live = events.filter { it.title.isNotBlank() && maxOf(it.end, it.start) > now && it.start < dayAfterStart }
         val byStart = compareBy<GlanceEvent>({ it.start }, { it.title.lowercase() })
 
-        live.filter { !it.allDay && it.start < tomorrowStart }.minWithOrNull(byStart)?.let { return it }
+        val timedToday = live.filter { !it.allDay && it.start < tomorrowStart }
+        val first = timedToday.minWithOrNull(byStart)
+        if (first != null) {
+            if (first.start <= now - STALE_ONGOING_MS) {
+                timedToday.filter { it.start > now }.minWithOrNull(byStart)?.let { return it }
+            }
+            return first
+        }
         live.filter { it.allDay && it.start < tomorrowStart }.minWithOrNull(byStart)?.let { return it }
         val tomorrow = live.filter { it.start >= tomorrowStart }
         return tomorrow.filter { !it.allDay }.minWithOrNull(byStart) ?: tomorrow.minWithOrNull(byStart)
@@ -79,6 +90,12 @@ object GlanceLogic {
     /** When the card should be looked at again: when [event] starts (the label changes) or ends (it is replaced). */
     fun nextChangeAt(event: GlanceEvent, now: Long): Long =
         if (!event.allDay && event.start > now) event.start else maxOf(event.end, now + 1)
+
+    /** [nextChangeAt], but never past local midnight, when "Today" turns into "Tomorrow" and the pick may change. */
+    fun nextTickAt(event: GlanceEvent, now: Long, zone: ZoneId): Long {
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return minOf(nextChangeAt(event, now), startOf(today.plusDays(1), zone))
+    }
 
     /**
      * Cockpit cards as events: a card due today or tomorrow, not done or archived. A timed card is a
@@ -102,6 +119,10 @@ object GlanceLogic {
     /** An all-day instance from the calendar provider (UTC midnights) as local-midnight millis. */
     fun allDayToLocal(utcMillis: Long, zone: ZoneId): Long =
         startOf(Instant.ofEpochMilli(utcMillis).atZone(ZoneId.of("UTC")).toLocalDate(), zone)
+
+    /** A local-midnight all-day time as the UTC midnight the calendar app's event view expects. */
+    fun allDayToUtc(localMillis: Long, zone: ZoneId): Long =
+        Instant.ofEpochMilli(localMillis).atZone(zone).toLocalDate().atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
 
     /** Null when there is no usable reading (none, other units, or older than WeatherFormat's limit). */
     fun weather(reading: WeatherReading?, units: TempUnit, showHighLow: Boolean, now: Long): GlanceWeather? {

@@ -189,4 +189,40 @@ class GlanceLogicTest {
         assertEquals(GlanceSource.NONE, GlanceSource.COCKPIT.next())
         assertEquals(GlanceSource.NONE, GlanceSource.fromName("garbage"))
     }
+
+    @Test
+    fun staleOngoingEventGivesWayToTheNextUpcomingOne() {
+        val long = timed("Workshop", today, 5, 8 * 60)  // began 4 h ago, still on
+        val soon = timed("Call", today, 10)
+        assertEquals("Call", GlanceLogic.pickNext(listOf(long, soon), now, zone)?.title)
+    }
+
+    @Test
+    fun staleOngoingEventStaysWhenNothingElseIsComing() {
+        val long = timed("Workshop", today, 5, 8 * 60)
+        assertEquals("Workshop", GlanceLogic.pickNext(listOf(long), now, zone)?.title)
+    }
+
+    @Test
+    fun recentOngoingEventStillBeatsUpcoming() {
+        val recent = timed("Standup", today, 8, 90)  // began 1 h ago
+        assertEquals("Standup", GlanceLogic.pickNext(listOf(recent, timed("Call", today, 10)), now, zone)?.title)
+    }
+
+    @Test
+    fun nextTickIsCappedAtMidnight() {
+        val tomorrowEvent = timed("Early", today.plusDays(1), 9)
+        val midnight = at(today.plusDays(1), 0)
+        assertEquals(midnight, GlanceLogic.nextTickAt(tomorrowEvent, now, zone))
+        val soon = timed("Call", today, 10)
+        assertEquals(soon.start, GlanceLogic.nextTickAt(soon, now, zone))
+    }
+
+    @Test
+    fun allDayConvertsBetweenLocalAndUtcMidnights() {
+        val local = today.atStartOfDay(zone).toInstant().toEpochMilli()
+        val utc = today.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+        assertEquals(utc, GlanceLogic.allDayToUtc(local, zone))
+        assertEquals(local, GlanceLogic.allDayToLocal(utc, zone))
+    }
 }

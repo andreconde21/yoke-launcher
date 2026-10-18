@@ -217,26 +217,39 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             glance.enabled = !glance.enabled
             populateGlance()
         }
-        binding.glanceSource.setOnClickListener {
-            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
-            val next = glance.source.next()
-            when {
-                next == com.outsmartis.yoke.glance.GlanceSource.CALENDAR &&
-                    !com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext()) ->
-                    calendarPermission.launch(com.outsmartis.yoke.glance.GlanceRepository.PERMISSION)
-                next == com.outsmartis.yoke.glance.GlanceSource.COCKPIT &&
-                    com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).vaultUri == null -> {
-                    setGlanceSource(next)
-                    requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
-                }
-                else -> setGlanceSource(next)
-            }
-        }
+        binding.glanceSource.setOnClickListener { chooseGlanceSource() }
         binding.glanceWeatherToggle.setOnClickListener {
             val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
             glance.showWeather = !glance.showWeather
             populateGlance()
         }
+    }
+
+    /** One list with every source, so a denied calendar never blocks Cockpit; picking Calendar also re-asks when access is missing. */
+    private fun chooseGlanceSource() {
+        val sources = com.outsmartis.yoke.glance.GlanceSource.entries
+        val labels = arrayOf(R.string.glance_source_none, R.string.glance_source_calendar, R.string.glance_source_cockpit)
+            .map { getString(it) }.toTypedArray()
+        val current = com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.glance_source_setting)
+            .setSingleChoiceItems(labels, sources.indexOf(current)) { dialog, which ->
+                dialog.dismiss()
+                val picked = sources[which]
+                when {
+                    picked == com.outsmartis.yoke.glance.GlanceSource.CALENDAR &&
+                        !com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext()) ->
+                        calendarPermission.launch(com.outsmartis.yoke.glance.GlanceRepository.PERMISSION)
+                    picked == com.outsmartis.yoke.glance.GlanceSource.COCKPIT &&
+                        com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).vaultUri == null -> {
+                        setGlanceSource(picked)
+                        requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
+                    }
+                    else -> setGlanceSource(picked)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun setGlanceSource(source: com.outsmartis.yoke.glance.GlanceSource) {
@@ -250,7 +263,9 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.glanceToggle.text = getString(if (glance.enabled) R.string.on else R.string.off)
         binding.glanceSource.setText(when (glance.source) {
             com.outsmartis.yoke.glance.GlanceSource.NONE -> R.string.glance_source_none
-            com.outsmartis.yoke.glance.GlanceSource.CALENDAR -> R.string.glance_source_calendar
+            com.outsmartis.yoke.glance.GlanceSource.CALENDAR ->
+                if (com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext())) R.string.glance_source_calendar
+                else R.string.glance_source_calendar_no_access
             com.outsmartis.yoke.glance.GlanceSource.COCKPIT -> R.string.glance_source_cockpit
         })
         binding.glanceWeatherToggle.text = getString(if (glance.showWeather) R.string.on else R.string.off)

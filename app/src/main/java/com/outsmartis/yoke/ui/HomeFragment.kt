@@ -378,8 +378,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 DayLabel.TODAY -> R.string.glance_today
                 DayLabel.TOMORROW -> R.string.glance_tomorrow
             }).let { if (event.allDay) "$it · $time" else it }
-            // Look again when the event starts (the label changes) and when it ends (the next one takes over)
-            glanceHandler.postDelayed(glanceTick, (GlanceLogic.nextChangeAt(event, now) - now).coerceAtLeast(1000L) + 500L)
+            // Look again when the event starts (the label changes), when it ends (the next one takes over) and at midnight
+            glanceHandler.postDelayed(glanceTick, (GlanceLogic.nextTickAt(event, now, zone) - now).coerceAtLeast(1000L) + 500L)
         }
 
         val weatherPrefs = WeatherPrefs(ctx)
@@ -424,8 +424,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val event = glanceEvent ?: return
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(event.uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         if (event.uri.startsWith("content:")) {
-            intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.start)
-            intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.end)
+            // The calendar app expects an all-day event on UTC midnights, not local ones
+            val zone = ZoneId.systemDefault()
+            intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, if (event.allDay) GlanceLogic.allDayToUtc(event.start, zone) else event.start)
+            intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, if (event.allDay) GlanceLogic.allDayToUtc(event.end, zone) else event.end)
         }
         try {
             startActivity(intent)
