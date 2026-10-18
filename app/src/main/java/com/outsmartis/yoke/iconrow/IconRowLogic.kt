@@ -26,6 +26,63 @@ enum class HomeAppStyle(val id: String) {
     }
 }
 
+/** Where a home app icon comes from (YOK-031). LETTER is the framed first letter. */
+enum class HomeIconSource { NONE, APP, SHORTCUT, LETTER }
+
+/** What one home slot shows: the pure decision behind HomeFragment.renderHomeIcons. */
+data class HomeSlotPlan(
+    val showsText: Boolean,
+    val icon: HomeIconSource,
+    /** Work profile / Private Space badge on the icon, whatever the icon style. */
+    val badge: Boolean,
+    val contentDescription: String?,
+    /** A small accent dot for pending notifications, only where the count text is hidden. */
+    val dot: Boolean,
+)
+
+object HomeAppPlan {
+    /**
+     * [profileLabel] and [notificationsLabel] are the already translated phrases for the content description.
+     * Pinned web links have no package, so they get a letter tile and no badge.
+     */
+    fun plan(
+        style: HomeAppStyle,
+        name: String,
+        isPin: Boolean,
+        isShortcut: Boolean,
+        otherProfile: Boolean,
+        profileLabel: String,
+        notifications: Int,
+        notificationsLabel: String,
+    ): HomeSlotPlan {
+        if (!style.showsIcon) return HomeSlotPlan(true, HomeIconSource.NONE, false, null, false)
+        val source = when {
+            isPin -> HomeIconSource.LETTER
+            isShortcut -> HomeIconSource.SHORTCUT
+            else -> HomeIconSource.APP
+        }
+        val badge = otherProfile && !isPin
+        val parts = mutableListOf<String>()
+        if (!style.showsText || badge) parts += name
+        if (badge) parts += profileLabel
+        if (!style.showsText && notifications > 0) parts += notificationsLabel
+        return HomeSlotPlan(
+            showsText = style.showsText,
+            icon = source,
+            badge = badge,
+            contentDescription = if (parts.isEmpty()) null else parts.joinToString(", "),
+            dot = !style.showsText && notifications > 0,
+        )
+    }
+
+    /** Which icon row pref keys need the home apps redrawn: the style itself, and the colour style when icons show. */
+    fun affectsHomeApps(key: String?, homeStyle: HomeAppStyle): Boolean =
+        key == IconRowPrefs.KEY_HOME_APP_STYLE || (homeStyle.showsIcon && key == IconRowPrefs.KEY_STYLE)
+
+    /** Icon only apps are centred in their touch box so the icon follows no text alignment; else the home alignment. */
+    fun gravityFor(style: HomeAppStyle, alignment: Int, centre: Int): Int = if (style == HomeAppStyle.ICON) centre else alignment
+}
+
 enum class IconSize(val id: String, val dp: Int) {
     SMALL("small", 26), MEDIUM("medium", 32), LARGE("large", 42);
 

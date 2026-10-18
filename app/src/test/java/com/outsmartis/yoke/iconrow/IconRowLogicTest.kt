@@ -126,4 +126,63 @@ class IconRowLogicTest {
         assertTrue(HomeAppStyle.ICON.showsIcon)
         assertFalse(HomeAppStyle.ICON.showsText)
     }
+
+    private fun plan(
+        style: HomeAppStyle, pin: Boolean = false, shortcut: Boolean = false, other: Boolean = false, n: Int = 0,
+    ) = HomeAppPlan.plan(style, "Gmail", pin, shortcut, other, "Work", n, "$n notifications")
+
+    @Test
+    fun textStyleShowsOnlyText() {
+        val p = plan(HomeAppStyle.TEXT, other = true, n = 3)
+        assertTrue(p.showsText)
+        assertEquals(HomeIconSource.NONE, p.icon)
+        assertFalse(p.badge)
+        assertFalse(p.dot)
+        assertNull(p.contentDescription)
+    }
+
+    @Test
+    fun iconSourceFollowsPinShortcutOrApp() {
+        assertEquals(HomeIconSource.APP, plan(HomeAppStyle.ICON_TEXT).icon)
+        assertEquals(HomeIconSource.SHORTCUT, plan(HomeAppStyle.ICON_TEXT, shortcut = true).icon)
+        assertEquals(HomeIconSource.LETTER, plan(HomeAppStyle.ICON, pin = true, shortcut = true).icon)
+    }
+
+    @Test
+    fun otherProfileIsBadgedInEveryIconStyleAndNamedInTheDescription() {
+        val withText = plan(HomeAppStyle.ICON_TEXT, other = true)
+        assertTrue(withText.badge)
+        assertEquals("Gmail, Work", withText.contentDescription)
+        assertFalse(plan(HomeAppStyle.ICON_TEXT).badge)
+        assertNull(plan(HomeAppStyle.ICON_TEXT).contentDescription)
+        assertFalse(plan(HomeAppStyle.ICON, pin = true, other = true).badge)
+    }
+
+    @Test
+    fun iconOnlyDescribesNameProfileAndNotifications() {
+        assertEquals("Gmail", plan(HomeAppStyle.ICON).contentDescription)
+        assertFalse(plan(HomeAppStyle.ICON).dot)
+        val p = plan(HomeAppStyle.ICON, other = true, n = 2)
+        assertEquals("Gmail, Work, 2 notifications", p.contentDescription)
+        assertTrue(p.dot)
+        assertFalse(p.showsText)
+        // With the name on screen the count already shows as text, so no dot and no count in the description
+        assertFalse(plan(HomeAppStyle.ICON_TEXT, n = 2).dot)
+    }
+
+    @Test
+    fun onlyTheRightPrefKeysRedrawTheHomeApps() {
+        assertTrue(HomeAppPlan.affectsHomeApps(IconRowPrefs.KEY_HOME_APP_STYLE, HomeAppStyle.TEXT))
+        assertFalse(HomeAppPlan.affectsHomeApps("slots", HomeAppStyle.ICON))
+        assertFalse(HomeAppPlan.affectsHomeApps(IconRowPrefs.KEY_STYLE, HomeAppStyle.TEXT))
+        assertTrue(HomeAppPlan.affectsHomeApps(IconRowPrefs.KEY_STYLE, HomeAppStyle.ICON_TEXT))
+        assertFalse(HomeAppPlan.affectsHomeApps(null, HomeAppStyle.ICON))
+    }
+
+    @Test
+    fun iconOnlyIsCentredOtherwiseTheAlignmentWins() {
+        assertEquals(1, HomeAppPlan.gravityFor(HomeAppStyle.ICON, 8388613, 1))
+        assertEquals(8388613, HomeAppPlan.gravityFor(HomeAppStyle.ICON_TEXT, 8388613, 1))
+        assertEquals(8388613, HomeAppPlan.gravityFor(HomeAppStyle.TEXT, 8388613, 1))
+    }
 }

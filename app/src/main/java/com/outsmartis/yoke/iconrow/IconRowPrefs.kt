@@ -48,10 +48,12 @@ class IconRowPrefs(context: Context) {
         const val FILE = "yoke.iconrow"
         private const val ENABLED = "enabled"
         private const val SLOTS = "slots"
-        private const val STYLE = "style"
+        const val KEY_STYLE = "style"
+        private const val STYLE = KEY_STYLE
         private const val LABELS = "labels"
         private const val SIZE = "size"
         private const val POSITION = "position"
-        private const val HOME_APP_STYLE = "home_app_style"
+        const val KEY_HOME_APP_STYLE = "home_app_style"
+        private const val HOME_APP_STYLE = KEY_HOME_APP_STYLE
     }
 }

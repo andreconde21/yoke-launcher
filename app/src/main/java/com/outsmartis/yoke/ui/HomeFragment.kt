@@ -3,6 +3,12 @@ package com.outsmartis.yoke.ui
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
 import android.content.res.Configuration
 import android.os.BatteryManager
 import android.os.Build
@@ -31,6 +37,8 @@ import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.iconrow.IconPosition
 import com.outsmartis.yoke.iconrow.IconRenderer
+import com.outsmartis.yoke.iconrow.HomeAppPlan
+import com.outsmartis.yoke.iconrow.HomeIconSource
 import com.outsmartis.yoke.iconrow.IconRowPrefs
 import com.outsmartis.yoke.iconrow.IconRowView
 import com.outsmartis.yoke.iconrow.IconSlot
@@ -76,10 +84,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
-    private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+    private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (_binding != null && isAdded) {
-            // YOK-031: the home app style lives in the same prefs; text and icons are redrawn too
-            populateHomeScreen(false)
+            // YOK-031: the home app style lives in the same prefs; only its keys redraw the home apps
+            if (HomeAppPlan.affectsHomeApps(key, iconPrefs.homeAppStyle)) populateHomeScreen(false) else renderIconRow()
         }
     }
 
@@ -103,7 +111,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } ?: throw Exception("Invalid Activity")
 
         notes = HomeNotifications(requireContext(), binding.homeNotifications, binding.homeNowPlaying).also { it.bindNowPlaying() }
-        NotificationStore.entries.observe(viewLifecycleOwner) { renderNotifications() }
+        NotificationStore.entries.observe(viewLifecycleOwner) { renderNotifications(); renderHomeIcons() }
         NotificationStore.nowPlaying.observe(viewLifecycleOwner) { notes?.render() }
         initObservers()
         setHomeAlignment(prefs.homeAlignment)
@@ -275,18 +283,21 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.homeApp8.setOnLongClickListener(this)
     }
 
+    private fun homeAppGravity(alignment: Int) =
+        HomeAppPlan.gravityFor(iconPrefs.homeAppStyle, alignment, Gravity.CENTER_HORIZONTAL)
+
     private fun setHomeAlignment(horizontalGravity: Int = prefs.homeAlignment) {
         val verticalGravity = if (prefs.homeBottomAlignment) Gravity.BOTTOM else Gravity.CENTER_VERTICAL
         binding.homeAppsLayout.gravity = horizontalGravity or verticalGravity
         binding.dateTimeLayout.gravity = horizontalGravity
-        binding.homeApp1.gravity = horizontalGravity
-        binding.homeApp2.gravity = horizontalGravity
-        binding.homeApp3.gravity = horizontalGravity
-        binding.homeApp4.gravity = horizontalGravity
-        binding.homeApp5.gravity = horizontalGravity
-        binding.homeApp6.gravity = horizontalGravity
-        binding.homeApp7.gravity = horizontalGravity
-        binding.homeApp8.gravity = horizontalGravity
+        binding.homeApp1.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp2.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp3.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp4.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp5.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp6.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp7.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp8.gravity = homeAppGravity(horizontalGravity)
     }
 
     private fun populateDateTime() {
@@ -368,14 +379,18 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     /**
      * Applies the home app style after the labels are set: a round icon (tinted with the theme text colour,
      * or the original one when the icon row uses original colours) before the name, or instead of it.
-     * Icon only blanks the label, so it keeps a contentDescription and a minimum touch width. Pinned web
-     * links and apps whose icon cannot be loaded get a letter tile. Tap, long press and swipes stay on the TextView.
+     * Icon only blanks the label, so it keeps a contentDescription (name, profile, notifications), an accent
+     * dot for pending notifications and a minimum touch width. Pinned shortcuts use their own icon, pinned web
+     * links and apps whose icon cannot be loaded get a letter tile; work profile and Private Space apps keep
+     * their badge in every style. Tap, long press and swipes stay on the TextView.
      */
     private fun renderHomeIcons() {
         val ctx = requireContext()
         val style = iconPrefs.homeAppStyle
         val color = ThemeApplier.textColor(ctx, secondary = false)
         val original = iconPrefs.style == com.outsmartis.yoke.iconrow.IconStyle.ORIGINAL
+        val counts = notes?.counts().orEmpty()
+        val accent = ThemeStore.current(ctx)?.accentText ?: ctx.getColorFromAttr(R.attr.primaryColor)
         val views = listOf(
             binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
             binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
@@ -384,6 +399,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             val slot = i + 1
             val pkg = prefs.getAppPackage(slot)
             val name = prefs.getAppName(slot)
+            tv.gravity = HomeAppPlan.gravityFor(style, prefs.homeAlignment, Gravity.CENTER_HORIZONTAL)
             if (!style.showsIcon || pkg.isEmpty() || tv.visibility != View.VISIBLE) {
                 tv.setCompoundDrawablesRelative(null, null, null, null)
                 tv.compoundDrawablePadding = 0
@@ -394,37 +410,68 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             }
             val sizePx = (tv.textSize * 1.25f).toInt().coerceAtLeast(16.dpToPx())
             val userString = prefs.getAppUser(slot)
-            val bmp = if (LinkEntry.idFromPinToken(pkg) != null) null
-            else IconRenderer.render(ctx, IconSlot(pkg, null, userString), iconPrefs.style, sizePx, color)
-            val icon: android.graphics.drawable.Drawable = if (bmp == null) {
-                android.graphics.drawable.BitmapDrawable(
-                    resources, IconRenderer.letterTile(name.firstOrNull() ?: '?', sizePx, color),
-                )
-            } else if (original) {
-                val handle = getUserHandleFromString(ctx, userString)
-                if (handle != android.os.Process.myUserHandle()) {
-                    // Work profile and Private Space apps keep their badge
-                    ctx.packageManager.getUserBadgedIcon(android.graphics.drawable.BitmapDrawable(resources, bmp), handle)
-                } else {
-                    androidx.core.graphics.drawable.RoundedBitmapDrawableFactory.create(resources, bmp).apply { isCircular = true }
-                }
-            } else {
-                android.graphics.drawable.BitmapDrawable(resources, bmp)
+            val handle = getUserHandleFromString(ctx, userString)
+            val count = counts[pkg] ?: 0
+            val plan = HomeAppPlan.plan(
+                style = style,
+                name = name,
+                isPin = LinkEntry.idFromPinToken(pkg) != null,
+                isShortcut = prefs.getIsShortcut(slot) && prefs.getShortcutId(slot).isNotEmpty(),
+                otherProfile = handle != android.os.Process.myUserHandle(),
+                profileLabel = getString(R.string.home_app_profile),
+                notifications = count,
+                notificationsLabel = resources.getQuantityString(R.plurals.home_app_notifications, count, count),
+            )
+            var base: Bitmap? = when (plan.icon) {
+                HomeIconSource.APP -> IconRenderer.render(ctx, IconSlot(pkg, null, userString), iconPrefs.style, sizePx, color)
+                HomeIconSource.SHORTCUT -> shortcutIcon(ctx, pkg, prefs.getShortcutId(slot), handle)?.let { drawableToBitmap(it, sizePx) }
+                else -> null
             }
-            icon.setBounds(0, 0, sizePx, sizePx)
+            // Letter tiles are already framed; real icons are cropped round unless they are tinted monochrome
+            val round = base != null && (original || plan.icon == HomeIconSource.SHORTCUT)
+            if (base == null) base = IconRenderer.letterTile(name.firstOrNull() ?: '?', sizePx, color)
+            var drawable: Drawable = BitmapDrawable(resources, base)
+            if (round) drawable = RoundedBitmapDrawableFactory.create(resources, base).apply { isCircular = true }
+            if (plan.badge) drawable = ctx.packageManager.getUserBadgedIcon(drawable, handle)
+            val out = drawableToBitmap(drawable, sizePx)
+            if (plan.dot) {
+                val r = sizePx * 0.16f
+                Canvas(out).drawCircle(sizePx - r, r, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = accent })
+            }
+            val icon = BitmapDrawable(resources, out).apply { setBounds(0, 0, sizePx, sizePx) }
             tv.setCompoundDrawablesRelative(icon, null, null, null)
-            if (style.showsText) {
+            tv.contentDescription = plan.contentDescription
+            if (plan.showsText) {
                 tv.compoundDrawablePadding = 14.dpToPx()
-                tv.contentDescription = null
                 tv.minWidth = 0
             } else {
                 tv.text = ""
                 tv.hint = null
                 tv.compoundDrawablePadding = 0
-                tv.contentDescription = name
                 tv.minWidth = 48.dpToPx()
             }
         }
+    }
+
+    private fun drawableToBitmap(d: Drawable, size: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        d.setBounds(0, 0, size, size)
+        d.draw(Canvas(bmp))
+        return bmp
+    }
+
+    /** The launcher icon of one pinned shortcut, or null when it is gone or cannot be read. */
+    private fun shortcutIcon(ctx: Context, pkg: String, shortcutId: String, handle: android.os.UserHandle): Drawable? = try {
+        val launcherApps = ctx.getSystemService(Context.LAUNCHER_APPS_SERVICE) as LauncherApps
+        val query = LauncherApps.ShortcutQuery().apply {
+            setPackage(pkg)
+            setShortcutIds(listOf(shortcutId))
+            setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED)
+        }
+        launcherApps.getShortcuts(query, handle)?.firstOrNull()
+            ?.let { launcherApps.getShortcutIconDrawable(it, ctx.resources.displayMetrics.densityDpi) }
+    } catch (e: Exception) {
+        null
     }
 
     /**

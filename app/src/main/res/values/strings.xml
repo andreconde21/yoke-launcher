@@ -138,6 +138,11 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="home_app_style_text">Text</string>
     <string name="home_app_style_icon_text">Icon + text</string>
     <string name="home_app_style_icon">Icon only</string>
+    <string name="home_app_profile">Work profile or private space</string>
+    <plurals name="home_app_notifications">
+        <item quantity="one">%d notification</item>
+        <item quantity="other">%d notifications</item>
+    </plurals>
     <string name="font_row">Font</string>
     <string name="font_system">System</string>
     <string name="font_jetbrains_mono">JetBrains Mono</string>
