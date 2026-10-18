@@ -36,12 +36,10 @@ fun Window.hideStatusBar() = setStatusBarVisible(false)
  * then throws instead of returning null. Never touch the window until its decor view is attached; retry
  * once it is.
  */
-private fun Window.setStatusBarVisible(visible: Boolean) {
+private fun Window.setStatusBarVisible(visible: Boolean, retries: Int = 20) {
     val decor = peekDecorView()
     if (decor == null) {
-        android.os.Handler(android.os.Looper.getMainLooper()).post {
-            peekDecorView()?.takeIf { it.isAttachedToWindow }?.let { applyStatusBar(it, visible) }
-        }
+        if (retries > 0) android.os.Handler(android.os.Looper.getMainLooper()).post { setStatusBarVisible(visible, retries - 1) }
         return
     }
     if (!decor.isAttachedToWindow) {

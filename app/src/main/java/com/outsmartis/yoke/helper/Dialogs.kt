@@ -53,7 +53,8 @@ class YokeDialog(context: Context) : AlertDialog(context) {
             window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
             show()
             window.hideStatusBar()
-            window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+            // The hide may be deferred until the decor attaches: clear the flag after that, so the bar doesn't flash
+            window.decorView.post { window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) }
         }
         blur = window?.let { WindowBlur(it).apply { fadeIn() } }
         window?.decorView?.post { focusTextField() }
