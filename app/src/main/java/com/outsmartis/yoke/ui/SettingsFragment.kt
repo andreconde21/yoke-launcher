@@ -44,6 +44,8 @@ import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.showPopupMenu
 import com.outsmartis.yoke.helper.showStatusBar
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.iconrow.HomeAppStyle // YOK-031
+import com.outsmartis.yoke.iconrow.IconRowPrefs // YOK-031
 import com.outsmartis.yoke.listener.DeviceAdmin
 
 class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListener {
@@ -91,6 +93,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateBoldFont()
         populateFont()
         populateAlignment()
+        populateHomeAppStyle() // YOK-031
         populateStatusBar()
         populateDateTime()
         weatherSettings = WeatherSettings(
@@ -226,6 +229,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.webLinks -> LinkDialogs.showList(requireContext(), prefs)
             R.id.homeAppsNum -> showHomeAppsNumMenu(view)
             R.id.alignment -> showAlignmentMenu(view)
+            R.id.homeAppStyle -> showHomeAppStyleMenu(view) // YOK-031
             R.id.statusBar -> toggleStatusBar()
             R.id.dateTime -> showDateTimeMenu(view)
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
@@ -308,6 +312,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.systemColoursRow.setOnClickListener(this)
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
+        binding.homeAppStyle.setOnClickListener(this) // YOK-031
         binding.fontText.setOnClickListener(this)
 
         binding.alignment.setOnLongClickListener(this)
@@ -342,6 +347,28 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 R.id.dateTimeOff -> toggleDateTime(Constants.DateTime.OFF)
                 R.id.dateOnly -> toggleDateTime(Constants.DateTime.DATE_ONLY)
             }
+        }
+    }
+
+    // YOK-031
+    private fun homeAppStyleLabel(style: HomeAppStyle) = when (style) {
+        HomeAppStyle.TEXT -> R.string.home_app_style_text
+        HomeAppStyle.ICON_TEXT -> R.string.home_app_style_icon_text
+        HomeAppStyle.ICON -> R.string.home_app_style_icon
+    }
+
+    private fun populateHomeAppStyle() {
+        binding.homeAppStyle.setText(homeAppStyleLabel(IconRowPrefs(requireContext()).homeAppStyle))
+    }
+
+    private fun showHomeAppStyleMenu(anchor: View) {
+        anchor.showPopupMenu(
+            configure = { menu ->
+                HomeAppStyle.entries.forEachIndexed { i, style -> menu.add(Menu.NONE, i, i, homeAppStyleLabel(style)) }
+            }
+        ) { item ->
+            IconRowPrefs(requireContext()).homeAppStyle = HomeAppStyle.entries[item.itemId]
+            populateHomeAppStyle()
         }
     }
 

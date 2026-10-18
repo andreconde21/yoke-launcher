@@ -63,14 +63,27 @@ object IconRenderer {
                 return bmp
             }
         }
-        val raw = drawIcon(icon, size)
+        // Adaptive icon without a monochrome layer: use the foreground alone. Its background (often a full
+        // bleed colour) would otherwise turn into a filled disc; a full-bleed foreground fails the coverage
+        // check in IconMask and falls through to the letter tile.
+        val raw = if (icon is AdaptiveIconDrawable) foregroundOnly(icon, size) else drawIcon(icon, size)
         val pixels = IntArray(size * size)
         raw.getPixels(pixels, 0, size, 0, 0, size, size)
-        val mask = IconMask.toMask(pixels, color)
+        val mask = IconMask.toMask(pixels, color, sparseOnly = icon is AdaptiveIconDrawable)
         if (mask != null) {
             return Bitmap.createBitmap(mask, size, size, Bitmap.Config.ARGB_8888)
         }
         return letterTile(info.label?.toString()?.firstOrNull() ?: slot.packageName.first(), size, color)
+    }
+
+    private fun foregroundOnly(icon: AdaptiveIconDrawable, size: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val fg = icon.foreground ?: return bmp
+        // The layer is 108dp with a 72dp visible area; scale so that area fills the square.
+        val pad = size / 6
+        fg.setBounds(-pad, -pad, size + pad, size + pad)
+        fg.draw(Canvas(bmp))
+        return bmp
     }
 
     private fun drawIcon(icon: Drawable, size: Int): Bitmap {
@@ -80,7 +93,8 @@ object IconRenderer {
         return bmp
     }
 
-    private fun letterTile(letter: Char, size: Int, color: Int): Bitmap {
+    /** A framed first-letter tile; also used for home apps that have no package (pinned web links). */
+    fun letterTile(letter: Char, size: Int, color: Int): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val stroke = size * 0.06f

@@ -34,6 +34,11 @@ class IconRowPrefs(context: Context) {
         get() = IconPosition.fromId(prefs.getString(POSITION, null))
         set(value) = prefs.edit { putString(POSITION, value.id) }
 
+    /** YOK-031: lives in this file so the backup already carries it. */
+    var homeAppStyle: HomeAppStyle
+        get() = HomeAppStyle.fromId(prefs.getString(HOME_APP_STYLE, null))
+        set(value) = prefs.edit { putString(HOME_APP_STYLE, value.id) }
+
     fun toggle() { enabled = !enabled }
 
     fun registerListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = prefs.registerOnSharedPreferenceChangeListener(l)
@@ -43,9 +48,12 @@ class IconRowPrefs(context: Context) {
         const val FILE = "yoke.iconrow"
         private const val ENABLED = "enabled"
         private const val SLOTS = "slots"
-        private const val STYLE = "style"
+        const val KEY_STYLE = "style"
+        private const val STYLE = KEY_STYLE
         private const val LABELS = "labels"
         private const val SIZE = "size"
         private const val POSITION = "position"
+        const val KEY_HOME_APP_STYLE = "home_app_style"
+        private const val HOME_APP_STYLE = KEY_HOME_APP_STYLE
     }
 }
