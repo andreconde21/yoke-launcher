@@ -39,6 +39,7 @@ import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
 import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -88,6 +89,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
+        ThemeFade.reveal(this)
 
         navController = this.findNavController(R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
@@ -141,11 +143,13 @@ class MainActivity : AppCompatActivity() {
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
-            recreate()
+            // Back from the picker: fade from the old home to the new look, so there is no bare window
+            // (black frame) between the two; cases the fade cannot cover recreate directly.
+            ThemeFade.recreate(this)
             return
         }
         themeObserver?.unregister()
-        themeObserver = ThemeStore.observeConductore(this) { recreate() }
+        themeObserver = ThemeStore.observeConductore(this) { ThemeFade.recreate(this) }
         restartLauncherOrCheckTheme()
     }
 

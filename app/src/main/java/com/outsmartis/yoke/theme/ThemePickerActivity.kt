@@ -87,6 +87,7 @@ class ThemePickerActivity : AppCompatActivity() {
             setBackgroundColor(theme?.background ?: getColorFromAttr(R.attr.primaryColorInverseTrans90))
         }
         setContentView(scroll)
+        ThemeFade.reveal(this)
         ThemeApplier.applyWindow(this)
         // Only the title takes the theme here; rows carry their own palette.
         theme?.let { title.setTextColor(it.foreground) }
@@ -97,7 +98,7 @@ class ThemePickerActivity : AppCompatActivity() {
             }
             font(list)
         }
-        observer = ThemeStore.observeConductore(this) { recreate() }
+        observer = ThemeStore.observeConductore(this) { ThemeFade.recreate(this) }
     }
 
     private fun row(id: String, label: String, preview: YokeTheme?, selectedId: String): View {
@@ -132,7 +133,7 @@ class ThemePickerActivity : AppCompatActivity() {
             setOnClickListener {
                 ThemeStore.setThemeId(this@ThemePickerActivity, id)
                 setResult(Activity.RESULT_OK)
-                recreate()
+                ThemeFade.recreate(this@ThemePickerActivity)
             }
         }
     }

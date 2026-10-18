@@ -15,6 +15,7 @@ import com.outsmartis.yoke.databinding.FragmentBackupBinding
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.theme.ThemeFade
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,7 +100,7 @@ class BackupFragment : BaseFragment() {
                         val error = result.exceptionOrNull()
                         if (error == null) {
                             ctx.showToast(R.string.backup_imported)
-                            activity?.recreate()
+                            activity?.let { ThemeFade.recreate(it) }
                         } else {
                             ctx.showToast(getString(R.string.backup_import_failed, error.message ?: "?"))
                         }
