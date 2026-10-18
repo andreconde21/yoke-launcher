@@ -19,6 +19,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.CalendarContract
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
@@ -31,6 +33,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
@@ -41,6 +44,9 @@ import androidx.navigation.fragment.findNavController
 import com.outsmartis.yoke.MainActivity
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.askbar.AskBarPrefs
+import com.outsmartis.yoke.askbar.AskBarView
+import com.outsmartis.yoke.cockpit.Dictation
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.iconrow.IconPosition
 import com.outsmartis.yoke.iconrow.IconRenderer
@@ -85,6 +91,7 @@ import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.notifications.HomeNotifications
 import com.outsmartis.yoke.notifications.NotificationLogic
 import com.outsmartis.yoke.notifications.NotificationStore
+import com.outsmartis.yoke.palette.CommandPalette
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.weather.WeatherFormat
 import com.outsmartis.yoke.weather.WeatherPrefs
@@ -103,6 +110,17 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
+    // YOK-030: the optional "open, type, or ask…" bar and its dictation
+    private var askBar: AskBarView? = null
+    private var dictation: Dictation? = null
+    private var listening = false
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) toggleDictation() else context?.showToast(R.string.quick_add_mic_denied)
+    }
+    private val dictationDialog = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val text = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        if (!text.isNullOrBlank()) openPalette(text)
+    }
     private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (_binding != null && isAdded) {
             // YOK-031: the home app style lives in the same prefs; only its keys redraw the home apps
@@ -141,6 +159,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         setHomeAlignment(prefs.homeAlignment)
         initSwipeTouchListener()
         initClickListeners()
+        watchNavInset()
     }
 
     override fun onResume() {
@@ -155,6 +174,13 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         viewModel.isYokeDefault()
         if (prefs.showStatusBar) showStatusBar()
         else hideStatusBar()
+    }
+
+    override fun onStop() {
+        // Leaving home ends a dictation into the ask bar (YOK-030).
+        stopDictation()
+        askBar?.showText("")
+        super.onStop()
     }
 
     override fun onClick(view: View) {
@@ -495,7 +521,9 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         populateHomeScreenCore(appCountUpdated)
         renderNotifications()
         renderHomeIcons()
+        renderAskBar()
         renderIconRow()
+        liftBottomHints()
     }
 
     // YOK-031
@@ -617,8 +645,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         fun setBottomPadding(px: Int) {
             if (apps.paddingBottom != px) apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, px)
         }
+        val navInset = navInset(b)
+        // The ask bar sits at the very bottom; the slots (and a bottom icon row) stay above it.
+        val barSpace = askBarSpace()
+        val barPadding = if (barSpace > 0) barSpace + navInset else 0
         if (!iconPrefs.enabled || iconPrefs.slots.isEmpty()) {
-            setBottomPadding(appsBasePaddingBottom)
+            setBottomPadding(appsBasePaddingBottom + barPadding)
             return
         }
         val row = IconRowView(requireContext())
@@ -627,17 +659,156 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val underClock = iconPrefs.position == IconPosition.UNDER_CLOCK && b.dateTimeLayout.visibility == View.VISIBLE
         if (underClock) {
             b.dateTimeLayout.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            setBottomPadding(appsBasePaddingBottom)
+            setBottomPadding(appsBasePaddingBottom + barPadding)
         } else {
-            val navInset = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
-                ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
             val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
             lp.marginStart = 24.dpToPx()
             lp.marginEnd = 24.dpToPx()
-            lp.bottomMargin = navInset + 8.dpToPx()
+            lp.bottomMargin = navInset + 8.dpToPx() + barSpace
             b.mainLayout.addView(row, lp)
-            setBottomPadding(appsBasePaddingBottom + IconRowView.heightPx(requireContext(), iconPrefs) + navInset)
+            setBottomPadding(appsBasePaddingBottom + IconRowView.heightPx(requireContext(), iconPrefs) + navInset + barSpace)
         }
+    }
+
+    /**
+     * Bottom navigation bar inset. Kept from an inset listener on the main layout, because the root
+     * window insets are still empty in onResume on a cold start.
+     */
+    private var navInsetPx = -1
+
+    private fun navInset(b: FragmentHomeBinding): Int {
+        if (navInsetPx >= 0) return navInsetPx
+        return androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+    }
+
+    private fun watchNavInset() {
+        val b = _binding ?: return
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(b.mainLayout) { v, insets ->
+            val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+            if (bottom != navInsetPx) {
+                navInsetPx = bottom
+                (askBar?.layoutParams as? FrameLayout.LayoutParams)?.let {
+                    it.bottomMargin = bottom + 8.dpToPx()
+                    askBar?.layoutParams = it
+                }
+                renderIconRow()
+                liftBottomHints()
+            }
+            androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(b.mainLayout)
+    }
+
+    /** The first-run tip and the set-default-launcher line sit above the ask bar when it is on. */
+    private fun liftBottomHints() {
+        val b = _binding ?: return
+        val lift = if (askBar != null) askBarSpace() + navInset(b) else 0
+        listOf(b.setDefaultLauncher, b.firstRunTips).forEach { v ->
+            val lp = v.layoutParams as? FrameLayout.LayoutParams ?: return@forEach
+            val margin = 56.dpToPx() + lift
+            if (lp.bottomMargin != margin) {
+                lp.bottomMargin = margin
+                v.layoutParams = lp
+            }
+        }
+    }
+
+    /** Height the ask bar takes above the navigation bar, gap included; 0 when it is off. */
+    private fun askBarSpace(): Int = if (askBar != null) AskBarView.heightPx(requireContext()) + 8.dpToPx() else 0
+
+    /**
+     * YOK-030: the optional bar at the bottom of home. Off = nothing is added, home is as before.
+     * A tap opens the command palette with the keyboard up; swipes on it still run the home
+     * gestures; the mic dictates into it and then opens the palette with the text.
+     */
+    private fun renderAskBar() {
+        val b = _binding ?: return
+        val enabled = AskBarPrefs(requireContext()).enabled
+        if (askBar != null && enabled && !listening) {
+            // Rebuilt so a theme change reaches it.
+            (askBar?.parent as? ViewGroup)?.removeView(askBar)
+            askBar = null
+        }
+        if (!enabled) {
+            stopDictation()
+            askBar?.let { (it.parent as? ViewGroup)?.removeView(it) }
+            askBar = null
+            return
+        }
+        if (askBar != null) return
+        val bar = AskBarView(requireContext())
+        bar.setOnTouchListener(object : ViewSwipeTouchListener(requireContext(), bar) {
+            override fun onGesture(trigger: Trigger) {
+                super.onGesture(trigger)
+                runGesture(trigger)
+            }
+
+            override fun onClick(view: View) {
+                super.onClick(view)
+                openPalette("")
+            }
+        })
+        // Fires only for d-pad/accessibility; touch is consumed by the swipe listener above.
+        bar.setOnClickListener { openPalette("") }
+        bar.mic.setOnClickListener { toggleDictation() }
+        val navInset = navInset(b)
+        val side = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 74 else 24
+        val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
+        lp.marginStart = side.dpToPx()
+        lp.marginEnd = side.dpToPx()
+        lp.bottomMargin = navInset + 8.dpToPx()
+        b.mainLayout.addView(bar, lp)
+        askBar = bar
+    }
+
+    private fun openPalette(query: String) {
+        stopDictation()
+        askBar?.showText("")
+        CommandPalette.open(findNavController(), query.trim(), forceKeyboard = true)
+    }
+
+    /** Same recognizer as voice quick-add (YOK-013): partial text shows in the bar, the final text opens the palette. */
+    private fun toggleDictation() {
+        val ctx = context ?: return
+        if (listening) {
+            dictation?.stop()
+            return
+        }
+        val d = dictation ?: Dictation(
+            ctx,
+            onText = { text, final ->
+                askBar?.showText(text)
+                if (final && _binding != null && isResumed) openPalette(text)
+            },
+            onListening = { on ->
+                listening = on
+                askBar?.setListening(on)
+            },
+            onError = { code ->
+                askBar?.showText("")
+                if (code == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+                else if (code != SpeechRecognizer.ERROR_NO_MATCH && code != SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+                    context?.showToast(getString(R.string.quick_add_dictation_failed, code))
+            },
+        ).also { dictation = it }
+        val language = com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).dictationLanguage
+        if (!d.available) {
+            runCatching { dictationDialog.launch(Dictation.dialogIntent(language)) }
+                .onFailure { ctx.showToast(R.string.quick_add_no_dictation) }
+            return
+        }
+        if (ctx.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+            return
+        }
+        d.start(language)
+    }
+
+    private fun stopDictation() {
+        if (listening) dictation?.stop()
+        listening = false
+        askBar?.setListening(false)
     }
 
     private fun iconRowTap(slot: IconSlot) = launchApp(slot.packageName, slot.packageName, slot.activityClassName, slot.user)
@@ -1046,6 +1217,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         glanceHandler.removeCallbacks(glanceTick)
         if (::iconPrefs.isInitialized) iconPrefs.unregisterListener(iconPrefsListener)
         iconRow = null
+        dictation?.destroy()
+        dictation = null
+        listening = false
+        askBar = null
+        navInsetPx = -1
         mainTouchListener = null
         notes?.release()
         notes = null

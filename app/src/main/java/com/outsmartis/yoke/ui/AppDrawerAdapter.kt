@@ -80,6 +80,9 @@ class AppDrawerAdapter(
     /** Builds the single row shown when a plain query matches nothing, e.g. "Search the web for ...". */
     var noMatchRow: ((String) -> AppModel?)? = null
 
+    /** YOK-030: the "Ask …" row, last of all; gets the query and how many apps and links matched. */
+    var askRow: ((String, Int) -> AppModel?)? = null
+
     /** Extra rows (cards, notes, contacts, settings) shown below the app and link matches for a plain query. */
     var extraRows: ((String) -> List<AppModel>)? = null
     /** False while the extra search indexes are still loading; auto-launch waits until they are in. */
@@ -194,6 +197,9 @@ class AppDrawerAdapter(
                     if (baseCount == 0 && lastQuery.isNotBlank()) {
                         noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
                     }
+                    if (lastQuery.isNotBlank()) {
+                        askRow?.invoke(lastQuery, baseCount)?.let { row -> items = (items + row).toMutableList() }
+                    }
                     appFilteredList = items
                     submitList(appFilteredList) {
                         autoLaunch()
@@ -299,8 +305,37 @@ class AppDrawerAdapter(
                 if (appModel is AppModel.Link) append(" ↗")
             }
             val detail = (appModel as? AppModel.PaletteResult)?.detail
-            appTitle.text = if (detail.isNullOrEmpty()) title else SpannableString("$title  $detail").apply {
-                setSpan(RelativeSizeSpan(0.65f), title.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (appModel is AppModel.PaletteResult) {
+                // Single line: shorten only the query (or the whole label for rows without one) at the end,
+                // and keep a capped suffix (agent name, kind) visible.
+                val paint = android.text.TextPaint(appTitle.paint)
+                val rowWidth = if (appTitle.width > 0) appTitle.width else root.resources.displayMetrics.widthPixels
+                // small margin: measureText and the laid-out line can differ by a pixel, which would wrap the suffix
+                val avail = (rowWidth - appTitle.paddingLeft - appTitle.paddingRight - 4 * root.resources.displayMetrics.density)
+                    .coerceAtLeast(0f)
+                val end = android.text.TextUtils.TruncateAt.END
+                val suffixPaint = android.text.TextPaint(paint).apply { textSize = paint.textSize * 0.65f }
+                var suffix = if (detail.isNullOrEmpty()) "" else "  $detail"
+                if (suffix.isNotEmpty()) {
+                    // never let the suffix push the title out: at most 40% of the row
+                    suffix = android.text.TextUtils.ellipsize(suffix, suffixPaint, avail * 0.4f, end).toString()
+                }
+                val titleSpace = (avail - suffixPaint.measureText(suffix)).coerceAtLeast(0f)
+                val q = appModel.query
+                val at = if (q.isNullOrEmpty()) -1 else title.indexOf(q)
+                val fitted = if (at >= 0) {
+                    val head = title.substring(0, at)
+                    val tail = title.substring(at + q!!.length)
+                    val room = titleSpace - paint.measureText(head) - paint.measureText(tail)
+                    head + android.text.TextUtils.ellipsize(q, paint, room.coerceAtLeast(0f), end) + tail
+                } else {
+                    android.text.TextUtils.ellipsize(title, paint, titleSpace, end).toString()
+                }
+                appTitle.text = if (suffix.isEmpty()) fitted else SpannableString(fitted + suffix).apply {
+                    setSpan(RelativeSizeSpan(0.65f), fitted.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            } else {
+                appTitle.text = title
             }
             appTitle.gravity = appLabelGravity
             otherProfileIndicator.isVisible = appModel.user != myUserHandle

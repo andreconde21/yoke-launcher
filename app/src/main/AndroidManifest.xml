@@ -48,6 +48,13 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="obsidian" />
         </intent>
+        <!--YOK-030: the Ask row finds the default assistant and whether it takes a text query-->
+        <intent>
+            <action android:name="android.intent.action.ASSIST" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.WEB_SEARCH" />
+        </intent>
     </queries>
 
     <application
