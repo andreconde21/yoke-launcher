@@ -157,4 +157,15 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
+
+    <!-- YOK-037: the lock screen sits over the system keyguard, so nothing may show through it:
+         opaque window, no translucent flag, no wallpaper layer. -->
+    <style name="LockScreenTheme" parent="AppTheme">
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">?android:attr/colorBackground</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+    </style>
+
 </resources>

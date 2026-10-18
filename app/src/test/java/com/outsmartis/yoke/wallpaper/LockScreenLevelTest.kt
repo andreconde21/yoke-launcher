@@ -14,7 +14,7 @@ class LockScreenLevelTest {
 
     @Test
     fun higherLevelsAddTheLockScreenToHomeOnly() {
-        for (level in listOf(LockScreenLevel.WALLPAPER, LockScreenLevel.WALLPAPER_SYSTEM, LockScreenLevel.YOKE)) {
+        for (level in listOf(LockScreenLevel.WALLPAPER, LockScreenLevel.WALLPAPER_SYSTEM)) {
             assertEquals(WallpaperTarget.BOTH, level.effectiveTarget(WallpaperTarget.HOME))
             assertEquals(WallpaperTarget.LOCK, level.effectiveTarget(WallpaperTarget.LOCK))
             assertEquals(WallpaperTarget.BOTH, level.effectiveTarget(WallpaperTarget.BOTH))
@@ -29,6 +29,9 @@ class LockScreenLevelTest {
         assertTrue(LockScreenLevel.WALLPAPER_SYSTEM.includesWallpaper)
         assertTrue(LockScreenLevel.WALLPAPER_SYSTEM.includesSystem)
         assertFalse(LockScreenLevel.YOKE.includesSystem)
+        // YOKE draws its own opaque screen: it does not touch the system wallpaper
+        assertFalse(LockScreenLevel.YOKE.includesWallpaper)
+        assertEquals(WallpaperTarget.HOME, LockScreenLevel.YOKE.effectiveTarget(WallpaperTarget.HOME))
     }
 
     @Test

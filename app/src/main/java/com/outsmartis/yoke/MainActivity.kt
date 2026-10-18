@@ -158,6 +158,8 @@ class MainActivity : AppCompatActivity() {
         isResumed = true
         // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
         com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
+        // YOK-037: (re)start the lock screen service from the foreground, where Android allows it
+        com.outsmartis.yoke.lockscreen.LockScreenController.sync(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }
