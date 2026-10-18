@@ -71,7 +71,7 @@ object ThemeStore {
     /** For a "Next theme" gesture: select the next theme and repaint [activity]. */
     fun cycleNext(activity: Activity) {
         selectNext(activity)
-        activity.recreate()
+        ThemeFade.recreate(activity)
     }
 
     /**
