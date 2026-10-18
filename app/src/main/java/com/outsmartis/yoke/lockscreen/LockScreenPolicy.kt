@@ -7,7 +7,7 @@ package com.outsmartis.yoke.lockscreen
 object LockScreenPolicy {
 
     /** Why the screen is (not) put up when the display turns off; logged for the device spike. */
-    enum class Decision { SHOW, OFF, BEFORE_FIRST_UNLOCK, CALL, URGENT_SOUND }
+    enum class Decision { SHOW, OFF, NO_LAUNCH_PATH, BEFORE_FIRST_UNLOCK, SCREEN_ON, CALL, URGENT_SOUND, NOT_LOCKED, OTHER_ACTIVITY }
 
     enum class Unlock { DISMISS_KEYGUARD, FINISH }
 
@@ -30,6 +30,9 @@ object LockScreenPolicy {
     const val VISIBILITY_PRIVATE = 0
     const val VISIBILITY_PUBLIC = 1
 
+    /** NotificationChannel.getLockscreenVisibility() when the user and the app set nothing. */
+    const val VISIBILITY_NO_OVERRIDE = -1000
+
     // android.media.session.PlaybackState states
     const val STATE_NONE = 0
     const val STATE_STOPPED = 1
@@ -44,17 +47,57 @@ object LockScreenPolicy {
     fun urgentSound(usages: Collection<Int>): Boolean =
         usages.any { it == USAGE_ALARM || it == USAGE_NOTIFICATION_RINGTONE || it == USAGE_VOICE_COMMUNICATION }
 
-    fun decide(enabled: Boolean, userUnlocked: Boolean, audioMode: Int, playingUsages: Collection<Int>): Decision = when {
+    /**
+     * Whether to put the screen up now. Re-run right before every launch and again in the
+     * activity's onCreate, since the world moves between the screen-off broadcast and the start.
+     *
+     * @param launchPathOpen the accessibility service is connected (the only launch path)
+     * @param interactive the display is on (PowerManager.isInteractive)
+     * @param lockPending the keyguard is locked, or the device is secure so it will lock on screen-off
+     * @param otherActivityInFront a known show-when-locked app (camera, emergency dialer) is in front
+     */
+    fun decide(
+        enabled: Boolean,
+        launchPathOpen: Boolean,
+        userUnlocked: Boolean,
+        audioMode: Int,
+        playingUsages: Collection<Int>,
+        interactive: Boolean,
+        lockPending: Boolean,
+        otherActivityInFront: Boolean,
+    ): Decision = when {
         !enabled -> Decision.OFF
+        !launchPathOpen -> Decision.NO_LAUNCH_PATH
         !userUnlocked -> Decision.BEFORE_FIRST_UNLOCK
+        interactive -> Decision.SCREEN_ON
         inCall(audioMode) -> Decision.CALL
         urgentSound(playingUsages) -> Decision.URGENT_SOUND
+        !lockPending -> Decision.NOT_LOCKED
+        otherActivityInFront -> Decision.OTHER_ACTIVITY
         else -> Decision.SHOW
     }
 
-    /** The direct start did not bring the screen up: post the full-screen notification instead, if allowed. */
-    fun needsFullScreenFallback(activityUp: Boolean, canUseFullScreenIntent: Boolean): Boolean =
-        !activityUp && canUseFullScreenIntent
+    /** The service only runs when it could show something: on, and a launch path is open. */
+    fun shouldRunService(enabled: Boolean, launchPathOpen: Boolean): Boolean = enabled && launchPathOpen
+
+    /**
+     * The activity may stay: the display is off, and our launch carries the elapsedRealtime of the
+     * screen-off it answers ([offAt], 0 when absent, e.g. a relaunch from recents) with no screen-on
+     * ([screenOnAt]) since. Rejects the double-press-camera race where the screen woke first.
+     */
+    fun acceptCreate(interactive: Boolean, offAt: Long, screenOnAt: Long): Boolean =
+        !interactive && offAt > 0L && screenOnAt <= offAt
+
+    /** Foreground package is a known show-when-locked app (secure camera, emergency dialer) that must not be covered. */
+    fun isProtectedForeground(foreground: String?, protectedPackages: Set<String>): Boolean =
+        foreground != null && foreground in protectedPackages
+
+    /**
+     * What the lock screen may show of a notification: the app's own visibility, lowered by the
+     * user's per-channel override when there is one (secret < private < public).
+     */
+    fun effectiveVisibility(notificationVisibility: Int, channelOverride: Int): Int =
+        if (channelOverride == VISIBILITY_NO_OVERRIDE) notificationVisibility else minOf(notificationVisibility, channelOverride)
 
     /** Locked (secure or swipe): the system dismisses it, PIN and biometrics stay its own. Not locked: just leave. */
     fun onSwipeUp(keyguardLocked: Boolean): Unlock = if (keyguardLocked) Unlock.DISMISS_KEYGUARD else Unlock.FINISH

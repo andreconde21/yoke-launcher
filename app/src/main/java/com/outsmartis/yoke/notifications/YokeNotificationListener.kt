@@ -53,6 +53,9 @@ object NotificationStore {
         runCatching { service?.activeNotifications?.firstOrNull { it.key == key } }.getOrNull()
 
     fun mediaController(): MediaController? = service?.currentController()
+
+    /** The user's per-channel lock screen visibility for a notification, or -1000 (no override) when unknown. */
+    fun channelLockVisibility(key: String): Int = service?.channelLockVisibility(key) ?: -1000
 }
 
 class YokeNotificationListener : NotificationListenerService() {
@@ -85,6 +88,13 @@ class YokeNotificationListener : NotificationListenerService() {
         } else emptyList()
         val playing = if (prefs.nowPlaying) currentController()?.toNowPlaying() else null
         NotificationStore.publish(entries, playing)
+    }
+
+    fun channelLockVisibility(key: String): Int = try {
+        val ranking = Ranking()
+        if (currentRanking.getRanking(key, ranking)) ranking.channel?.lockscreenVisibility ?: -1000 else -1000
+    } catch (e: RuntimeException) {
+        -1000
     }
 
     /** The active media session, preferring one that is playing. Needs Notification access. */

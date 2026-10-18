@@ -59,6 +59,7 @@ class MyAccessibilityService : AccessibilityService() {
             // Smart grayscale: which app is in front. Only the package name is read. The focused app
             // window decides, so floating panels and pop-ups from other packages don't flip the screen.
             val foreground = focusedAppPackage() ?: event.packageName?.toString()
+            foregroundPackage = foreground
             GrayscaleController.evaluate(applicationContext, foreground)
             com.outsmartis.yoke.limits.LimitGate.onForeground(applicationContext, foreground)
             return
@@ -113,6 +114,11 @@ class MyAccessibilityService : AccessibilityService() {
         /** The connected service, used by gesture actions that need a global action (lock, recents). */
         @Volatile
         var instance: MyAccessibilityService? = null
+            private set
+
+        /** Package last seen in front (null when unknown); the Yoke lock screen won't cover the camera or emergency dialer. */
+        @Volatile
+        var foregroundPackage: String? = null
             private set
     }
 }

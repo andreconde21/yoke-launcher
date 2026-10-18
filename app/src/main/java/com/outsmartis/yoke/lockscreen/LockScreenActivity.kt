@@ -1,7 +1,6 @@
 package com.outsmartis.yoke.lockscreen
 
 import android.app.KeyguardManager
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -58,13 +57,16 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        live++
+        if (!allowed()) {
+            // onDestroy follows straight away; nothing below ran
+            finish()
+            return
+        }
         showOverKeyguard()
         binding = ActivityLockScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
         ThemeApplier.apply(binding.root, surface = true)
-        getSystemService(NotificationManager::class.java)?.cancel(LockScreenController.NOTIFY_LAUNCH)
         ContextCompat.registerReceiver(
             this, unlockedReceiver, IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED,
         )
@@ -95,7 +97,21 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        getSystemService(NotificationManager::class.java)?.cancel(LockScreenController.NOTIFY_LAUNCH)
+        setIntent(intent)
+        if (!allowed()) finish()
+    }
+
+    /**
+     * Still right to be up: the screen is off, this start answers a screen-off with no screen-on
+     * since (not a stale or recents relaunch, not the double-press camera racing us), and the
+     * launch rules (call, alarm, lock, camera in front) still say show.
+     */
+    private fun allowed(): Boolean {
+        val offAt = intent?.getLongExtra(EXTRA_OFF_AT, 0L) ?: 0L
+        val ok = LockScreenPolicy.acceptCreate(interactive(), offAt, LockScreenController.screenOnAt) &&
+            LockScreenController.decide(this) == LockScreenPolicy.Decision.SHOW
+        if (!ok) android.util.Log.d(LockScreenController.TAG, "activity not kept up")
+        return ok
     }
 
     override fun onStart() {
@@ -118,7 +134,6 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        live--
         unbindMedia()
         main.removeCallbacksAndMessages(null)
         try {
@@ -178,8 +193,12 @@ class LockScreenActivity : AppCompatActivity() {
         val notes = NotificationPrefs(this)
         val showOnLock = LockScreenController.systemShowsNotificationsOnLock(this)
         val allowPrivate = LockScreenController.systemAllowsPrivateOnLock(this)
+        // The app's own visibility, lowered by the user's per-channel lock screen setting
         val visibility = { e: NoteEntry ->
-            NotificationStore.find(e.key)?.notification?.visibility ?: LockScreenPolicy.VISIBILITY_PRIVATE
+            LockScreenPolicy.effectiveVisibility(
+                NotificationStore.find(e.key)?.notification?.visibility ?: LockScreenPolicy.VISIBILITY_PRIVATE,
+                NotificationStore.channelLockVisibility(e.key),
+            )
         }
         val shown = entries.orEmpty().filter { LockScreenPolicy.shownOnLock(visibility(it), showOnLock) }
         val lines = NotificationLogic.group(shown, notes.maxLines).map { group ->
@@ -228,11 +247,11 @@ class LockScreenActivity : AppCompatActivity() {
         private const val PLAY_GLYPH = "▶"
         private const val PAUSE_GLYPH = "❚❚"
 
-        /** Instances alive (main thread only); the controller checks it to see whether a start got through. */
-        private var live = 0
-        val alive: Boolean get() = live > 0
+        /** elapsedRealtime of the screen-off this start answers; a start without it is refused. */
+        private const val EXTRA_OFF_AT = "off_at"
 
-        fun intent(context: Context): Intent = Intent(context, LockScreenActivity::class.java)
+        fun intent(context: Context, offAt: Long): Intent = Intent(context, LockScreenActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            .putExtra(EXTRA_OFF_AT, offAt)
     }
 }

@@ -146,7 +146,12 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.webLinks.text = prefs.links.size.toString()
         com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
         binding.assistantRow.text = AssistantDialog.summary(ctx)
-        binding.lockScreenYokeRow.setText(if (com.outsmartis.yoke.lockscreen.LockScreenController.isEnabled(ctx)) R.string.on else R.string.off) // YOK-037
+        val lockScreen = com.outsmartis.yoke.lockscreen.LockScreenController
+        binding.lockScreenYokeRow.setText(when { // YOK-037
+            !lockScreen.isEnabled(ctx) -> R.string.off
+            !lockScreen.launchPathOpen() -> R.string.lock_screen_yoke_needs_accessibility
+            else -> R.string.on
+        })
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
         val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
@@ -702,13 +707,13 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         } else checkLockScreenLaunch()
     }
 
-    // Neither the accessibility service nor full-screen notifications: Android will likely block the start
+    // The only launch path is the accessibility service: without it nothing can open over the lock screen
     private fun checkLockScreenLaunch() {
         val ctx = requireContext()
         val lock = com.outsmartis.yoke.lockscreen.LockScreenController
-        if (!lock.isEnabled(ctx) || lock.canLaunch(ctx)) return
+        if (!lock.isEnabled(ctx) || lock.launchPathOpen()) return
         ctx.showToast(getString(R.string.lock_screen_yoke_needs_launch), Toast.LENGTH_LONG)
-        lock.fullScreenSettingsIntent(ctx)?.let { runCatching { startActivity(it) } }
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun populateScreenTimeOnOff() {

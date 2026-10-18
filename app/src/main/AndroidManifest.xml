@@ -32,14 +32,20 @@
     <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
     <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
     <!-- YOK-037: Yoke lock screen (opt-in). A foreground service hears the screen turning off;
-         the full-screen notification is the fallback launch when Android blocks a direct start -->
+         it is launched from the accessibility service (no full-screen-intent: that wakes the screen) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- /YOK-037 -->
 
     <queries>
+        <!--Yoke lock screen: find the secure camera so it is never covered-->
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA_SECURE" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+        </intent>
         <!--Voice quick-add: the phone's speech recognition service, or its dictation dialog-->
         <intent>
             <action android:name="android.speech.RecognitionService" />

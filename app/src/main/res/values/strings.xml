@@ -470,11 +470,11 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="lock_screen_yoke_setting">Yoke lock screen</string>
     <string name="lock_screen_yoke_running">Yoke lock screen is on</string>
     <string name="lock_screen_yoke_service_channel">Lock screen</string>
-    <string name="lock_screen_yoke_launch_channel">Lock screen launch</string>
     <string name="lock_screen_yoke_unlock_hint">Swipe up to unlock</string>
     <string name="lock_screen_yoke_prev">Previous</string>
     <string name="lock_screen_yoke_play_pause">Play or pause</string>
     <string name="lock_screen_yoke_next">Next</string>
-    <string name="lock_screen_yoke_needs_launch">Android may block the Yoke lock screen from opening. Turn on Yoke\'s accessibility service, or allow its full-screen notifications.</string>
+    <string name="lock_screen_yoke_needs_launch">The Yoke lock screen needs Yoke\'s accessibility service. Turn it on in accessibility settings.</string>
+    <string name="lock_screen_yoke_needs_accessibility">Needs accessibility</string>
     <!-- /YOK-037 -->
 </resources>

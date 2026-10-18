@@ -27,7 +27,10 @@ class LockScreenService : Service() {
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_SCREEN_OFF) LockScreenController.onScreenOff(context)
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> LockScreenController.onScreenOff(context)
+                Intent.ACTION_SCREEN_ON -> LockScreenController.onScreenOn()
+            }
         }
     }
     private var registered = false
@@ -35,7 +38,7 @@ class LockScreenService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!LockScreenPrefs(this).enabled) {
+        if (!LockScreenPolicy.shouldRunService(LockScreenPrefs(this).enabled, LockScreenController.launchPathOpen())) {
             stopSelf()
             return START_NOT_STICKY
         }
@@ -59,7 +62,7 @@ class LockScreenService : Service() {
         }
         if (!registered) {
             ContextCompat.registerReceiver(
-                this, receiver, IntentFilter(Intent.ACTION_SCREEN_OFF), ContextCompat.RECEIVER_NOT_EXPORTED,
+                this, receiver, IntentFilter(Intent.ACTION_SCREEN_OFF).apply { addAction(Intent.ACTION_SCREEN_ON) }, ContextCompat.RECEIVER_NOT_EXPORTED,
             )
             registered = true
         }

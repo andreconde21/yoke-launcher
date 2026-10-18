@@ -1,20 +1,18 @@
 package com.outsmartis.yoke.lockscreen
 
-import android.annotation.SuppressLint
+import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
+import android.os.PowerManager
+import android.os.SystemClock
 import android.os.UserManager
+import android.provider.MediaStore
 import android.provider.Settings
+import android.telecom.TelecomManager
 import android.util.Log
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.helper.MyAccessibilityService
@@ -24,24 +22,38 @@ import com.outsmartis.yoke.helper.MyAccessibilityService
  * display turns off, [LockScreenService] calls [onScreenOff], which puts [LockScreenActivity] up
  * so it is already there at wake. Unlocking stays the system's (requestDismissKeyguard).
  *
- * Starting an activity from the background is blocked on Android 10+, so the start goes, in order:
- * from the accessibility service when it is connected (a system-bound accessibility service is an
- * exemption), else a plain start (allowed if another exemption applies), and when the screen has
- * not come up shortly after, a silent full-screen-intent notification, which the system launches
- * directly while the screen is off.
+ * Starting an activity from the background is blocked on Android 10+; the one path used is a
+ * start from the connected accessibility service (a system-bound accessibility service is an
+ * exemption). There is deliberately no full-screen-intent fallback: the system wakes the screen
+ * for those, which would loop (screen off, wake, screen off).
+ *
+ * Every launch re-checks [decide] right before the start, and the activity re-checks in onCreate.
+ * Known limit: whether another show-when-locked app (camera, emergency dialer) is in front is
+ * judged from the accessibility service's last foreground package and a fixed package list, so an
+ * unlisted app could still be covered; it leaves on its own when the screen is on and it stops.
  */
 object LockScreenController {
 
     const val TAG = "YokeLock"
     const val CHANNEL_SERVICE = "yoke_lock_service"
-    const val CHANNEL_LAUNCH = "yoke_lock_launch"
     const val NOTIFY_SERVICE = 3701
-    const val NOTIFY_LAUNCH = 3702
-    private const val LAUNCH_CHECK_MS = 800L
 
-    private val main = Handler(Looper.getMainLooper())
+    /** elapsedRealtime of the last screen-on / screen-off broadcast (main thread). */
+    @Volatile var screenOnAt = 0L
+        private set
+    @Volatile var screenOffAt = 0L
+        private set
+
+    // Dialers and emergency UIs that show over the lock screen; the secure camera is added by intent
+    private val EXTRA_PROTECTED = setOf(
+        "com.android.emergency", "com.android.phone", "com.android.dialer", "com.google.android.dialer",
+        "com.samsung.android.dialer", "com.samsung.android.incallui", "com.samsung.android.emergency",
+    )
 
     fun isEnabled(context: Context): Boolean = LockScreenPrefs(context).enabled
+
+    /** The one launch path: the accessibility service is connected. */
+    fun launchPathOpen(): Boolean = MyAccessibilityService.instance != null
 
     /**
      * The on/off switch. Today the temporary Settings row calls it; YOK-036's "Lock screen"
@@ -50,17 +62,17 @@ object LockScreenController {
     fun setEnabled(context: Context, on: Boolean) {
         LockScreenPrefs(context).enabled = on
         sync(context)
-        if (!on) NotificationManagerCompat.from(context).cancel(NOTIFY_LAUNCH)
     }
 
     /**
-     * Starts or stops the service to match the setting. Call from the foreground (Settings, home
-     * resuming): Android 12+ refuses foreground-service starts from the background.
+     * Starts or stops the service to match the setting (and the launch path: with the pref on but
+     * no accessibility service, e.g. after a backup restore, it stays stopped). Call from the
+     * foreground (Settings, home resuming): Android 12+ refuses foreground-service starts from the background.
      */
     fun sync(context: Context) {
         val app = context.applicationContext
         val intent = Intent(app, LockScreenService::class.java)
-        if (!LockScreenPrefs(app).enabled) {
+        if (!LockScreenPolicy.shouldRunService(LockScreenPrefs(app).enabled, launchPathOpen())) {
             app.stopService(intent)
             return
         }
@@ -72,24 +84,25 @@ object LockScreenController {
         }
     }
 
+    fun onScreenOn() {
+        screenOnAt = SystemClock.elapsedRealtime()
+    }
+
     /** The display just turned off. Runs on the main thread (the service's receiver). */
     fun onScreenOff(context: Context) {
         val app = context.applicationContext
+        val offAt = SystemClock.elapsedRealtime()
+        screenOffAt = offAt
         val decision = decide(app)
         if (decision != LockScreenPolicy.Decision.SHOW) {
             Log.d(TAG, "not shown: $decision")
             return
         }
-        startDirect(app)
-        main.postDelayed({
-            val up = LockScreenActivity.alive
-            if (LockScreenPolicy.needsFullScreenFallback(up, canUseFullScreenIntent(app))) {
-                Log.d(TAG, "direct start blocked, posting full-screen intent")
-                postFullScreen(app)
-            } else Log.d(TAG, if (up) "shown by direct start" else "direct start blocked, no full-screen permission")
-        }, LAUNCH_CHECK_MS)
+        // Re-checked at the last moment: a double-press camera or a call can land in between
+        if (!interactive(app)) startDirect(app, offAt) else Log.d(TAG, "not shown: ${LockScreenPolicy.Decision.SCREEN_ON}")
     }
 
+    /** The full launch decision from live state. Also called by the activity's onCreate. */
     fun decide(context: Context): LockScreenPolicy.Decision {
         val audio = context.getSystemService(AudioManager::class.java)
         val usages = try {
@@ -98,78 +111,59 @@ object LockScreenController {
             emptyList()
         }
         val unlocked = context.getSystemService(UserManager::class.java)?.isUserUnlocked ?: false
-        return LockScreenPolicy.decide(isEnabled(context), unlocked, audio?.mode ?: LockScreenPolicy.MODE_NORMAL, usages)
+        val km = context.getSystemService(KeyguardManager::class.java)
+        val lockPending = km != null && (km.isKeyguardLocked || km.isDeviceSecure)
+        return LockScreenPolicy.decide(
+            enabled = isEnabled(context),
+            launchPathOpen = launchPathOpen(),
+            userUnlocked = unlocked,
+            audioMode = audio?.mode ?: LockScreenPolicy.MODE_NORMAL,
+            playingUsages = usages,
+            interactive = interactive(context),
+            lockPending = lockPending,
+            otherActivityInFront = LockScreenPolicy.isProtectedForeground(
+                MyAccessibilityService.foregroundPackage, protectedPackages(context),
+            ),
+        )
     }
 
-    /** At least one launch path is open: the accessibility service, or full-screen notifications. */
-    fun canLaunch(context: Context): Boolean =
-        MyAccessibilityService.instance != null || canUseFullScreenIntent(context)
+    fun interactive(context: Context): Boolean =
+        context.getSystemService(PowerManager::class.java)?.isInteractive ?: true
 
-    /** Notifications allowed and, on Android 14+, the "full-screen notifications" special access. */
-    fun canUseFullScreenIntent(context: Context): Boolean {
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
-        return context.getSystemService(NotificationManager::class.java)?.canUseFullScreenIntent() ?: false
+    /** Packages whose UI shows over the lock screen and must not be covered: the secure camera and dialers. */
+    private fun protectedPackages(context: Context): Set<String> {
+        val found = HashSet(EXTRA_PROTECTED)
+        try {
+            val pm = context.packageManager
+            listOf(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE, MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA).forEach { action ->
+                pm.queryIntentActivities(Intent(action), 0).forEach { found.add(it.activityInfo.packageName) }
+            }
+            context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage?.let { found.add(it) }
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "protected packages", e)
+        }
+        return found
     }
 
-    /** The system screen for the Android 14+ "full-screen notifications" access, or null below 14. */
-    fun fullScreenSettingsIntent(context: Context): Intent? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, android.net.Uri.parse("package:" + context.packageName))
-        } else null
-
-    private fun startDirect(context: Context) {
-        val intent = LockScreenActivity.intent(context)
+    private fun startDirect(context: Context, offAt: Long) {
+        val intent = LockScreenActivity.intent(context, offAt)
         // The system-bound accessibility service exempts the app from the background start block
         val starter: Context = MyAccessibilityService.instance ?: context
         try {
             starter.startActivity(intent)
+            Log.d(TAG, "shown by direct start")
         } catch (e: RuntimeException) {
             Log.w(TAG, "direct start failed", e)
         }
     }
 
-    @SuppressLint("MissingPermission") // checked by canUseFullScreenIntent; SecurityException caught below
-    private fun postFullScreen(context: Context) {
-        ensureChannels(context)
-        val pending = PendingIntent.getActivity(
-            context, 0, LockScreenActivity.intent(context),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val notification = NotificationCompat.Builder(context, CHANNEL_LAUNCH)
-            .setSmallIcon(R.drawable.ic_lock_screen)
-            .setContentTitle(context.getString(R.string.lock_screen_yoke_setting))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setFullScreenIntent(pending, true)
-            .setAutoCancel(true)
-            .setTimeoutAfter(10_000L)
-            .build()
-        try {
-            NotificationManagerCompat.from(context).notify(NOTIFY_LAUNCH, notification)
-        } catch (e: SecurityException) {
-            Log.w(TAG, "no notification permission", e)
-        }
-    }
-
-    /**
-     * The service's quiet channel, and the launch channel: full-screen intents only fire from a
-     * high-importance channel, so it is high but silent and without vibration.
-     */
+    /** The service's quiet notification channel. */
     fun ensureChannels(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_SERVICE, context.getString(R.string.lock_screen_yoke_service_channel), NotificationManager.IMPORTANCE_LOW,
             ).apply { setShowBadge(false) }
-        )
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_LAUNCH, context.getString(R.string.lock_screen_yoke_launch_channel), NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setSound(null, null)
-                enableVibration(false)
-                setShowBadge(false)
-            }
         )
     }
 
