@@ -92,8 +92,10 @@ class LockScreenActivity : AppCompatActivity() {
      */
     private fun makeOpaque() {
         val theme = com.outsmartis.yoke.theme.ThemeStore.current(this)
-        val colour = theme?.background ?: android.graphics.Color.BLACK
         window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+        // No Yoke theme (System default, e-ink): keep the activity theme's own window background, so
+        // the text colours (which follow the same system theme) stay readable on it.
+        val colour = theme?.background ?: return
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(colour or 0xFF000000.toInt()))
         binding.root.setBackgroundColor(colour or 0xFF000000.toInt())
     }

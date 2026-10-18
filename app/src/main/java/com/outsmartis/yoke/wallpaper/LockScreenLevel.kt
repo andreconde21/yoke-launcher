@@ -17,7 +17,8 @@ enum class LockScreenLevel {
     /** Yoke's own lock screen (YOK-037): the level is the on/off switch of its service. */
     YOKE;
 
-    val includesWallpaper: Boolean get() = this != OFF
+    /** [YOKE] draws its own opaque screen, so it neither needs nor rewrites the system lock-screen wallpaper. */
+    val includesWallpaper: Boolean get() = this == WALLPAPER || this == WALLPAPER_SYSTEM
     val includesSystem: Boolean get() = this == WALLPAPER_SYSTEM
 
     /** The target to really write to: the saved [target], with the lock screen added when this level wants it. */
