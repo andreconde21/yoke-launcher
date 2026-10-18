@@ -469,6 +469,7 @@ class AppDrawerFragment : BaseFragment() {
                 AppModel.PaletteResult(
                     id = "web_search",
                     appLabel = getString(R.string.palette_search_web, query),
+                    query = query,
                     run = { requireContext().openUrl(PaletteQuery.webSearchUrl(query)) },
                 )
             }
@@ -511,6 +512,7 @@ class AppDrawerFragment : BaseFragment() {
             else AppModel.PaletteResult(
                 id = "ask",
                 appLabel = getString(R.string.ask_row, query.trim()),
+                query = query.trim(),
                 detail = AskAgents.label(requireContext(), agent),
                 run = { AskAgents.ask(requireActivity(), agent, query) },
             )
