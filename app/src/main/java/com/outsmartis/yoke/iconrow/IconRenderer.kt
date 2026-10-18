@@ -80,7 +80,8 @@ object IconRenderer {
         return bmp
     }
 
-    private fun letterTile(letter: Char, size: Int, color: Int): Bitmap {
+    /** A framed first-letter tile; also used for home apps that have no package (pinned web links). */
+    fun letterTile(letter: Char, size: Int, color: Int): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val stroke = size * 0.06f

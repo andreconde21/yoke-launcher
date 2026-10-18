@@ -133,6 +133,11 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="theme_system_default">System default (light/dark)</string>
     <string name="theme_follow_pc">Follow my Omarchy PC</string>
     <string name="theme_follow_pc_unavailable">Follow my Omarchy PC (not available)</string>
+    <!-- YOK-031 -->
+    <string name="home_app_style_row">App style</string>
+    <string name="home_app_style_text">Text</string>
+    <string name="home_app_style_icon_text">Icon + text</string>
+    <string name="home_app_style_icon">Icon only</string>
     <string name="font_row">Font</string>
     <string name="font_system">System</string>
     <string name="font_jetbrains_mono">JetBrains Mono</string>

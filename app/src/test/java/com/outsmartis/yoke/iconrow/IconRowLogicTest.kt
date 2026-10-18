@@ -109,4 +109,21 @@ class IconRowLogicTest {
         assertTrue(IconMask.isReadable(0.3))
         assertFalse(IconMask.isReadable(0.95))
     }
+
+    // YOK-031
+    @Test
+    fun homeAppStyleDefaultsToTextAndRoundTrips() {
+        assertEquals(HomeAppStyle.TEXT, HomeAppStyle.fromId(null))
+        assertEquals(HomeAppStyle.TEXT, HomeAppStyle.fromId("nonsense"))
+        HomeAppStyle.entries.forEach { assertEquals(it, HomeAppStyle.fromId(it.id)) }
+    }
+
+    @Test
+    fun homeAppStyleSaysWhatItShows() {
+        assertFalse(HomeAppStyle.TEXT.showsIcon)
+        assertTrue(HomeAppStyle.TEXT.showsText)
+        assertTrue(HomeAppStyle.ICON_TEXT.showsIcon && HomeAppStyle.ICON_TEXT.showsText)
+        assertTrue(HomeAppStyle.ICON.showsIcon)
+        assertFalse(HomeAppStyle.ICON.showsText)
+    }
 }

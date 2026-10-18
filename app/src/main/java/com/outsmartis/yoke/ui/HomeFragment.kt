@@ -35,6 +35,7 @@ import com.outsmartis.yoke.iconrow.IconRowPrefs
 import com.outsmartis.yoke.iconrow.IconRowView
 import com.outsmartis.yoke.iconrow.IconSlot
 import com.outsmartis.yoke.iconrow.IconSlots
+import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.details.DetailsSheet
 import com.outsmartis.yoke.details.SheetAction
 import com.outsmartis.yoke.data.Constants
@@ -76,7 +77,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
     private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-        if (_binding != null && isAdded) renderIconRow()
+        if (_binding != null && isAdded) {
+            // YOK-031: the home app style lives in the same prefs; text and icons are redrawn too
+            populateHomeScreen(false)
+        }
     }
 
     private var _binding: FragmentHomeBinding? = null
@@ -356,7 +360,71 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private fun populateHomeScreen(appCountUpdated: Boolean) {
         populateHomeScreenCore(appCountUpdated)
         renderNotifications()
+        renderHomeIcons()
         renderIconRow()
+    }
+
+    // YOK-031
+    /**
+     * Applies the home app style after the labels are set: a round icon (tinted with the theme text colour,
+     * or the original one when the icon row uses original colours) before the name, or instead of it.
+     * Icon only blanks the label, so it keeps a contentDescription and a minimum touch width. Pinned web
+     * links and apps whose icon cannot be loaded get a letter tile. Tap, long press and swipes stay on the TextView.
+     */
+    private fun renderHomeIcons() {
+        val ctx = requireContext()
+        val style = iconPrefs.homeAppStyle
+        val color = ThemeApplier.textColor(ctx, secondary = false)
+        val original = iconPrefs.style == com.outsmartis.yoke.iconrow.IconStyle.ORIGINAL
+        val views = listOf(
+            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
+            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
+        )
+        for ((i, tv) in views.withIndex()) {
+            val slot = i + 1
+            val pkg = prefs.getAppPackage(slot)
+            val name = prefs.getAppName(slot)
+            if (!style.showsIcon || pkg.isEmpty() || tv.visibility != View.VISIBLE) {
+                tv.setCompoundDrawablesRelative(null, null, null, null)
+                tv.compoundDrawablePadding = 0
+                tv.contentDescription = null
+                tv.minWidth = 0
+                tv.hint = getString(R.string.app)
+                continue
+            }
+            val sizePx = (tv.textSize * 1.25f).toInt().coerceAtLeast(16.dpToPx())
+            val userString = prefs.getAppUser(slot)
+            val bmp = if (LinkEntry.idFromPinToken(pkg) != null) null
+            else IconRenderer.render(ctx, IconSlot(pkg, null, userString), iconPrefs.style, sizePx, color)
+            val icon: android.graphics.drawable.Drawable = if (bmp == null) {
+                android.graphics.drawable.BitmapDrawable(
+                    resources, IconRenderer.letterTile(name.firstOrNull() ?: '?', sizePx, color),
+                )
+            } else if (original) {
+                val handle = getUserHandleFromString(ctx, userString)
+                if (handle != android.os.Process.myUserHandle()) {
+                    // Work profile and Private Space apps keep their badge
+                    ctx.packageManager.getUserBadgedIcon(android.graphics.drawable.BitmapDrawable(resources, bmp), handle)
+                } else {
+                    androidx.core.graphics.drawable.RoundedBitmapDrawableFactory.create(resources, bmp).apply { isCircular = true }
+                }
+            } else {
+                android.graphics.drawable.BitmapDrawable(resources, bmp)
+            }
+            icon.setBounds(0, 0, sizePx, sizePx)
+            tv.setCompoundDrawablesRelative(icon, null, null, null)
+            if (style.showsText) {
+                tv.compoundDrawablePadding = 14.dpToPx()
+                tv.contentDescription = null
+                tv.minWidth = 0
+            } else {
+                tv.text = ""
+                tv.hint = null
+                tv.compoundDrawablePadding = 0
+                tv.contentDescription = name
+                tv.minWidth = 48.dpToPx()
+            }
+        }
     }
 
     /**

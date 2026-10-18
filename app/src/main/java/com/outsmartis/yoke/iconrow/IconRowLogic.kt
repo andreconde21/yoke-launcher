@@ -14,6 +14,18 @@ enum class IconStyle(val id: String) {
     }
 }
 
+/** How the home screen apps are drawn (YOK-031). Stored by [id] in the icon row prefs. */
+enum class HomeAppStyle(val id: String) {
+    TEXT("text"), ICON_TEXT("icon_text"), ICON("icon");
+
+    val showsIcon get() = this != TEXT
+    val showsText get() = this != ICON
+
+    companion object {
+        fun fromId(id: String?) = entries.firstOrNull { it.id == id } ?: TEXT
+    }
+}
+
 enum class IconSize(val id: String, val dp: Int) {
     SMALL("small", 26), MEDIUM("medium", 32), LARGE("large", 42);
 
