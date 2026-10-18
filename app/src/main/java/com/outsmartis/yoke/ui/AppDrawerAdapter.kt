@@ -80,6 +80,9 @@ class AppDrawerAdapter(
     /** Builds the single row shown when a plain query matches nothing, e.g. "Search the web for ...". */
     var noMatchRow: ((String) -> AppModel?)? = null
 
+    /** YOK-030: the "Ask …" row, last of all; gets the query and how many apps and links matched. */
+    var askRow: ((String, Int) -> AppModel?)? = null
+
     /** Extra rows (cards, notes, contacts, settings) shown below the app and link matches for a plain query. */
     var extraRows: ((String) -> List<AppModel>)? = null
     /** False while the extra search indexes are still loading; auto-launch waits until they are in. */
@@ -193,6 +196,9 @@ class AppDrawerAdapter(
                     if (extras.isNotEmpty()) items = (items + extras).toMutableList()
                     if (baseCount == 0 && lastQuery.isNotBlank()) {
                         noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
+                    }
+                    if (lastQuery.isNotBlank()) {
+                        askRow?.invoke(lastQuery, baseCount)?.let { row -> items = (items + row).toMutableList() }
                     }
                     appFilteredList = items
                     submitList(appFilteredList) {
