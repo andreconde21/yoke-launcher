@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import com.outsmartis.yoke.R
-import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.backup.BackupException
 import com.outsmartis.yoke.backup.VaultBackup
 import com.outsmartis.yoke.backup.YokeBackup
@@ -16,6 +15,7 @@ import com.outsmartis.yoke.databinding.FragmentBackupBinding
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.theme.ThemeFade
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

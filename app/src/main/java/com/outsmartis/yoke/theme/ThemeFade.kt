@@ -8,6 +8,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.outsmartis.yoke.helper.isEinkDisplay
@@ -53,20 +54,32 @@ object ThemeFade {
         if (canFade(duration, showsWallpaper(activity))) {
             pending = snapshot(activity)?.let { Snapshot(it, duration, SystemClock.uptimeMillis()) }
             // If the new activity never reveals it (finished, crashed), do not keep the bitmap around.
-            if (pending != null) handler.postDelayed(::dropPending, SNAPSHOT_MAX_AGE_MS)
+            if (pending != null) {
+                handler.removeCallbacks(dropRunnable)
+                handler.postDelayed(dropRunnable, SNAPSHOT_MAX_AGE_MS)
+            }
         }
         activity.recreate()
     }
 
-    private val handler = Handler(Looper.getMainLooper())
+    // Lazy: the pure helpers above are unit-tested on the JVM, where Looper is not available.
+    private val handler by lazy { Handler(Looper.getMainLooper()) }
+
+    private val dropRunnable = Runnable { dropPending() }
 
     private fun dropPending() {
         pending?.bitmap?.recycle()
         pending = null
     }
 
+    /**
+     * Callers have already saved the new theme, so the prefs describe the NEW window; the window
+     * still alive here is the OLD one, and its flag says whether it shows the wallpaper. Either one
+     * showing it rules the fade out.
+     */
     private fun showsWallpaper(activity: Activity): Boolean =
-        ThemeStore.current(activity) == null || WallpaperPrefs(activity).imageChoice != null
+        (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER) != 0 ||
+            ThemeStore.current(activity) == null || WallpaperPrefs(activity).imageChoice != null
 
     /** Call from onCreate after setContentView. */
     fun reveal(activity: Activity) {
