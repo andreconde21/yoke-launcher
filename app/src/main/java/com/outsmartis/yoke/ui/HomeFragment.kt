@@ -108,6 +108,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         appsBasePaddingBottom = binding.homeAppsLayout.paddingBottom
         iconPrefs.registerListener(iconPrefsListener)
         keepAppsBelowTopBlock()
+        settleFirstLayout()
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
         } ?: throw Exception("Invalid Activity")
@@ -913,10 +914,24 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.dateTimeLayout.addOnLayoutChangeListener { block, _, _, _, _, _, _, _, _ ->
             val apps = _binding?.homeAppsLayout ?: return@addOnLayoutChangeListener
             val wanted = if (block.visibility == View.VISIBLE) maxOf(minTop, block.bottom + 16.dpToPx()) else minTop
-            if (apps.paddingTop != wanted) apps.post {
-                apps.setPadding(apps.paddingLeft, wanted, apps.paddingRight, apps.paddingBottom)
-            }
+            // Applied in the same traversal (the view root re-lays out before drawing), not posted:
+            // a posted change showed one frame of apps over the glance card.
+            if (apps.paddingTop != wanted) apps.setPadding(apps.paddingLeft, wanted, apps.paddingRight, apps.paddingBottom)
         }
+    }
+
+    /**
+     * mainLayout animates layout changes, so on a fresh home (recreate after a theme change) the glance
+     * block fading in and the apps sliding below it played out as a visible jump. Suspend that
+     * animation while the first content arrives, then restore it for later changes (2.5 s covers a typical weather/agenda refresh).
+     */
+    private fun settleFirstLayout() {
+        val main = binding.mainLayout
+        val transition = main.layoutTransition ?: return
+        main.layoutTransition = null
+        // weather and agenda arrive from network/vault callbacks, so wait longer than one frame pass;
+        // restore on the same view we suspended (a recreated view must keep its own transition)
+        main.postDelayed({ main.layoutTransition = transition }, 2500)
     }
 
     override fun onDestroyView() {

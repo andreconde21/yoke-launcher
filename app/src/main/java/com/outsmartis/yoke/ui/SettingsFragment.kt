@@ -30,6 +30,7 @@ import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.asTextField
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.theme.ThemePrefs
 import com.outsmartis.yoke.theme.ThemeStore
@@ -563,7 +564,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         pendingTextSizeScale = -1f
         val activity = activity ?: return
         if (activity.isChangingConfigurations.not())
-            activity.recreate()
+            ThemeFade.recreate(activity)
     }
 
     private fun toggleKeyboardText() {
@@ -585,7 +586,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun setAppTheme(theme: Int) {
         if (AppCompatDelegate.getDefaultNightMode() == theme) return
-        requireActivity().recreate()
+        ThemeFade.recreate(requireActivity())
     }
 
     private fun populateWallpaper() {
@@ -666,14 +667,14 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun toggleBoldFont() {
         prefs.boldFont = !prefs.boldFont
         populateBoldFont()
-        requireActivity().recreate()
+        ThemeFade.recreate(requireActivity())
     }
 
     private fun toggleFont() {
         val themePrefs = ThemePrefs(requireContext())
         themePrefs.jetBrainsMono = !themePrefs.jetBrainsMono
         populateFont()
-        requireActivity().recreate()
+        ThemeFade.recreate(requireActivity())
     }
 
     private fun populateFont() {
