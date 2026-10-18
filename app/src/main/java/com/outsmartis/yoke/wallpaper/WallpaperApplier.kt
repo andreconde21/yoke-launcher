@@ -125,8 +125,11 @@ object WallpaperApplier {
         val target = prefs.effectiveTarget
         val system = target != WallpaperTarget.LOCK
         val lock = target != WallpaperTarget.HOME
-        (!system || WallpaperLogic.mayOverwrite(prefs.systemId, wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM))) &&
-            (!lock || WallpaperLogic.mayOverwrite(prefs.lockId, wm.getWallpaperId(WallpaperManager.FLAG_LOCK)))
+        WallpaperLogic.ownsTarget(
+            system, lock,
+            prefs.systemId, if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0,
+            prefs.lockId, if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0,
+        )
     } catch (_: Exception) {
         false
     }

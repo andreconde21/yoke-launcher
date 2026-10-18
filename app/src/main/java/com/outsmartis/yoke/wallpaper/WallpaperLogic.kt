@@ -36,6 +36,24 @@ object WallpaperLogic {
     }
 
     /**
+     * Do the wallpapers Yoke writes ([writesSystem], [writesLock]) still carry the ids it stored? When
+     * one wallpaper serves both screens Android reports lock id -1: the lock then follows the system
+     * wallpaper and only the system id decides. A lock-only write has no system id to lean on, so an
+     * unknown current lock id there means someone else replaced it.
+     */
+    fun ownsTarget(
+        writesSystem: Boolean, writesLock: Boolean,
+        storedSystem: Int, currentSystem: Int, storedLock: Int, currentLock: Int,
+    ): Boolean {
+        if (writesSystem && !mayOverwrite(storedSystem, currentSystem)) return false
+        if (!writesLock) return true
+        return when {
+            currentLock > 0 -> storedLock <= 0 || storedLock == currentLock
+            else -> writesSystem
+        }
+    }
+
+    /**
      * Only a wallpaper Yoke itself applied from an Omarchy background follows the theme; anything the
      * user set outside Yoke ([applied] false) is never touched. The new theme's first background is used
      * (file names like omarchy.webp repeat across themes with different images).
