@@ -81,6 +81,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var viewModel: MainViewModel
     private var mainTouchListener: OnSwipeTouchListener? = null
     private var notes: HomeNotifications? = null
+    private var lastIconCounts: Map<String, Int> = emptyMap()
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
@@ -111,7 +112,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } ?: throw Exception("Invalid Activity")
 
         notes = HomeNotifications(requireContext(), binding.homeNotifications, binding.homeNowPlaying).also { it.bindNowPlaying() }
-        NotificationStore.entries.observe(viewLifecycleOwner) { renderNotifications(); renderHomeIcons() }
+        NotificationStore.entries.observe(viewLifecycleOwner) {
+            renderNotifications()
+            // Re-render the icons only when the per-app counts changed (progress updates repost often)
+            val counts = notes?.counts().orEmpty()
+            if (counts != lastIconCounts) renderHomeIcons()
+        }
         NotificationStore.nowPlaying.observe(viewLifecycleOwner) { notes?.render() }
         initObservers()
         setHomeAlignment(prefs.homeAlignment)
@@ -390,6 +396,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val color = ThemeApplier.textColor(ctx, secondary = false)
         val original = iconPrefs.style == com.outsmartis.yoke.iconrow.IconStyle.ORIGINAL
         val counts = notes?.counts().orEmpty()
+        lastIconCounts = counts
         val accent = ThemeStore.current(ctx)?.accentText ?: ctx.getColorFromAttr(R.attr.primaryColor)
         val views = listOf(
             binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
@@ -405,6 +412,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 tv.compoundDrawablePadding = 0
                 tv.contentDescription = null
                 tv.minWidth = 0
+                tv.setPaddingRelative(0, tv.paddingTop, 0, tv.paddingBottom)
                 tv.hint = getString(R.string.app)
                 continue
             }
@@ -444,11 +452,16 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             if (plan.showsText) {
                 tv.compoundDrawablePadding = 14.dpToPx()
                 tv.minWidth = 0
+                tv.setPaddingRelative(0, tv.paddingTop, 0, tv.paddingBottom)
             } else {
                 tv.text = ""
                 tv.hint = null
                 tv.compoundDrawablePadding = 0
-                tv.minWidth = 48.dpToPx()
+                // A start drawable always sits at the padding edge, so centre it with equal side padding
+                // that makes the touch target 48dp wide, instead of a minWidth that leaves it off-centre.
+                tv.minWidth = 0
+                val side = ((48.dpToPx() - sizePx) / 2).coerceAtLeast(0)
+                tv.setPaddingRelative(side, tv.paddingTop, side, tv.paddingBottom)
             }
         }
     }

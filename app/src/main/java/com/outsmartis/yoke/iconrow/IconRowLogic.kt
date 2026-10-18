@@ -65,7 +65,7 @@ object HomeAppPlan {
         val parts = mutableListOf<String>()
         if (!style.showsText || badge) parts += name
         if (badge) parts += profileLabel
-        if (!style.showsText && notifications > 0) parts += notificationsLabel
+        if (notifications > 0 && (!style.showsText || badge)) parts += notificationsLabel
         return HomeSlotPlan(
             showsText = style.showsText,
             icon = source,
