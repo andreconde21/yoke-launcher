@@ -111,4 +111,23 @@ class WallpaperLogicTest {
         assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(omarchy.copy(source = WallpaperSource.IMAGE), true, "x"))
         assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(omarchy, true, "catppuccin"))
     }
+
+    @Test
+    fun onlyAnUnchangedWallpaperMayBeOverwritten() {
+        assertTrue(WallpaperLogic.mayOverwrite(29, 29))
+        assertTrue(!WallpaperLogic.mayOverwrite(29, 30)) // set by someone else since
+        assertTrue(!WallpaperLogic.mayOverwrite(29, 28))
+    }
+
+    @Test
+    fun unknownCurrentIdIsNeverOverwritten() {
+        assertTrue(!WallpaperLogic.mayOverwrite(29, -1))
+        assertTrue(!WallpaperLogic.mayOverwrite(29, 0))
+        assertTrue(!WallpaperLogic.mayOverwrite(0, -1))
+    }
+
+    @Test
+    fun noRecordedIdIsTrustedOnceForOlderInstalls() {
+        assertTrue(WallpaperLogic.mayOverwrite(0, 12))
+    }
 }

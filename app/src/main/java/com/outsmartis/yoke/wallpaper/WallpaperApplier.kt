@@ -89,6 +89,11 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val choice = prefs.choice
+        if (prefs.applied && !ownsWallpaper(app, prefs)) {
+            // Someone else set the wallpaper since Yoke did: leave it alone and stop managing it.
+            prefs.applied = false
+            return
+        }
         when (val next = WallpaperLogic.backgroundForTheme(choice, prefs.applied, ThemeStore.resolved(app).theme?.id)) {
             is ThemeBackground.Switch -> {
                 // Keep the old image until the new one is set; if it cannot be fetched, use the theme colour.
@@ -112,6 +117,18 @@ object WallpaperApplier {
         if (!prefs.applied || choice.source != WallpaperSource.THEME_COLOUR) return
         if (prefs.lastSolid == "${themeColour(app)}:${prefs.effectiveTarget.name}") return
         applyThemeColour(app)
+    }
+
+    /** True while the wallpaper(s) Yoke writes are still the ones it set last (see [WallpaperLogic.mayOverwrite]). */
+    fun ownsWallpaper(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context)): Boolean = try {
+        val wm = WallpaperManager.getInstance(context)
+        val target = prefs.effectiveTarget
+        val system = target != WallpaperTarget.LOCK
+        val lock = target != WallpaperTarget.HOME
+        (!system || WallpaperLogic.mayOverwrite(prefs.systemId, wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM))) &&
+            (!lock || WallpaperLogic.mayOverwrite(prefs.lockId, wm.getWallpaperId(WallpaperManager.FLAG_LOCK)))
+    } catch (_: Exception) {
+        false
     }
 
     private fun setSolid(context: Context, colour: Int, target: WallpaperTarget): String? {
@@ -273,7 +290,11 @@ object WallpaperApplier {
             WallpaperTarget.LOCK -> WallpaperManager.FLAG_LOCK
             WallpaperTarget.BOTH -> WallpaperManager.FLAG_SYSTEM or WallpaperManager.FLAG_LOCK
         }
-        WallpaperManager.getInstance(context).setBitmap(bitmap, null, true, flags)
+        val wm = WallpaperManager.getInstance(context)
+        wm.setBitmap(bitmap, null, true, flags)
+        val prefs = WallpaperPrefs(context)
+        if (flags and WallpaperManager.FLAG_SYSTEM != 0) prefs.systemId = wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM)
+        if (flags and WallpaperManager.FLAG_LOCK != 0) prefs.lockId = wm.getWallpaperId(WallpaperManager.FLAG_LOCK)
         null
     } catch (e: Exception) {
         e.message ?: "set"
