@@ -70,14 +70,22 @@ object AskAgents {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val assistant = assistantPackage(context)
         if (assistant != null && start(context, Intent(search).setPackage(assistant))) return
-        val assist = Intent(Intent.ACTION_ASSIST)
-            .putExtra(Intent.EXTRA_ASSIST_INPUT_HINT_KEYBOARD, true)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (assistant != null) assist.setPackage(assistant)
-        copy(context, text)
-        if (start(context, assist)) {
-            context.showToast(R.string.ask_copied)
-            return
+        // Without a known assistant (or when Yoke itself is it) ACTION_ASSIST would land on Yoke's own
+        // AssistEntry, so go straight to the web search.
+        if (assistant != null) {
+            val assist = Intent(Intent.ACTION_ASSIST)
+                .setPackage(assistant)
+                .putExtra(Intent.EXTRA_ASSIST_INPUT_HINT_KEYBOARD, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val resolves = runCatching { context.packageManager.resolveActivity(assist, 0) != null }.getOrDefault(false)
+            // Copy only once the assist path is really going to start; the toast says it happened.
+            if (resolves) {
+                copy(context, text)
+                if (start(context, assist)) {
+                    context.showToast(R.string.ask_copied)
+                    return
+                }
+            }
         }
         if (!start(context, search)) runCatching { context.openUrl(PaletteQuery.webSearchUrl(text)) }
     }
@@ -88,12 +96,11 @@ object AskAgents {
      */
     private fun assistantPackage(context: Context): String? {
         val fromSetting = runCatching { Settings.Secure.getString(context.contentResolver, "assistant") }.getOrNull()
-            ?.substringBefore('/')?.takeIf { it.isNotBlank() }
-        val pkg = fromSetting ?: runCatching {
+        val resolved = runCatching {
             context.packageManager.resolveActivity(Intent(Intent.ACTION_ASSIST), PackageManager.MATCH_DEFAULT_ONLY)
                 ?.activityInfo?.packageName
         }.getOrNull()
-        return pkg?.takeIf { it != "android" && it != context.packageName }
+        return AskBarLogic.assistantPackage(fromSetting, resolved, context.packageName)
     }
 
     private fun start(context: Context, intent: Intent): Boolean =

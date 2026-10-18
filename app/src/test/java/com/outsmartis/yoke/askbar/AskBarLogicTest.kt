@@ -92,4 +92,23 @@ class AskBarLogicTest {
         assertEquals(AskAgent.CONDUCTORE, AskAgent.fromKey("conductore"))
         assertEquals(AskAgent.NONE, AskAgent.fromKey("none"))
     }
+
+    @Test
+    fun assistantPackageFromSetting() {
+        assertEquals("com.google.android.googlequicksearchbox",
+            AskBarLogic.assistantPackage("com.google.android.googlequicksearchbox/com.x.Y", null, "com.outsmartis.yoke"))
+    }
+
+    @Test
+    fun assistantPackageFallsBackToResolved() {
+        assertEquals("com.a", AskBarLogic.assistantPackage(null, "com.a", "com.outsmartis.yoke"))
+        assertEquals("com.a", AskBarLogic.assistantPackage("  ", "com.a", "com.outsmartis.yoke"))
+    }
+
+    @Test
+    fun assistantPackageNullWhenYokeChooserOrUnknown() {
+        assertEquals(null, AskBarLogic.assistantPackage("com.outsmartis.yoke/.assist.AssistEntry", "com.a", "com.outsmartis.yoke"))
+        assertEquals(null, AskBarLogic.assistantPackage(null, "android", "com.outsmartis.yoke"))
+        assertEquals(null, AskBarLogic.assistantPackage(null, null, "com.outsmartis.yoke"))
+    }
 }

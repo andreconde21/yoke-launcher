@@ -123,6 +123,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         setHomeAlignment(prefs.homeAlignment)
         initSwipeTouchListener()
         initClickListeners()
+        watchNavInset()
     }
 
     override fun onResume() {
@@ -383,6 +384,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         renderNotifications()
         renderAskBar()
         renderIconRow()
+        liftBottomHints()
     }
 
     /**
@@ -398,8 +400,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         fun setBottomPadding(px: Int) {
             if (apps.paddingBottom != px) apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, px)
         }
-        val navInset = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
-            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val navInset = navInset(b)
         // The ask bar sits at the very bottom; the slots (and a bottom icon row) stay above it.
         val barSpace = askBarSpace()
         val barPadding = if (barSpace > 0) barSpace + navInset else 0
@@ -421,6 +422,49 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             lp.bottomMargin = navInset + 8.dpToPx() + barSpace
             b.mainLayout.addView(row, lp)
             setBottomPadding(appsBasePaddingBottom + IconRowView.heightPx(requireContext(), iconPrefs) + navInset + barSpace)
+        }
+    }
+
+    /**
+     * Bottom navigation bar inset. Kept from an inset listener on the main layout, because the root
+     * window insets are still empty in onResume on a cold start.
+     */
+    private var navInsetPx = -1
+
+    private fun navInset(b: FragmentHomeBinding): Int {
+        if (navInsetPx >= 0) return navInsetPx
+        return androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+    }
+
+    private fun watchNavInset() {
+        val b = _binding ?: return
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(b.mainLayout) { v, insets ->
+            val bottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+            if (bottom != navInsetPx) {
+                navInsetPx = bottom
+                (askBar?.layoutParams as? FrameLayout.LayoutParams)?.let {
+                    it.bottomMargin = bottom + 8.dpToPx()
+                    askBar?.layoutParams = it
+                }
+                renderIconRow()
+            }
+            androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(b.mainLayout)
+    }
+
+    /** The first-run tip and the set-default-launcher line sit above the ask bar when it is on. */
+    private fun liftBottomHints() {
+        val b = _binding ?: return
+        val lift = if (askBar != null) askBarSpace() + navInset(b) else 0
+        listOf(b.setDefaultLauncher, b.firstRunTips).forEach { v ->
+            val lp = v.layoutParams as? FrameLayout.LayoutParams ?: return@forEach
+            val margin = 56.dpToPx() + lift
+            if (lp.bottomMargin != margin) {
+                lp.bottomMargin = margin
+                v.layoutParams = lp
+            }
         }
     }
 
@@ -462,8 +506,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         // Fires only for d-pad/accessibility; touch is consumed by the swipe listener above.
         bar.setOnClickListener { openPalette("") }
         bar.mic.setOnClickListener { toggleDictation() }
-        val navInset = androidx.core.view.ViewCompat.getRootWindowInsets(b.root)
-            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
+        val navInset = navInset(b)
         val side = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 74 else 24
         val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM)
         lp.marginStart = side.dpToPx()
@@ -926,6 +969,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         dictation = null
         listening = false
         askBar = null
+        navInsetPx = -1
         mainTouchListener = null
         notes?.release()
         notes = null

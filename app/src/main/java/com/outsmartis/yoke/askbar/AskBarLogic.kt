@@ -60,4 +60,14 @@ object AskBarLogic {
         if (query.trimStart().startsWith("!")) return false
         return PaletteQuery.parse(query.trimStart()).mode == PaletteMode.APPS
     }
+
+    /**
+     * The assistant package to send to: the "assistant" setting (`package/class`) when set, else the
+     * package that answers ACTION_ASSIST. Null when unknown, the system chooser ("android") or
+     * Yoke itself ([own]), since ACTION_ASSIST would then run Yoke's own assist entry.
+     */
+    fun assistantPackage(setting: String?, resolved: String?, own: String): String? {
+        val pkg = setting?.substringBefore('/')?.takeIf { it.isNotBlank() } ?: resolved
+        return pkg?.takeIf { it != "android" && it != own }
+    }
 }
