@@ -1,5 +1,6 @@
 package com.outsmartis.yoke.wallpaper
 
+import com.outsmartis.yoke.theme.OMARCHY_THEMES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,5 +87,28 @@ class WallpaperLogicTest {
         assertTrue(!WallpaperChoice(source = WallpaperSource.THEME_COLOUR).showsImage)
         assertTrue(WallpaperChoice(source = WallpaperSource.OMARCHY).showsImage)
         assertTrue(WallpaperChoice(source = WallpaperSource.IMAGE).showsImage)
+    }
+
+    private val omarchy = WallpaperChoice(WallpaperSource.OMARCHY, "catppuccin", "x.png")
+
+    @Test
+    fun themeChangeSwitchesAnAppliedOmarchyBackground() {
+        val other = OMARCHY_THEMES.first { it.id != "catppuccin" && it.backgrounds.isNotEmpty() }
+        val r = WallpaperLogic.backgroundForTheme(omarchy, true, other.id)
+        assertEquals(ThemeBackground.Switch(other.id, other.backgrounds.first()), r)
+    }
+
+    @Test
+    fun themeChangeFallsBackToColourWithoutBackgrounds() {
+        assertEquals(ThemeBackground.Colour, WallpaperLogic.backgroundForTheme(omarchy, true, "no-such-theme"))
+        assertEquals(ThemeBackground.Colour, WallpaperLogic.backgroundForTheme(omarchy, true, null))
+    }
+
+    @Test
+    fun themeChangeNeverTouchesWallpapersYokeDidNotApply() {
+        assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(omarchy, false, "no-such-theme"))
+        assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(WallpaperChoice(), true, "no-such-theme"))
+        assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(omarchy.copy(source = WallpaperSource.IMAGE), true, "x"))
+        assertEquals(ThemeBackground.Keep, WallpaperLogic.backgroundForTheme(omarchy, true, "catppuccin"))
     }
 }
