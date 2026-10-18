@@ -164,6 +164,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.webLinks.text = prefs.links.size.toString()
         com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
         binding.assistantRow.text = AssistantDialog.summary(ctx)
+        populateAskBar()
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
         val exceptions = visibleGrayscaleExceptionCount(ctx, grayscale)
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
@@ -289,6 +290,32 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.dictationLanguage.setText(language.second)
     }
 
+    // YOK-030: the home bar and who its "Ask …" row goes to.
+    private fun populateAskBar() {
+        val ctx = requireContext()
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(ctx)
+        binding.askBarRow.setText(if (ask.enabled) R.string.on else R.string.off)
+        val agent = ask.agent
+        val installed = com.outsmartis.yoke.askbar.AskAgents.conductoreInstalled(ctx)
+        binding.askAgentRow.text =
+            if (agent == com.outsmartis.yoke.askbar.AskAgent.CONDUCTORE && !installed) getString(R.string.ask_agent_conductore_missing)
+            else com.outsmartis.yoke.askbar.AskAgents.label(ctx, agent)
+    }
+
+    private fun toggleAskBar() {
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(requireContext())
+        ask.enabled = !ask.enabled
+        populateAskBar()
+    }
+
+    /** Phone assistant → Conductore (only when installed) → None → Phone assistant. */
+    private fun cycleAskAgent() {
+        val ctx = requireContext()
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(ctx)
+        ask.agent = com.outsmartis.yoke.askbar.AskBarLogic.next(ask.agent, com.outsmartis.yoke.askbar.AskAgents.conductoreInstalled(ctx))
+        populateAskBar()
+    }
+
     /** Phone → Português → English → Phone. */
     private fun cycleDictationLanguage() {
         val cockpit = com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext())
@@ -334,6 +361,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 dialog = AssistantDialog.show(requireContext()) { if (_binding != null) populateSummaries() }
             }
             R.id.dictationLanguage -> cycleDictationLanguage()
+            R.id.askBarRow -> toggleAskBar()
+            R.id.askAgentRow -> cycleAskAgent()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
             R.id.conductoreRow -> openConductore()
@@ -380,6 +409,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.nowPlayingRow.setOnClickListener(this)
         binding.assistantRow.setOnClickListener(this)
         binding.dictationLanguage.setOnClickListener(this)
+        binding.askBarRow.setOnClickListener(this)
+        binding.askAgentRow.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
         binding.searchRow.setOnClickListener(this)
