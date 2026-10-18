@@ -795,13 +795,15 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     /**
      * mainLayout animates layout changes, so on a fresh home (recreate after a theme change) the glance
      * block fading in and the apps sliding below it played out as a visible jump. Suspend that
-     * animation while the first content arrives, then restore it for later changes.
+     * animation while the first content arrives, then restore it for later changes (2.5 s covers a typical weather/agenda refresh).
      */
     private fun settleFirstLayout() {
         val main = binding.mainLayout
         val transition = main.layoutTransition ?: return
         main.layoutTransition = null
-        main.postDelayed({ _binding?.mainLayout?.layoutTransition = transition }, 600)
+        // weather and agenda arrive from network/vault callbacks, so wait longer than one frame pass;
+        // restore on the same view we suspended (a recreated view must keep its own transition)
+        main.postDelayed({ main.layoutTransition = transition }, 2500)
     }
 
     override fun onDestroyView() {
