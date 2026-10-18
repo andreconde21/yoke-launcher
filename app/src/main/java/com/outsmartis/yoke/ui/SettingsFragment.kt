@@ -151,6 +151,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) populateConnections()
     }
 
+    // YOK-037: the lock screen service's notification needs it (Android 13+)
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        if (_binding != null) checkLockScreenLaunch()
+    }
+
     /** The values shown at the end of rows that open their own screen. */
     private fun populateSummaries() {
         val ctx = requireContext()
@@ -727,6 +732,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                     if (com.outsmartis.yoke.theme.SystemPaletteSync.supported()) R.string.system_colours_needs_permission
                     else R.string.lock_screen_system_unsupported
                 )
+            level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE && !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
+                getString(R.string.lock_screen_yoke_needs_accessibility)
             else -> {
                 // Always the level's own name; the hint (no wallpaper applied yet) is secondary text.
                 val name = getString(lockScreenLabel(level))
@@ -752,8 +759,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         val labels = levels.map { level ->
             val label = getString(lockScreenLabel(level))
             when {
+                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE &&
+                    !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
+                    "$label (${getString(R.string.lock_screen_yoke_needs_accessibility)})"
                 sync.available(ctx, level) -> label
-                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> "$label (${getString(R.string.lock_screen_yoke_soon)})"
                 !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> "$label (${getString(R.string.lock_screen_system_unsupported)})"
                 else -> "$label (${getString(R.string.system_colours_needs_permission)})"
             }
@@ -765,6 +774,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 if (sync.available(ctx, level)) {
                     val needsWallpaper = sync.setLevel(ctx, level)
                     if (_binding != null) populateLockScreen()
+                    if (level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE) askLockScreenYokeAccess()
                     if (needsWallpaper) {
                         androidx.appcompat.app.AlertDialog.Builder(ctx)
                             .setTitle(R.string.lock_screen_title)
@@ -777,7 +787,6 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                     }
                 } else {
                     val reason = when {
-                        level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke_soon
                         !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> R.string.lock_screen_system_unsupported
                         else -> R.string.lock_screen_system_needs_permission
                     }
@@ -934,6 +943,25 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             ctx.showToast(getString(R.string.now_playing_needs_access))
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+    }
+
+    // YOK-037: the Yoke level needs the service's notification (Android 13+) and the accessibility service
+    private fun askLockScreenYokeAccess() {
+        val ctx = requireContext()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else checkLockScreenLaunch()
+    }
+
+    // The only launch path is the accessibility service: without it nothing can open over the lock screen
+    private fun checkLockScreenLaunch() {
+        val ctx = requireContext()
+        val lock = com.outsmartis.yoke.lockscreen.LockScreenController
+        if (!lock.isEnabled(ctx) || lock.launchPathOpen()) return
+        ctx.showToast(getString(R.string.lock_screen_yoke_needs_launch), Toast.LENGTH_LONG)
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun populateScreenTimeOnOff() {

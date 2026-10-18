@@ -7,6 +7,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.NotificationListenerService
@@ -53,6 +54,9 @@ object NotificationStore {
         runCatching { service?.activeNotifications?.firstOrNull { it.key == key } }.getOrNull()
 
     fun mediaController(): MediaController? = service?.currentController()
+
+    /** The user's per-channel lock screen visibility for a notification, or -1000 (no override) when unknown. */
+    fun channelLockVisibility(key: String): Int = service?.channelLockVisibility(key) ?: -1000
 }
 
 class YokeNotificationListener : NotificationListenerService() {
@@ -85,6 +89,18 @@ class YokeNotificationListener : NotificationListenerService() {
         } else emptyList()
         val playing = if (prefs.nowPlaying) currentController()?.toNowPlaying() else null
         NotificationStore.publish(entries, playing)
+    }
+
+    fun channelLockVisibility(key: String): Int = try {
+        val ranking = Ranking()
+        when {
+            !currentRanking.getRanking(key, ranking) -> -1000
+            // The system's combined per-app/channel value, better than the channel's own (API 28+)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> ranking.lockscreenVisibilityOverride
+            else -> ranking.channel?.lockscreenVisibility ?: -1000
+        }
+    } catch (e: RuntimeException) {
+        -1000
     }
 
     /** The active media session, preferring one that is playing. Needs Notification access. */
