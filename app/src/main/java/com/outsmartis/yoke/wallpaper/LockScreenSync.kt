@@ -52,7 +52,10 @@ object LockScreenSync {
         prefs.lockLevel = level
         syncSystem(app, level)
         com.outsmartis.yoke.lockscreen.LockScreenController.sync(app) // Yoke level starts the service, any other stops it
-        if (LockScreenLogic.shouldReapply(before, level, prefs.choice.target, prefs.applied)) WallpaperApplier.reapply(app)
+        if (LockScreenLogic.shouldReapply(before, level, prefs.choice.target, prefs.applied)) {
+            if (WallpaperApplier.ownsWallpaper(app, prefs)) WallpaperApplier.reapply(app)
+            else prefs.applied = false // set outside Yoke since: do not overwrite it
+        }
         return LockScreenLogic.needsWallpaper(level, prefs.applied)
     }
 

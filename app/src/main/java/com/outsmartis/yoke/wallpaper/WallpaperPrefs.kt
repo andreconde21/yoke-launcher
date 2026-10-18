@@ -24,6 +24,18 @@ class WallpaperPrefs(context: Context) {
         get() = prefs.getString("last_solid", null)
         set(value) = prefs.edit().putString("last_solid", value).apply()
 
+    /**
+     * WallpaperManager ids of the wallpapers Yoke last wrote (0 = none recorded). A different id later
+     * means something else set the wallpaper, and Yoke must not overwrite it by itself.
+     */
+    var systemId: Int
+        get() = prefs.getInt("system_id", 0)
+        set(value) = prefs.edit().putInt("system_id", value).apply()
+
+    var lockId: Int
+        get() = prefs.getInt("lock_id", 0)
+        set(value) = prefs.edit().putInt("lock_id", value).apply()
+
     // YOK-036
     /** The "Lock screen" setting; the wallpaper target is widened to include the lock screen above Off. */
     var lockLevel: LockScreenLevel

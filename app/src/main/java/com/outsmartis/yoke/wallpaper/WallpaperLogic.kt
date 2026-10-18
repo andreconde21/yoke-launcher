@@ -24,6 +24,18 @@ sealed class ThemeBackground {
 object WallpaperLogic {
 
     /**
+     * May Yoke re-apply by itself over the wallpaper whose id is [current], given the id [stored] after
+     * its own last write? Ids are positive; WallpaperManager reports -1 for "no such wallpaper" and
+     * also when it cannot say, and that unknown is treated as "not ours": never overwrite on doubt.
+     * A [stored] id of 0 comes from before ids were recorded; it is trusted once and adopted.
+     */
+    fun mayOverwrite(stored: Int, current: Int): Boolean = when {
+        current <= 0 -> false
+        stored <= 0 -> true
+        else -> stored == current
+    }
+
+    /**
      * Only a wallpaper Yoke itself applied from an Omarchy background follows the theme; anything the
      * user set outside Yoke ([applied] false) is never touched. The new theme's first background is used
      * (file names like omarchy.webp repeat across themes with different images).
