@@ -430,6 +430,8 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="limits_not_now">Not now</string>
     <string name="limits_open">Open</string>
     <string name="limits_still_paused">Couldn\'t lift the hard pause. Is Shizuku running?</string>
+    <string name="limits_hint_more">How it works: more</string>
+    <string name="limits_hint_less">How it works: less</string>
     <string name="limits_dialog_hint">Tap an app to limit it: each open today waits longer (3, 5, 8, 13, 21, 34 s, then 60 s; resets at 04:00).\n\nWith Yoke\'s accessibility service on, the pause also catches opens from notifications and recents.\n\nHard pause (needs Shizuku): Android keeps the app paused between visits, so it can\'t be opened any other way. Its notifications are hidden while paused, so don\'t use it for messengers. Turn hard pause off before uninstalling Yoke.</string>
     <string name="limits_hard_on">hard pause: on</string>
     <string name="limits_hard_off">hard pause: off</string>

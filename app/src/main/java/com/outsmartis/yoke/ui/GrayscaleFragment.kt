@@ -94,7 +94,7 @@ class GrayscaleFragment : BaseFragment() {
             if (isAccessServiceEnabled(ctx)) R.string.grayscale_status_service_ok else R.string.grayscale_status_service_off
         )
         binding.grayscaleExceptions.text =
-            "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, prefs.exceptions.size)}"
+            "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, visibleExceptionCount())}"
         renderRecent()
         val inCar = prefs.carMirrorUntil > System.currentTimeMillis()
         binding.grayscaleCarColour.text = "${getString(R.string.grayscale_car_colour)}: ${getString(if (prefs.carColour) R.string.on else R.string.off)}" +
@@ -103,6 +103,16 @@ class GrayscaleFragment : BaseFragment() {
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
         } else getString(R.string.grayscale_pause)
+    }
+
+    /**
+     * Exceptions the user can see and untick: in the list or in the recent apps. The saved set
+     * also holds packages that are not installed (the unused debug/release twin of Yoke), which
+     * would otherwise count as colour apps with nothing ticked.
+     */
+    private fun visibleExceptionCount(): Int {
+        val shown = launchableApps().map { it.packageName }.toSet() + prefs.recent
+        return prefs.exceptions.count { it in shown }
     }
 
     /**
