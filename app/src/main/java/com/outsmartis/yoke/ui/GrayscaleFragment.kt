@@ -94,7 +94,7 @@ class GrayscaleFragment : BaseFragment() {
             if (isAccessServiceEnabled(ctx)) R.string.grayscale_status_service_ok else R.string.grayscale_status_service_off
         )
         binding.grayscaleExceptions.text =
-            "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, prefs.exceptions.size)}"
+            "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, visibleExceptionCount())}"
         renderRecent()
         val inCar = prefs.carMirrorUntil > System.currentTimeMillis()
         binding.grayscaleCarColour.text = "${getString(R.string.grayscale_car_colour)}: ${getString(if (prefs.carColour) R.string.on else R.string.off)}" +
@@ -103,6 +103,15 @@ class GrayscaleFragment : BaseFragment() {
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
         } else getString(R.string.grayscale_pause)
+    }
+
+    /**
+     * Exceptions the user can see and untick: in the list or in the recent apps. The saved set
+     * also holds packages that are not installed (the unused debug/release twin of Yoke), which
+     * would otherwise count as colour apps with nothing ticked.
+     */
+    private fun visibleExceptionCount(): Int {
+        return visibleGrayscaleExceptionCount(requireContext(), prefs)
     }
 
     /**
@@ -215,10 +224,14 @@ class GrayscaleFragment : BaseFragment() {
     private fun launchableApps(): List<AppEntry> {
         val pm = requireContext().packageManager
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        return pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        val apps = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
             .map { AppEntry(it.loadLabel(pm).toString(), it.activityInfo.packageName) }
             .distinctBy { it.packageName }
-            .sortedBy { it.label.lowercase() }
+        // Yoke is a launcher and may have no launcher icon of its own, but it is ticked by default.
+        val own = requireContext().packageName
+        val withOwn = if (apps.any { it.packageName == own }) apps
+        else apps + AppEntry(requireContext().applicationInfo.loadLabel(pm).toString(), own)
+        return withOwn.sortedBy { it.label.lowercase() }
     }
 
     private fun showExceptions() {
@@ -277,4 +290,16 @@ class GrayscaleFragment : BaseFragment() {
         super.onDestroyView()
         _binding = null
     }
+}
+
+/**
+ * Exceptions the user can see and untick: Yoke itself, apps in the list, or apps in the recent
+ * list. Saved packages that are not installed (the unused debug/release twin of Yoke) are left out.
+ */
+internal fun visibleGrayscaleExceptionCount(ctx: android.content.Context, prefs: GrayscalePrefs): Int {
+    val pm = ctx.packageManager
+    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    val shown = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL).map { it.activityInfo.packageName }.toSet() +
+        prefs.recent + ctx.packageName
+    return prefs.exceptions.count { it in shown }
 }

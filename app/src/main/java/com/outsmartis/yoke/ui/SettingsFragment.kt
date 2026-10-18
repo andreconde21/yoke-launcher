@@ -142,12 +142,12 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
         binding.assistantRow.text = AssistantDialog.summary(ctx)
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
-        val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
+        val exceptions = visibleGrayscaleExceptionCount(ctx, grayscale)
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
         val notes = com.outsmartis.yoke.notifications.NotificationPrefs(ctx)
         binding.notesRow.text = if (notes.enabled) getString(R.string.settings_on_apps, notes.allowed.size) else getString(R.string.off)
         val limited = com.outsmartis.yoke.limits.LimitPrefs(ctx).limited.size
-        binding.limitsRow.text = if (limited == 0) getString(R.string.off) else getString(R.string.limits_count, limited)
+        binding.limitsRow.text = if (limited == 0) getString(R.string.off) else resources.getQuantityString(R.plurals.limits_count, limited, limited)
         binding.backupRow.text = getString(
             if (com.outsmartis.yoke.backup.VaultBackup.keepCopy(ctx)) R.string.settings_backup_auto else R.string.settings_backup_manual
         )

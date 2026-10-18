@@ -40,10 +40,22 @@ object LimitedAppsDialog {
             val density = context.resources.displayMetrics.density
             val pad = (10 * density).toInt()
             val root = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+            // The long hint is folded away: it would squeeze the list to a few rows (none in a wide font).
             val hint = TextView(context, null, 0, R.style.TextSmall).apply {
                 setText(R.string.limits_dialog_hint)
                 alpha = 0.7f
                 setPadding(0, 0, 0, (8 * density).toInt())
+                visibility = TextView.GONE
+            }
+            val more = TextView(context, null, 0, R.style.TextSmall).apply {
+                setText(R.string.limits_hint_more)
+                alpha = 0.7f
+                setPadding(0, 0, 0, (8 * density).toInt())
+                setOnClickListener {
+                    val show = hint.visibility != TextView.VISIBLE
+                    hint.visibility = if (show) TextView.VISIBLE else TextView.GONE
+                    setText(if (show) R.string.limits_hint_less else R.string.limits_hint_more)
+                }
             }
             val search = EditText(context, null, 0, R.style.TextSmall).asTextField().apply {
                 setHint(R.string.notes_apps_search)
@@ -98,11 +110,13 @@ object LimitedAppsDialog {
                 override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
             })
             fill("")
+            root.addView(more)
             root.addView(hint)
             root.addView(search)
             root.addView(scroll)
             root
         }
+        d.autoShowKeyboard = false
         d.showRespectingStatusBar()
         return d
     }
