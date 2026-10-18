@@ -498,4 +498,19 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="lock_screen_needs_wallpaper">The lock screen only follows your theme once a Yoke wallpaper is applied. Yoke never replaces your system wallpaper by itself. Open the Wallpaper screen and pick one.</string>
     <string name="lock_screen_open_wallpaper">Open Wallpaper</string>
     <string name="wallpaper_target_widened">The Lock screen setting adds the lock screen, so Home is applied as Both.</string>
+    <!-- YOK-032 -->
+    <string name="glance_setting">Glance card</string>
+    <string name="glance_source_setting">Glance events from</string>
+    <string name="glance_weather_setting">Glance weather</string>
+    <string name="glance_source_none">None</string>
+    <string name="glance_source_calendar">Calendar</string>
+    <string name="glance_source_calendar_no_access">Calendar (no access)</string>
+    <string name="glance_source_cockpit">Cockpit</string>
+    <string name="glance_calendar_denied">Calendar access was not allowed, so no events are shown</string>
+    <string name="glance_now">Now</string>
+    <string name="glance_today">Today</string>
+    <string name="glance_tomorrow">Tomorrow</string>
+    <string name="glance_all_day">All day</string>
+    <string name="glance_high_low">High %1$d Low %2$d</string>
+    <string name="glance_event_missing">No app found to open this</string>
 </resources>
