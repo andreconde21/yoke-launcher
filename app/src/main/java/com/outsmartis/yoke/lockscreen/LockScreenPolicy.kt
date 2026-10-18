@@ -43,6 +43,12 @@ object LockScreenPolicy {
      */
     fun inCall(audioMode: Int): Boolean = audioMode in MODE_RINGTONE..MODE_COMMUNICATION_REDIRECT
 
+    /**
+     * The lock screen already up must give way the moment a call starts ringing, so the system's
+     * full-screen call UI takes over (its Answer button would otherwise hit our PIN bouncer).
+     */
+    fun finishForCall(audioMode: Int): Boolean = inCall(audioMode)
+
     /** An alarm, ringtone or call is sounding (AudioManager.getActivePlaybackConfigurations usages). */
     fun urgentSound(usages: Collection<Int>): Boolean =
         usages.any { it == USAGE_ALARM || it == USAGE_NOTIFICATION_RINGTONE || it == USAGE_VOICE_COMMUNICATION }

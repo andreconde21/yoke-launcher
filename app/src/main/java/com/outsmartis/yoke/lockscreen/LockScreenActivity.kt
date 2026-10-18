@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.PlaybackState
@@ -55,6 +56,10 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    // API 31+: a call starting to ring while we are up (mode change); older APIs have no
+    // permission-free signal, see onResume
+    private var modeListener: Any? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!allowed()) {
@@ -71,6 +76,8 @@ class LockScreenActivity : AppCompatActivity() {
         ContextCompat.registerReceiver(
             this, unlockedReceiver, IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+
+        watchCalls()
 
         binding.prev.setOnClickListener { controller?.transportControls?.skipToPrevious() }
         binding.next.setOnClickListener { controller?.transportControls?.skipToNext() }
@@ -140,6 +147,10 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (callActive()) {
+            finish()
+            return
+        }
         if (LockScreenPolicy.finishOnResume(interactive(), keyguard().isKeyguardLocked)) finish()
     }
 
@@ -150,6 +161,7 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        unwatchCalls()
         unbindMedia()
         main.removeCallbacksAndMessages(null)
         try {
@@ -189,6 +201,28 @@ class LockScreenActivity : AppCompatActivity() {
             })
             LockScreenPolicy.Unlock.FINISH -> finish()
         }
+    }
+
+    private fun audio() = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    private fun callActive() = LockScreenPolicy.finishForCall(audio().mode)
+
+    /**
+     * A call that rings while this screen is up: finish so the system call UI is in front and its
+     * Answer works. Below API 31 there is no permission-free callback (ACTION_PHONE_STATE_CHANGED
+     * needs READ_PHONE_STATE), so that gap is closed only by the onResume check.
+     */
+    private fun watchCalls() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val l = AudioManager.OnModeChangedListener { mode -> if (LockScreenPolicy.finishForCall(mode)) finish() }
+        modeListener = l
+        audio().addOnModeChangedListener(ContextCompat.getMainExecutor(this), l)
+    }
+
+    private fun unwatchCalls() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        (modeListener as? AudioManager.OnModeChangedListener)?.let { audio().removeOnModeChangedListener(it) }
+        modeListener = null
     }
 
     private fun keyguard() = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager

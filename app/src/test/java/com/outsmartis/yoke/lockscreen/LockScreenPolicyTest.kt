@@ -154,4 +154,11 @@ class LockScreenPolicyTest {
         assertEquals("Song", LockScreenPolicy.musicLine("Song", ""))
         assertEquals("Artist", LockScreenPolicy.musicLine("", "Artist"))
     }
+
+    @Test fun leavesWhenACallStartsRinging() {
+        assertTrue(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_RINGTONE))
+        assertTrue(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_IN_CALL))
+        assertTrue(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_IN_COMMUNICATION))
+        assertFalse(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_NORMAL))
+    }
 }
