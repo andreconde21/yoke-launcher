@@ -67,29 +67,46 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     /**
-     * The scroll position survives a recreate (a theme change), even two in a row: the second one used to
-     * save the not-yet-restored top. [SettingsScroll] holds it in the process, applies it as soon as the
-     * rows have their height again (the framework's own restore is clamped while they are still filling
-     * in) and records user scrolling only once the restore is done.
+     * The scroll position survives a recreate (a theme change), even two in a row. [SettingsScroll] holds
+     * it in the process. The restore is applied on every layout for a short while, not once: the
+     * framework's own restore is clamped while the rows are still filling in, and a search field that
+     * was focused before the recreate takes focus back and scrolls itself into view (top of the page),
+     * so it is made to let go. The window ends at the first touch or after two seconds; user scrolling
+     * is recorded only after that.
      */
+    private var holdY = 0
+
     private fun trackScroll() {
         val scroll = binding.scrollView
-        var wanted = SettingsScroll.takeWanted()
+        holdY = SettingsScroll.takeWanted()
         val deadline = android.os.SystemClock.uptimeMillis() + 2000
-        scroll.viewTreeObserver.addOnScrollChangedListener { if (wanted == 0) SettingsScroll.y = scroll.scrollY }
-        if (wanted == 0) return
+        scroll.viewTreeObserver.addOnScrollChangedListener { if (holdY == 0) SettingsScroll.y = scroll.scrollY }
+        if (holdY == 0) return
+        scroll.setOnTouchListener { _, _ -> holdY = 0; false }
         scroll.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-                val child = scroll.getChildAt(0)
-                val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(wanted, it.height, scroll.height) }
-                if (target != null) scroll.scrollTo(0, target)
-                if (target != null || android.os.SystemClock.uptimeMillis() > deadline) {
+                if (holdY > 0) {
+                    dropSearchFocus()
+                    val child = scroll.getChildAt(0)
+                    val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(holdY, it.height, scroll.height) }
+                    if (target != null && scroll.scrollY != target) scroll.scrollTo(0, target)
+                    if (android.os.SystemClock.uptimeMillis() > deadline) holdY = 0
+                }
+                if (holdY == 0) {
                     SettingsScroll.y = scroll.scrollY
-                    wanted = 0
                     if (scroll.viewTreeObserver.isAlive) scroll.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 }
             }
         })
+    }
+
+    /** Takes focus off the search field without handing it straight back (it is focusable in touch mode). */
+    private fun dropSearchFocus() {
+        val search = _binding?.settingsSearch ?: return
+        if (!search.hasFocus()) return
+        search.isFocusableInTouchMode = false
+        search.clearFocus()
+        search.post { search.isFocusableInTouchMode = true }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
