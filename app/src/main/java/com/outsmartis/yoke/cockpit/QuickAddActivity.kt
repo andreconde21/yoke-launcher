@@ -445,6 +445,7 @@ class QuickAddActivity : AppCompatActivity() {
             uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
         prefs.vaultUri = uri.toString()
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
         loadBoard()
     }
 

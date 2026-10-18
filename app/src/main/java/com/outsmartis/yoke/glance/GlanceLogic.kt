@@ -50,7 +50,8 @@ object GlanceLogic {
     /**
      * The event to show at [now], looking at today and tomorrow only:
      * 1. a timed event that is on now or still to come today (the earliest start, so an ongoing one wins, unless it
-     *    began more than [STALE_ONGOING_MS] ago and another timed event is still to come today: then that one),
+     *    began more than [STALE_ONGOING_MS] ago and another timed event is on now or still to come today: then the
+     *    earliest of those),
      * 2. else an all-day event covering today,
      * 3. else tomorrow's first timed event, then tomorrow's all-day ones.
      * Events that have ended, and anything after tomorrow, are ignored. Null when nothing is left.
@@ -66,7 +67,7 @@ object GlanceLogic {
         val first = timedToday.minWithOrNull(byStart)
         if (first != null) {
             if (first.start <= now - STALE_ONGOING_MS) {
-                timedToday.filter { it.start > now }.minWithOrNull(byStart)?.let { return it }
+                timedToday.filter { it.start > now - STALE_ONGOING_MS }.minWithOrNull(byStart)?.let { return it }
             }
             return first
         }
@@ -94,7 +95,13 @@ object GlanceLogic {
     /** [nextChangeAt], but never past local midnight, when "Today" turns into "Tomorrow" and the pick may change. */
     fun nextTickAt(event: GlanceEvent, now: Long, zone: ZoneId): Long {
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
-        return minOf(nextChangeAt(event, now), startOf(today.plusDays(1), zone))
+        var at = minOf(nextChangeAt(event, now), startOf(today.plusDays(1), zone))
+        // An ongoing event turns stale after STALE_ONGOING_MS, when a later event may take over the card
+        if (!event.allDay && event.start <= now) {
+            val staleAt = event.start + STALE_ONGOING_MS
+            if (staleAt > now) at = minOf(at, staleAt)
+        }
+        return at
     }
 
     /**

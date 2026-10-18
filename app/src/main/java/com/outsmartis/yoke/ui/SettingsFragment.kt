@@ -137,6 +137,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
         com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).apply { vaultUri = uri.toString(); agendaAt = 0L }
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
         if (_binding != null) populateConnections()
     }
 

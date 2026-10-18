@@ -60,6 +60,19 @@ class GlanceLogicTest {
     }
 
     @Test
+    fun staleOngoingGivesWayToRecentOngoingEvent() {
+        val events = listOf(timed("Workshop", today, 5, 720), timed("Meeting", today, 9, 60), timed("Call", today, 11))
+        val n = at(today, 9, 45)
+        assertEquals("Meeting", GlanceLogic.pickNext(events, n, zone)?.title)
+    }
+
+    @Test
+    fun tickIsCappedWhereOngoingEventTurnsStale() {
+        val e = timed("Workshop", today, 8, 540)
+        assertEquals(e.start + GlanceLogic.STALE_ONGOING_MS, GlanceLogic.nextTickAt(e, at(today, 9), zone))
+    }
+
+    @Test
     fun timedEventBeatsAllDayToday() {
         val events = listOf(allDay("Holiday", today), timed("Call", today, 14))
         assertEquals("Call", GlanceLogic.pickNext(events, now, zone)?.title)
