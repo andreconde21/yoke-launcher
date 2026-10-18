@@ -8,11 +8,9 @@ import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.ViewGroup
-import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.outsmartis.yoke.helper.isEinkDisplay
-import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
 /**
  * Colour cross-fade for a theme change (YOK-033). A theme change recreates the activity, so
@@ -37,10 +35,12 @@ object ThemeFade {
     fun isStale(now: Long, at: Long): Boolean = now - at > SNAPSHOT_MAX_AGE_MS || now < at
 
     /**
-     * The snapshot cannot hold the system wallpaper, so a window that shows it (image source, or
-     * System default with no theme) would flicker or hard-cut. Those changes recreate without a fade.
+     * Windows that show the system wallpaper are faded too: the snapshot is drawn from the decor
+     * view only, so the wallpaper is NOT in it (those pixels stay transparent). The old content
+     * (text, icons, scrims) cross-fades over the new window, and the wallpaper underneath is the
+     * live one, never a copy, so it cannot flicker or double up. No wallpaper permission is needed.
      */
-    fun canFade(duration: Long, windowShowsWallpaper: Boolean): Boolean = duration > 0 && !windowShowsWallpaper
+    fun canFade(duration: Long): Boolean = duration > 0
 
     private class Snapshot(val bitmap: Bitmap, val durationMs: Long, val at: Long)
 
@@ -51,7 +51,7 @@ object ThemeFade {
     fun recreate(activity: Activity) {
         val duration = if (activity.isEinkDisplay()) 0L else durationMs(animatorScale(activity))
         dropPending()
-        if (canFade(duration, showsWallpaper(activity))) {
+        if (canFade(duration)) {
             pending = snapshot(activity)?.let { Snapshot(it, duration, SystemClock.uptimeMillis()) }
             // If the new activity never reveals it (finished, crashed), do not keep the bitmap around.
             if (pending != null) {
@@ -71,15 +71,6 @@ object ThemeFade {
         pending?.bitmap?.recycle()
         pending = null
     }
-
-    /**
-     * Callers have already saved the new theme, so the prefs describe the NEW window; the window
-     * still alive here is the OLD one, and its flag says whether it shows the wallpaper. Either one
-     * showing it rules the fade out.
-     */
-    private fun showsWallpaper(activity: Activity): Boolean =
-        (activity.window.attributes.flags and WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER) != 0 ||
-            ThemeStore.current(activity) == null || WallpaperPrefs(activity).imageChoice != null
 
     /** Call from onCreate after setContentView. */
     fun reveal(activity: Activity) {

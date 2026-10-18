@@ -15,11 +15,11 @@ object CockpitAgendaRepository {
     private val main = Handler(Looper.getMainLooper())
 
     /** Recomputes when the cache is older than [MAX_AGE_MS] (or [force]); [onDone] runs on the main thread after a refresh. */
-    fun refreshIfNeeded(context: Context, force: Boolean = false, onDone: () -> Unit = {}) {
+    fun refreshIfNeeded(context: Context, force: Boolean = false, onDone: () -> Unit = {}): Boolean {
         val app = context.applicationContext
         val prefs = CockpitPrefs(app)
-        if (!prefs.agendaEnabled) return
-        if (!force && System.currentTimeMillis() - prefs.agendaAt < MAX_AGE_MS) return
+        if (!prefs.agendaEnabled) return false
+        if (!force && System.currentTimeMillis() - prefs.agendaAt < MAX_AGE_MS) return false
         io.execute {
             val vault = prefs.vault(app)
             val line = if (vault == null) "" else runCatching {
@@ -31,5 +31,6 @@ object CockpitAgendaRepository {
             prefs.agendaAt = System.currentTimeMillis()
             main.post(onDone)
         }
+        return true
     }
 }

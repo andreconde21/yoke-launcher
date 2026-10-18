@@ -112,8 +112,19 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         super.onResume()
         NotificationStore.refresh()
         populateHomeScreen(false)
-        WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateWeather() }
-        CockpitAgendaRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateAgenda() }
+        // The first fetches on a fresh home decide when the held layout transition is released.
+        val hold = layoutHold
+        layoutHold = null
+        var started = 0
+        if (WeatherRepository.refreshIfNeeded(requireContext()) {
+                if (_binding != null) populateWeather()
+                hold?.oneDone()
+            }) started++
+        if (CockpitAgendaRepository.refreshIfNeeded(requireContext()) {
+                if (_binding != null) populateAgenda()
+                hold?.oneDone()
+            }) started++
+        hold?.expect(started)
         // Gestures may have been edited; only wait for a second tap when double tap is bound
         mainTouchListener?.setDoubleTapEnabled(gestureRunner().isBound(Trigger.DOUBLE_TAP))
         viewModel.isYokeDefault()
@@ -792,18 +803,53 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
+    /** Holds back mainLayout's layout transition until the first content results are applied. */
+    private inner class LayoutHold(private val main: ViewGroup, private val transition: android.animation.LayoutTransition) {
+        private var waiting = -1 // -1 until onResume has said how many fetches it started
+        private var done = 0
+        private var released = false
+        private val release = Runnable { releaseNow() }
+
+        private fun releaseNow() {
+            if (released) return
+            released = true
+            main.removeCallbacks(release)
+            main.layoutTransition = transition
+        }
+
+        fun start() {
+            main.layoutTransition = null
+            main.postDelayed(release, MAX_HOLD_MS)
+        }
+
+        fun expect(count: Int) {
+            waiting = count
+            check()
+        }
+
+        fun oneDone() {
+            done++
+            check()
+        }
+
+        private fun check() {
+            // Let the traversal that lays out the new content run before the transition returns.
+            if (waiting >= 0 && done >= waiting) main.postDelayed(release, SETTLE_MS)
+        }
+    }
+
+    private var layoutHold: LayoutHold? = null
+
     /**
      * mainLayout animates layout changes, so on a fresh home (recreate after a theme change) the glance
      * block fading in and the apps sliding below it played out as a visible jump. Suspend that
-     * animation while the first content arrives, then restore it for later changes (2.5 s covers a typical weather/agenda refresh).
+     * animation until the first weather/agenda fetches have been applied (nothing to wait for: right
+     * after the first layout), capped at [MAX_HOLD_MS] so a slow fetch cannot keep it off for long.
      */
     private fun settleFirstLayout() {
         val main = binding.mainLayout
         val transition = main.layoutTransition ?: return
-        main.layoutTransition = null
-        // weather and agenda arrive from network/vault callbacks, so wait longer than one frame pass;
-        // restore on the same view we suspended (a recreated view must keep its own transition)
-        main.postDelayed({ main.layoutTransition = transition }, 2500)
+        layoutHold = LayoutHold(main, transition).also { it.start() }
     }
 
     override fun onDestroyView() {
@@ -814,5 +860,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         notes?.release()
         notes = null
         _binding = null
+    }
+
+    private companion object {
+        const val MAX_HOLD_MS = 4000L
+        const val SETTLE_MS = 150L
     }
 }

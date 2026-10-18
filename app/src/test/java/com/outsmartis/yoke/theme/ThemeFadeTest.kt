@@ -31,9 +31,8 @@ class ThemeFadeTest {
     }
 
     @Test
-    fun noFadeOverWallpaperOrWithAnimationsOff() {
-        assertTrue(ThemeFade.canFade(250L, false))
-        assertFalse(ThemeFade.canFade(250L, true))
-        assertFalse(ThemeFade.canFade(0L, false))
+    fun fadesUnlessAnimationsOff() {
+        assertTrue(ThemeFade.canFade(250L))
+        assertFalse(ThemeFade.canFade(0L))
     }
 }
