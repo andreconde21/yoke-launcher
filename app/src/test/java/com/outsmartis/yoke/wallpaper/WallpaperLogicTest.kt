@@ -130,4 +130,28 @@ class WallpaperLogicTest {
     fun noRecordedIdIsTrustedOnceForOlderInstalls() {
         assertTrue(WallpaperLogic.mayOverwrite(0, 12))
     }
+
+    @Test
+    fun sharedWallpaperForBothScreensIsOwned() {
+        assertTrue(WallpaperLogic.ownsTarget(true, true, 29, 29, -1, -1))
+    }
+
+    @Test
+    fun separateLockWallpaperYokeSetIsOwned() {
+        assertTrue(WallpaperLogic.ownsTarget(true, true, 29, 29, 30, 30))
+        assertTrue(WallpaperLogic.ownsTarget(false, true, 0, 0, 30, 30))
+        assertTrue(WallpaperLogic.ownsTarget(true, false, 29, 29, 0, 0))
+    }
+
+    @Test
+    fun outsideAppSettingBothScreensIsNotOwned() {
+        assertTrue(!WallpaperLogic.ownsTarget(true, true, 29, 31, -1, -1))
+        assertTrue(!WallpaperLogic.ownsTarget(true, true, 29, 31, 30, -1))
+    }
+
+    @Test
+    fun outsideAppSettingOnlyTheLockIsNotOwned() {
+        assertTrue(!WallpaperLogic.ownsTarget(true, true, 29, 29, 30, 33))
+        assertTrue(!WallpaperLogic.ownsTarget(false, true, 0, 0, 30, -1))
+    }
 }
