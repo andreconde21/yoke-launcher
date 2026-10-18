@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.showStatusBar
 
 /**
  * Lists System default, every Omarchy theme and "Follow my Omarchy PC", each in
@@ -87,6 +89,7 @@ class ThemePickerActivity : AppCompatActivity() {
             setBackgroundColor(theme?.background ?: getColorFromAttr(R.attr.primaryColorInverseTrans90))
         }
         setContentView(scroll)
+        if (Prefs(this).showStatusBar) window.showStatusBar() else window.hideStatusBar()
         ThemeFade.reveal(this)
         ThemeApplier.applyWindow(this)
         // Only the title takes the theme here; rows carry their own palette.
@@ -162,7 +165,20 @@ class ThemePickerActivity : AppCompatActivity() {
         fun open(context: Context) {
             val intent = Intent(context, ThemePickerActivity::class.java)
             if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // The launcher normally returns to its home screen whenever it is stopped; opened from
+            // inside it (Settings), the picker must hand Back to the screen it came from.
+            HostHold.hold = context is Activity
             context.startActivity(intent)
         }
     }
+}
+
+/** Whether the launcher's own screen should stay put while the picker covers it. */
+object HostHold {
+    @Volatile
+    var hold = false
+
+    /** The launcher pops to its home screen when stopped, except for a recreate or while the picker holds it. */
+    fun shouldPopToHome(changingConfigurations: Boolean, privateSpaceToggling: Boolean, held: Boolean): Boolean =
+        !(changingConfigurations || privateSpaceToggling || held)
 }
