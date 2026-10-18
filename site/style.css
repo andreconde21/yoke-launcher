@@ -182,7 +182,7 @@ code { font-family: var(--mono); font-size: .88em; }
 .guide strong, .guide dt, .guide em { color: var(--fg); }
 .guide ol, .guide ul { padding-left: 1.4rem; display: grid; gap: .6rem; }
 .guide ol li::marker { color: var(--accent); font-weight: 700; }
-.guide .card-sample { white-space: pre-wrap; margin: .6rem 0; }
+.guide .card-sample { white-space: pre-wrap; margin: .6rem 0; overflow-x: visible; }
 .toc { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
 .toc a { padding: .35rem .75rem; border-radius: 999px; background: var(--raised); color: var(--fg); text-decoration: none; font-size: .9rem; }
 .toc a:hover { color: var(--accent); }
@@ -197,3 +197,4 @@ figure.shots figcaption { display: none; }
 .gallery figure { margin: 0; }
 .gallery img { width: 100%; border-radius: 1.2rem; border: 1px solid var(--line); background: var(--raised); }
 .gallery figcaption { margin-top: .5rem; font-size: .85rem; color: var(--dim); }
+.guide code, .guide .card-sample { overflow-wrap: anywhere; }
