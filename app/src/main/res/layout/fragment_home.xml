@@ -96,6 +96,74 @@
             android:textSize="@dimen/date_size"
             android:visibility="gone"
             tools:text="▶ Song — Artist" />
+
+        <!-- YOK-032: glance card, next event left and weather right (filled in code, off by default) -->
+        <LinearLayout
+            android:id="@+id/glanceCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:id="@+id/glanceEvent"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/glanceEventTitle"
+                    style="@style/TextSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    tools:text="10:30 Design review" />
+
+                <TextView
+                    android:id="@+id/glanceEventWhen"
+                    style="@style/TextSmallLight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="Today" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/glanceWeather"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/glanceWeatherNow"
+                    style="@style/TextSmall"
+                    android:gravity="end"
+                    android:textAlignment="viewEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="18° Partly cloudy" />
+
+                <TextView
+                    android:id="@+id/glanceWeatherRange"
+                    style="@style/TextSmallLight"
+                    android:gravity="end"
+                    android:textAlignment="viewEnd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    tools:text="H 21° · L 13°" />
+            </LinearLayout>
+        </LinearLayout>
+
     </LinearLayout>
 
     <!-- Screen time-->

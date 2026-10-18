@@ -70,6 +70,17 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         weatherSettings?.onPermissionResult(granted)
     }
 
+    // YOK-032: READ_CALENDAR is asked only when the glance card's events are switched to "Calendar"
+    private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (_binding == null) return@registerForActivityResult
+        if (granted) {
+            setGlanceSource(com.outsmartis.yoke.glance.GlanceSource.CALENDAR)
+        } else {
+            requireContext().showToast(getString(R.string.glance_calendar_denied))
+            populateGlance()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -116,6 +127,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             }
             populateCockpitAgenda()
         }
+        initGlance() // YOK-032
         initClickListeners()
         initObservers()
         SettingsOrganizer(requireContext(), listOf(
@@ -135,6 +147,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
         com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).apply { vaultUri = uri.toString(); agendaAt = 0L }
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
         if (_binding != null) populateConnections()
     }
 
@@ -205,6 +218,68 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun openConductore() {
         val launch = requireContext().packageManager.getLaunchIntentForPackage(com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE)
         if (launch != null) startActivity(launch) else requireContext().showToast(getString(R.string.settings_status_not_installed))
+    }
+
+    // YOK-032: the glance card rows
+    private fun initGlance() {
+        populateGlance()
+        binding.glanceToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.enabled = !glance.enabled
+            populateGlance()
+        }
+        binding.glanceSource.setOnClickListener { chooseGlanceSource() }
+        binding.glanceWeatherToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.showWeather = !glance.showWeather
+            populateGlance()
+        }
+    }
+
+    /** One list with every source, so a denied calendar never blocks Cockpit; picking Calendar also re-asks when access is missing. */
+    private fun chooseGlanceSource() {
+        val sources = com.outsmartis.yoke.glance.GlanceSource.entries
+        val labels = arrayOf(R.string.glance_source_none, R.string.glance_source_calendar, R.string.glance_source_cockpit)
+            .map { getString(it) }.toTypedArray()
+        val current = com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.glance_source_setting)
+            .setSingleChoiceItems(labels, sources.indexOf(current)) { dialog, which ->
+                dialog.dismiss()
+                val picked = sources[which]
+                when {
+                    picked == com.outsmartis.yoke.glance.GlanceSource.CALENDAR &&
+                        !com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext()) ->
+                        calendarPermission.launch(com.outsmartis.yoke.glance.GlanceRepository.PERMISSION)
+                    picked == com.outsmartis.yoke.glance.GlanceSource.COCKPIT &&
+                        com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).vaultUri == null -> {
+                        setGlanceSource(picked)
+                        requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
+                    }
+                    else -> setGlanceSource(picked)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun setGlanceSource(source: com.outsmartis.yoke.glance.GlanceSource) {
+        com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source = source
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
+        populateGlance()
+    }
+
+    private fun populateGlance() {
+        val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+        binding.glanceToggle.text = getString(if (glance.enabled) R.string.on else R.string.off)
+        binding.glanceSource.setText(when (glance.source) {
+            com.outsmartis.yoke.glance.GlanceSource.NONE -> R.string.glance_source_none
+            com.outsmartis.yoke.glance.GlanceSource.CALENDAR ->
+                if (com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext())) R.string.glance_source_calendar
+                else R.string.glance_source_calendar_no_access
+            com.outsmartis.yoke.glance.GlanceSource.COCKPIT -> R.string.glance_source_cockpit
+        })
+        binding.glanceWeatherToggle.text = getString(if (glance.showWeather) R.string.on else R.string.off)
     }
 
     private fun populateCockpitAgenda() {
