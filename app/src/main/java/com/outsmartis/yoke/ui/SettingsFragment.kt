@@ -665,6 +665,13 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 message = R.string.system_colours_message,
                 onAction = {
                     com.outsmartis.yoke.wallpaper.LockScreenSync.userChangedColours(ctx) // YOK-036
+                    // The Lock screen level "Wallpaper + system" owns this switch: turning colours off drops it to
+                    // "Wallpaper" instead of being switched back on at the next resume.
+                    if (on && com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx).includesSystem) {
+                        com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel(
+                            ctx, com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER,
+                        )
+                    }
                     when {
                         on -> SystemPaletteSync.setEnabled(ctx, false)
                         hasPermission -> SystemPaletteSync.setEnabled(ctx, true)

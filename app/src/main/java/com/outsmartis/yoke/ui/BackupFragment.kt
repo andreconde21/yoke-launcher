@@ -94,7 +94,8 @@ class BackupFragment : BaseFragment() {
                     val result = runCatching {
                         val text = read() ?: throw BackupException(getString(R.string.backup_no_vault_copy))
                         YokeBackup.import(ctx.applicationContext, text)
-                        com.outsmartis.yoke.wallpaper.LockScreenSync.sync(ctx.applicationContext) // YOK-036
+                        // The import already succeeded; a failed lock screen sync must not report it as failed
+                        runCatching { com.outsmartis.yoke.wallpaper.LockScreenSync.sync(ctx.applicationContext) } // YOK-036
                     }
                     activity?.runOnUiThread {
                         val error = result.exceptionOrNull()
