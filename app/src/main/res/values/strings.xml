@@ -144,7 +144,6 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="details_app_info">App info</string>
     <string name="details_replace">Replace…</string>
     <string name="details_conductore_missing">Conductore isn\'t installed</string>
-||||||| 2ab6285
     <string name="widgets_empty">No widgets yet</string>
     <string name="widgets_add">Add widget</string>
     <string name="widgets_move_up">Move up</string>

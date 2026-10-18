@@ -63,7 +63,9 @@ object SearchRanking {
         query: String,
         sources: Map<SearchKind, List<SearchHit>>,
         limit: Int = LIMIT,
-    ): List<SearchHit> = SearchKind.values().flatMap { kind -> rank(query, sources[kind].orEmpty(), limit) }
+    ): List<SearchHit> = SearchKind.values()
+        .flatMap { kind -> rank(query, sources[kind].orEmpty(), limit) }
+        .distinctBy { it.kind to it.target }
 }
 
 /** A card's frontmatter fields the palette shows. */

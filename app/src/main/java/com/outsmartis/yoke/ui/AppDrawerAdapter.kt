@@ -188,12 +188,18 @@ class AppDrawerAdapter(
                 results?.values?.let {
                     var items = it as MutableList<AppModel>
                     baseCount = items.size
-                    val extras = if (lastQuery.isBlank()) emptyList() else extraRows?.invoke(lastQuery.trim()).orEmpty()
+                    // The callbacks reach into the fragment, which may be detached when a late filter publishes
+                    // (Home pressed mid-search): that must drop the extras, never crash the launcher.
+                    val extras = if (lastQuery.isBlank()) emptyList() else
+                        runCatching { extraRows?.invoke(lastQuery.trim()) }.getOrNull().orEmpty()
                     extraCount = extras.size
                     if (extras.isNotEmpty()) items = (items + extras).toMutableList()
                     if (baseCount == 0 && lastQuery.isNotBlank()) {
-                        noMatchRow?.invoke(lastQuery.trim())?.let { row -> items = (items + row).toMutableList() }
+                        runCatching { noMatchRow?.invoke(lastQuery.trim()) }.getOrNull()
+                            ?.let { row -> items = (items + row).toMutableList() }
                     }
+                    // Never two rows with one id: DiffUtil and the user both see a duplicate
+                    items = items.distinctBy { row -> (row as? AppModel.PaletteResult)?.id ?: row }.toMutableList()
                     appFilteredList = items
                     submitList(appFilteredList) {
                         autoLaunch()
@@ -208,7 +214,7 @@ class AppDrawerAdapter(
             // Only when the app is the one and only result, cards/notes/contacts/settings included.
             if (baseCount == 1
                 && extraCount == 0
-                && extrasReady()
+                && runCatching { extrasReady() }.getOrDefault(false)
                 && autoLaunch
                 && autoLaunchSingle
                 && !queryIsBlank

@@ -120,8 +120,8 @@ class AppDrawerFragment : BaseFragment() {
         initSearch()
         initAdapter()
         if (flag == Constants.FLAG_LAUNCH_APP) {
-            adapter.extraRows = { q -> extraSearch.search(q).map(::extraRow) }
-            adapter.extrasReady = { extraSearch.ready }
+            adapter.extraRows = { q -> if (isAdded) extraSearch.search(q).map(::extraRow) else emptyList() }
+            adapter.extrasReady = { isAdded && extraSearch.ready }
             // The card/note/contact indexes build off the main thread; redo the search once they are in.
             extraSearch.warmUp {
                 activity?.runOnUiThread { if (_binding != null && isAdded) applyQuery(binding.search.query) }
@@ -458,10 +458,13 @@ class AppDrawerFragment : BaseFragment() {
         adapter.autoLaunchSingle = prefs.autoLaunchSingle
         if (flag == Constants.FLAG_LAUNCH_APP) {
             adapter.noMatchRow = { query ->
-                AppModel.PaletteResult(
+                // Late filter results can arrive after Home detached the fragment: no context, no row
+                val ctx = context
+                if (!isAdded || ctx == null) null
+                else AppModel.PaletteResult(
                     id = "web_search",
-                    appLabel = getString(R.string.palette_search_web, query),
-                    run = { requireContext().openUrl(PaletteQuery.webSearchUrl(query)) },
+                    appLabel = ctx.getString(R.string.palette_search_web, query),
+                    run = { ctx.openUrl(PaletteQuery.webSearchUrl(query)) },
                 )
             }
         }
