@@ -85,6 +85,8 @@ object AskAgents {
                     context.showToast(R.string.ask_copied)
                     return
                 }
+                // The start failed after the copy: do not leave the query on the clipboard unannounced.
+                uncopy(context)
             }
         }
         if (!start(context, search)) runCatching { context.openUrl(PaletteQuery.webSearchUrl(text)) }
@@ -105,6 +107,14 @@ object AskAgents {
 
     private fun start(context: Context, intent: Intent): Boolean =
         runCatching { context.startActivity(intent) }.isSuccess
+
+    private fun uncopy(context: Context) {
+        runCatching {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            if (android.os.Build.VERSION.SDK_INT >= 28) clipboard.clearPrimaryClip()
+            else clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+        }
+    }
 
     private fun copy(context: Context, text: String) {
         runCatching {

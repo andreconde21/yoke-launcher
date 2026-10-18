@@ -448,6 +448,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                     askBar?.layoutParams = it
                 }
                 renderIconRow()
+                liftBottomHints()
             }
             androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
         }
