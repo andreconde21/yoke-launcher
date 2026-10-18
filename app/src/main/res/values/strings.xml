@@ -523,4 +523,16 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="glance_all_day">All day</string>
     <string name="glance_high_low">H %1$d° · L %2$d°</string>
     <string name="glance_event_missing">No app found to open this</string>
+    <!-- YOK-030 -->
+    <string name="ask_bar_setting">Bottom bar: open, type or ask</string>
+    <string name="ask_bar_hint">open, type, or ask…</string>
+    <string name="ask_bar_mic">Dictate</string>
+    <string name="ask_agent_setting">Agent for Ask</string>
+    <string name="ask_agent_assistant">Phone assistant</string>
+    <string name="ask_agent_conductore">Conductore</string>
+    <string name="ask_agent_conductore_missing">Conductore (not installed)</string>
+    <string name="ask_agent_none">None</string>
+    <string name="ask_row">Ask “%1$s”</string>
+    <string name="ask_copied">Text copied: paste it to ask</string>
+    <!-- /YOK-030 -->
 </resources>

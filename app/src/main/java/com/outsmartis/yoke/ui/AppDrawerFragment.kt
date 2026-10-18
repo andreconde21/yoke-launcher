@@ -26,6 +26,9 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Recycler
 import com.outsmartis.yoke.MainViewModel
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.askbar.AskAgents
+import com.outsmartis.yoke.askbar.AskBarLogic
+import com.outsmartis.yoke.askbar.AskBarPrefs
 import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
@@ -126,6 +129,11 @@ class AppDrawerFragment : BaseFragment() {
             extraSearch.warmUp {
                 activity?.runOnUiThread { if (_binding != null && isAdded) applyQuery(binding.search.query) }
             }
+        }
+        // Text dictated into the home bar (YOK-030); used once, so coming back here starts clean.
+        arguments?.getString(CommandPalette.ARG_QUERY)?.takeIf { it.isNotEmpty() }?.let {
+            arguments?.remove(CommandPalette.ARG_QUERY)
+            binding.search.setQuery(it, false)
         }
         initObservers()
         initClickListeners()
@@ -464,9 +472,11 @@ class AppDrawerFragment : BaseFragment() {
                 else AppModel.PaletteResult(
                     id = "web_search",
                     appLabel = ctx.getString(R.string.palette_search_web, query),
+                    query = query,
                     run = { ctx.openUrl(PaletteQuery.webSearchUrl(query)) },
                 )
             }
+            initAskRow()
         }
 
         linearLayoutManager = object : LinearLayoutManager(requireContext()) {
@@ -492,6 +502,26 @@ class AppDrawerFragment : BaseFragment() {
         else if (requireContext().isSystemAnimationsDisabled().not())
             binding.recyclerView.layoutAnimation =
                 AnimationUtils.loadLayoutAnimation(requireContext(), R.anim.layout_anim_from_bottom)
+    }
+
+    /** YOK-030: with the home bar on, "Ask …" closes plain-text results that no app or link matched. */
+    private fun initAskRow() {
+        val ask = AskBarPrefs(requireContext())
+        if (!ask.enabled) return
+        val agent = ask.agent
+        val conductore = AskAgents.conductoreInstalled(requireContext())
+        adapter.askRow = { query, baseMatches ->
+            // late filter results can arrive after Home was pressed: no context, no row
+            if (!isAdded) null
+            else if (!AskBarLogic.showsAskRow(true, agent, conductore, query, baseMatches)) null
+            else AppModel.PaletteResult(
+                id = "ask",
+                appLabel = getString(R.string.ask_row, query.trim()),
+                query = query.trim(),
+                detail = AskAgents.label(requireContext(), agent),
+                run = { AskAgents.ask(requireActivity(), agent, query) },
+            )
+        }
     }
 
     private fun initObservers() {
