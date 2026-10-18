@@ -309,7 +309,9 @@ class AppDrawerAdapter(
                 // Single line: shorten only the query (or the whole label for rows without one) at the end,
                 // and keep a capped suffix (agent name, kind) visible.
                 val paint = android.text.TextPaint(appTitle.paint)
-                val rowWidth = if (appTitle.width > 0) appTitle.width else root.resources.displayMetrics.widthPixels
+                // not appTitle.width: on a recycled or not yet laid out row it is stale or 0
+                val parentWidth = (root.parent as? View)?.width ?: 0
+                val rowWidth = if (parentWidth > 0) parentWidth else root.resources.displayMetrics.widthPixels
                 // small margin: measureText and the laid-out line can differ by a pixel, which would wrap the suffix
                 val avail = (rowWidth - appTitle.paddingLeft - appTitle.paddingRight - 4 * root.resources.displayMetrics.density)
                     .coerceAtLeast(0f)

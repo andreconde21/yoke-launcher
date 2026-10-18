@@ -833,7 +833,6 @@
                             android:padding="8dp"
                             android:text="@string/edit_links" />
                     </FrameLayout>
-                </LinearLayout>
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -920,6 +919,7 @@
                             android:text="@string/ask_agent_assistant" />
                     </LinearLayout>
                     <!-- /YOK-030 -->
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
