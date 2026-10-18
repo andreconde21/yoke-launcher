@@ -38,6 +38,7 @@ import com.outsmartis.yoke.data.AppModel
 import com.outsmartis.yoke.iconrow.IconPosition
 import com.outsmartis.yoke.iconrow.IconRenderer
 import com.outsmartis.yoke.iconrow.HomeAppPlan
+import com.outsmartis.yoke.iconrow.HomeAppStyle
 import com.outsmartis.yoke.iconrow.HomeIconSource
 import com.outsmartis.yoke.iconrow.IconRowPrefs
 import com.outsmartis.yoke.iconrow.IconRowView
@@ -289,21 +290,20 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.homeApp8.setOnLongClickListener(this)
     }
 
-    private fun homeAppGravity(alignment: Int) =
-        HomeAppPlan.gravityFor(iconPrefs.homeAppStyle, alignment, Gravity.CENTER_HORIZONTAL)
-
     private fun setHomeAlignment(horizontalGravity: Int = prefs.homeAlignment) {
         val verticalGravity = if (prefs.homeBottomAlignment) Gravity.BOTTOM else Gravity.CENTER_VERTICAL
         binding.homeAppsLayout.gravity = horizontalGravity or verticalGravity
         binding.dateTimeLayout.gravity = horizontalGravity
-        binding.homeApp1.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp2.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp3.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp4.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp5.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp6.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp7.gravity = homeAppGravity(horizontalGravity)
-        binding.homeApp8.gravity = homeAppGravity(horizontalGravity)
+        binding.homeApp1.gravity = horizontalGravity
+        binding.homeApp2.gravity = horizontalGravity
+        binding.homeApp3.gravity = horizontalGravity
+        binding.homeApp4.gravity = horizontalGravity
+        binding.homeApp5.gravity = horizontalGravity
+        binding.homeApp6.gravity = horizontalGravity
+        binding.homeApp7.gravity = horizontalGravity
+        binding.homeApp8.gravity = horizontalGravity
+        // Icon only padding depends on the alignment edge
+        if (iconPrefs.homeAppStyle == HomeAppStyle.ICON) renderHomeIcons()
     }
 
     private fun populateDateTime() {
@@ -406,7 +406,6 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             val slot = i + 1
             val pkg = prefs.getAppPackage(slot)
             val name = prefs.getAppName(slot)
-            tv.gravity = HomeAppPlan.gravityFor(style, prefs.homeAlignment, Gravity.CENTER_HORIZONTAL)
             if (!style.showsIcon || pkg.isEmpty() || tv.visibility != View.VISIBLE) {
                 tv.setCompoundDrawablesRelative(null, null, null, null)
                 tv.compoundDrawablePadding = 0
@@ -457,11 +456,12 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
                 tv.text = ""
                 tv.hint = null
                 tv.compoundDrawablePadding = 0
-                // A start drawable always sits at the padding edge, so centre it with equal side padding
-                // that makes the touch target 48dp wide, instead of a minWidth that leaves it off-centre.
+                // A start drawable sits at the start padding edge and the slot is wrap_content in a column placed
+                // by the home alignment: the spare width of the 48dp touch box goes on the far side, so the icon
+                // lines up with the alignment edge exactly like text (centred when the alignment is centre).
                 tv.minWidth = 0
-                val side = ((48.dpToPx() - sizePx) / 2).coerceAtLeast(0)
-                tv.setPaddingRelative(side, tv.paddingTop, side, tv.paddingBottom)
+                val (start, end) = HomeAppPlan.iconPadding(prefs.homeAlignment, 48.dpToPx(), sizePx)
+                tv.setPaddingRelative(start, tv.paddingTop, end, tv.paddingBottom)
             }
         }
     }

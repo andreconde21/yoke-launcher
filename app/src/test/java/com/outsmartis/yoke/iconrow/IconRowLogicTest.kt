@@ -202,9 +202,10 @@ class IconRowLogicTest {
     }
 
     @Test
-    fun iconOnlyIsCentredOtherwiseTheAlignmentWins() {
-        assertEquals(1, HomeAppPlan.gravityFor(HomeAppStyle.ICON, 8388613, 1))
-        assertEquals(8388613, HomeAppPlan.gravityFor(HomeAppStyle.ICON_TEXT, 8388613, 1))
-        assertEquals(8388613, HomeAppPlan.gravityFor(HomeAppStyle.TEXT, 8388613, 1))
+    fun iconOnlyPaddingFollowsTheAlignmentEdge() {
+        assertEquals(0 to 20, HomeAppPlan.iconPadding(android.view.Gravity.START, 100, 80))
+        assertEquals(20 to 0, HomeAppPlan.iconPadding(android.view.Gravity.END, 100, 80))
+        assertEquals(10 to 10, HomeAppPlan.iconPadding(android.view.Gravity.CENTER_HORIZONTAL, 100, 80))
+        assertEquals(0 to 0, HomeAppPlan.iconPadding(android.view.Gravity.END, 60, 80))
     }
 }

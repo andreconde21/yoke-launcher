@@ -1,5 +1,6 @@
 package com.outsmartis.yoke.iconrow
 
+import android.view.Gravity
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -79,8 +80,20 @@ object HomeAppPlan {
     fun affectsHomeApps(key: String?, homeStyle: HomeAppStyle): Boolean =
         key == IconRowPrefs.KEY_HOME_APP_STYLE || (homeStyle.showsIcon && key == IconRowPrefs.KEY_STYLE)
 
-    /** Icon only apps are centred in their touch box so the icon follows no text alignment; else the home alignment. */
-    fun gravityFor(style: HomeAppStyle, alignment: Int, centre: Int): Int = if (style == HomeAppStyle.ICON) centre else alignment
+    /**
+     * Start and end padding for an icon only slot. The slot is wrap_content inside a column that places it by the
+     * home alignment, and a start drawable sits at the start padding edge, so the spare width of the 48dp touch box
+     * goes on the side away from the alignment edge: left puts the icon flush with the text edge, right flush right,
+     * anything else splits it to centre the icon.
+     */
+    fun iconPadding(alignment: Int, boxPx: Int, iconPx: Int): Pair<Int, Int> {
+        val spare = (boxPx - iconPx).coerceAtLeast(0)
+        return when (alignment) {
+            Gravity.START, Gravity.LEFT -> 0 to spare
+            Gravity.END, Gravity.RIGHT -> spare to 0
+            else -> spare / 2 to spare - spare / 2
+        }
+    }
 }
 
 enum class IconSize(val id: String, val dp: Int) {
