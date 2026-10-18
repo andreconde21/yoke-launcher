@@ -212,9 +212,10 @@ class GrayscaleFragment : BaseFragment() {
         )
     }
 
-    private fun showDialog(newDialog: YokeDialog) {
+    private fun showDialog(newDialog: YokeDialog, autoShowKeyboard: Boolean = true) {
         dialog?.dismiss()
         dialog = newDialog
+        newDialog.autoShowKeyboard = autoShowKeyboard
         newDialog.showRespectingStatusBar()
     }
 
@@ -264,13 +265,12 @@ class GrayscaleFragment : BaseFragment() {
                     override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
                 })
                 fill("")
-                // Keep the keyboard closed until the user taps the search field.
-                root.isFocusableInTouchMode = true
+                // The keyboard stays closed until the user taps the search field (autoShowKeyboard = false).
                 root.addView(search)
                 root.addView(scroll)
-                root.requestFocus()
                 root
-            }
+            },
+            autoShowKeyboard = false
         )
     }
 
