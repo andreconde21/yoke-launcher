@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -13,9 +14,13 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -29,6 +34,7 @@ import com.outsmartis.yoke.databinding.FragmentSettingsBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.asTextField
 import com.outsmartis.yoke.helper.createDialog
+import com.outsmartis.yoke.theme.FontChoice
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemePickerActivity
@@ -238,7 +244,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.systemColoursRow -> showSystemColoursDialog()
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
-            R.id.fontText -> toggleFont()
+            R.id.fontText -> showFontDialog()
 
             R.id.iconRowRow -> findNavController().navigate(R.id.action_settingsFragment_to_iconRowFragment)
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
@@ -670,17 +676,43 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         ThemeFade.recreate(requireActivity())
     }
 
-    private fun toggleFont() {
-        val themePrefs = ThemePrefs(requireContext())
-        themePrefs.jetBrainsMono = !themePrefs.jetBrainsMono
-        populateFont()
-        ThemeFade.recreate(requireActivity())
+    // YOK-034: a list of fonts, each name drawn in its own font
+    private fun showFontDialog() {
+        val ctx = requireContext()
+        val themePrefs = ThemePrefs(ctx)
+        val current = themePrefs.font
+        val rows = ArrayList<Pair<TextView, FontChoice>>()
+        val picker = ctx.createDialog(R.string.font_picker_title, R.string.okay) { container ->
+            val list = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            FontChoice.entries.forEach { choice ->
+                val row = TextView(ctx, null, 0, R.style.TextSmall).apply {
+                    text = if (choice == current) "\u2022 " + ctx.getString(choice.label) else ctx.getString(choice.label)
+                    textSize = 18f
+                    setPadding(0, (12 * resources.displayMetrics.density).toInt(), 0, (12 * resources.displayMetrics.density).toInt())
+                    setOnClickListener {
+                        this@SettingsFragment.dialog?.dismiss()
+                        if (choice != themePrefs.font) {
+                            themePrefs.font = choice
+                            populateFont()
+                            ThemeFade.recreate(requireActivity())
+                        }
+                    }
+                }
+                rows += row to choice
+                list.addView(row)
+            }
+            ScrollView(ctx).apply { addView(list) }
+        }
+        // The dialog's theming sets every text to the current font; draw each row in its own after that
+        rows.forEach { (row, choice) ->
+            if (choice == FontChoice.SYSTEM) row.typeface = Typeface.DEFAULT
+            else ResourcesCompat.getFont(ctx, choice.regular)?.let { row.typeface = it }
+        }
+        showDialog(picker)
     }
 
     private fun populateFont() {
-        binding.fontText.text = getString(
-            if (ThemePrefs(requireContext()).jetBrainsMono) R.string.font_jetbrains_mono else R.string.font_system
-        )
+        binding.fontText.text = getString(ThemePrefs(requireContext()).font.label)
     }
 
     private fun populateBoldFont() {

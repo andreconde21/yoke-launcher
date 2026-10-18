@@ -161,9 +161,10 @@ object ThemeApplier {
 
     /** The bundled font to apply, or null for the system font. Honours the bold toggle. */
     fun fonts(context: Context): Fonts? {
-        if (!ThemePrefs(context).jetBrainsMono) return null
-        val regular = ResourcesCompat.getFont(context, R.font.jetbrains_mono_regular) ?: return null
-        val bold = ResourcesCompat.getFont(context, R.font.jetbrains_mono_bold) ?: regular
+        val choice = ThemePrefs(context).font
+        if (choice == FontChoice.SYSTEM) return null
+        val regular = ResourcesCompat.getFont(context, choice.regular) ?: return null
+        val bold = ResourcesCompat.getFont(context, choice.bold) ?: regular
         return Fonts(regular, bold, Prefs(context).boldFont)
     }
 }

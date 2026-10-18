@@ -146,6 +146,14 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="font_row">Font</string>
     <string name="font_system">System</string>
     <string name="font_jetbrains_mono">JetBrains Mono</string>
+    <!-- YOK-034 -->
+    <string name="font_inter">Inter</string>
+    <string name="font_ibm_plex_sans">IBM Plex Sans</string>
+    <string name="font_ibm_plex_mono">IBM Plex Mono</string>
+    <string name="font_space_grotesk">Space Grotesk</string>
+    <string name="font_geist">Geist</string>
+    <string name="font_geist_mono">Geist Mono</string>
+    <string name="font_picker_title">Font</string>
     <string name="details_not_watching">Conductore isn\'t watching any machine right now. Open it to start.</string>
     <string name="details_no_agents">No agents running</string>
     <string name="details_needs_android_12">Needs Android 12+</string>
