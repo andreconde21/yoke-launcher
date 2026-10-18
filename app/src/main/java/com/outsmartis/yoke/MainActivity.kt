@@ -40,7 +40,6 @@ import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
 import com.outsmartis.yoke.theme.ThemeApplier
-import com.outsmartis.yoke.theme.HostHold
 import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
@@ -145,7 +144,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        HostHold.hold = false
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
@@ -219,7 +217,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
-        HostHold.hold = false // Home was pressed from the picker: go back to the home screen
         val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
         backToHomeScreen()
         if (intent?.hasExtra(EXTRA_RUN_ACTION) == true) {

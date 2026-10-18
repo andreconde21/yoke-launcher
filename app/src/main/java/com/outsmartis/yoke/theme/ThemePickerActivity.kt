@@ -165,20 +165,8 @@ class ThemePickerActivity : AppCompatActivity() {
         fun open(context: Context) {
             val intent = Intent(context, ThemePickerActivity::class.java)
             if (context !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // The launcher normally returns to its home screen whenever it is stopped; opened from
-            // inside it (Settings), the picker must hand Back to the screen it came from.
-            HostHold.hold = context is Activity
             context.startActivity(intent)
         }
     }
 }
 
-/** Whether the launcher's own screen should stay put while the picker covers it. */
-object HostHold {
-    @Volatile
-    var hold = false
-
-    /** The launcher pops to its home screen when stopped, except for a recreate or while the picker holds it. */
-    fun shouldPopToHome(changingConfigurations: Boolean, privateSpaceToggling: Boolean, held: Boolean): Boolean =
-        !(changingConfigurations || privateSpaceToggling || held)
-}
