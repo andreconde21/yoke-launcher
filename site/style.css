@@ -191,10 +191,10 @@ dl.defs dt { font-weight: 600; }
 dl.defs dd { margin: 0; }
 @media (max-width: 30rem) { dl.defs { grid-template-columns: 1fr; } dl.defs dd { margin-bottom: .5rem; } }
 figure.shots { display: flex; gap: 1rem; overflow-x: auto; margin: 1.5rem 0 0; padding-bottom: .5rem; }
-figure.shots img { width: 13rem; flex: none; border-radius: 1.4rem; border: 1px solid var(--line); background: var(--raised); }
+figure.shots img { width: 13rem; height: auto; flex: none; border-radius: 1.4rem; border: 1px solid var(--line); background: var(--raised); }
 figure.shots figcaption { display: none; }
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 1.25rem; padding: 3rem 0; border-top: 1px solid var(--line); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 1rem; padding: 3rem 0; border-top: 1px solid var(--line); }
 .gallery figure { margin: 0; }
-.gallery img { width: 100%; border-radius: 1.2rem; border: 1px solid var(--line); background: var(--raised); }
+.gallery img { width: 100%; height: auto; border-radius: 1.2rem; border: 1px solid var(--line); background: var(--raised); }
 .gallery figcaption { margin-top: .5rem; font-size: .85rem; color: var(--dim); }
 .guide code, .guide .card-sample { overflow-wrap: anywhere; }
