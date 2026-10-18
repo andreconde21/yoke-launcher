@@ -128,6 +128,30 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) populateConnections()
     }
 
+    // YOK-038: Yoke as phone app. The role first; then what it doesn't grant (notifications), never before.
+    private val phoneRoleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        val ctx = context ?: return@registerForActivityResult
+        val missing = com.outsmartis.yoke.phone.PhoneRole.missingPermissions(ctx)
+        if (com.outsmartis.yoke.phone.PhoneRole.isRoleHeld(ctx) && missing.isNotEmpty()) phonePermissions.launch(missing)
+        if (_binding != null) populateConnections()
+    }
+    private val phonePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        if (_binding != null) populateConnections()
+    }
+
+    private fun startPhoneOptIn() {
+        val ctx = requireContext()
+        com.outsmartis.yoke.phone.PhoneRole.setWanted(ctx, true)
+        val request = com.outsmartis.yoke.phone.PhoneRole.requestIntent(ctx)
+        if (request == null) {
+            ctx.showToast(getString(R.string.phone_role_unavailable))
+            populateConnections()
+            return
+        }
+        // The components were just enabled: let that land before the role checks that Yoke qualifies.
+        binding.root.post { if (_binding != null) runCatching { phoneRoleRequest.launch(request) } }
+    }
+
     /** The values shown at the end of rows that open their own screen. */
     private fun populateSummaries() {
         val ctx = requireContext()
@@ -166,6 +190,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             else -> R.string.off
         })
         binding.shizukuRow.setText(ShizukuDialog.statusText(ctx))
+        com.outsmartis.yoke.phone.PhoneRole.reconcile(ctx) // YOK-038
+        binding.phoneRow.text = PhoneRoleDialog.summary(ctx)
         binding.vaultRow.setText(R.string.settings_status_checking)
         binding.conductoreRow.setText(R.string.settings_status_checking)
         Thread {
@@ -254,6 +280,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.accessibilityRow -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             R.id.shizukuRow -> { dialog?.dismiss(); dialog = ShizukuDialog.show(requireContext()) { if (_binding != null) populateConnections() } }
             R.id.limitsRow -> { dialog?.dismiss(); dialog = LimitedAppsDialog.show(requireContext()) { if (_binding != null) populateSummaries() } }
+            R.id.phoneRow -> { // YOK-038
+                dialog?.dismiss()
+                dialog = PhoneRoleDialog.show(requireContext(), onUse = ::startPhoneOptIn) { if (_binding != null) populateConnections() }
+            }
         }
     }
 
@@ -303,6 +333,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.accessibilityRow.setOnClickListener(this)
         binding.shizukuRow.setOnClickListener(this)
         binding.limitsRow.setOnClickListener(this)
+        binding.phoneRow.setOnClickListener(this) // YOK-038
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.systemColoursRow.setOnClickListener(this)

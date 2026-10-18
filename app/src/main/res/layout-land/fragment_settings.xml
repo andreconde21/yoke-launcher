@@ -980,6 +980,36 @@
                             android:padding="8dp"
                             android:text="@string/edit" />
                     </LinearLayout>
+                    <!--YOK-038 Yoke as phone app-->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="24dp"
+                            android:layout_weight="1"
+                            android:lines="1"
+                            android:paddingVertical="8dp"
+                            android:text="@string/phone_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/phoneRow"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:lines="1"
+                            android:padding="8dp"
+                            android:text="@string/off" />
+                    </LinearLayout>
+                    <!--/YOK-038-->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

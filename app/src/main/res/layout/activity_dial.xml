@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--YOK-038: placeholder dialer (number field + Call); YOK-040 builds the keypad-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <EditText
+        android:id="@+id/dialNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:autofillHints="phone"
+        android:gravity="center"
+        android:hint="@string/phone_dial_hint"
+        android:imeOptions="actionDone"
+        android:inputType="phone"
+        android:textSize="30sp" />
+
+    <Button
+        android:id="@+id/dialCall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/phone_call" />
+</LinearLayout>

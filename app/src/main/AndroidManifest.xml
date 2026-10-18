@@ -31,6 +31,17 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
     <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
+    <!--YOK-038 Yoke as phone app (opt-in): asked only once the user turns it on and Yoke holds
+        the phone app role (which grants the phone group itself). Notifications carry the
+        incoming-call full-screen intent; the default phone app keeps USE_FULL_SCREEN_INTENT on 14+.-->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+    <!--/YOK-038-->
 
     <queries>
         <!--Voice quick-add: the phone's speech recognition service, or its dictation dialog-->
@@ -111,6 +122,54 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity-alias>
+        <!--YOK-038 Yoke as phone app: what the phone app role (ROLE_DIALER) and Telecom look for.
+            Disabled until the user opts in (PhoneRole), so Yoke isn't offered as a phone app before,
+            and in their own :phone process so a launcher crash can't take a call screen down.
+            No IN_CALL_SERVICE_RINGING: Telecom keeps playing the ringtone, even if :phone dies.-->
+        <service
+            android:name=".phone.YokeInCallService"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE"
+            android:process=":phone">
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
+        <activity
+            android:name=".phone.DialActivity"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/phone_title_dial"
+            android:process=":phone"
+            android:taskAffinity="com.outsmartis.yoke.phone.dial"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:windowSoftInputMode="stateAlwaysVisible">
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tel" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".phone.InCallActivity"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:process=":phone"
+            android:taskAffinity="com.outsmartis.yoke.phone.call"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+        <!--/YOK-038-->
         <activity
             android:name=".limits.PauseActivity"
             android:excludeFromRecents="true"

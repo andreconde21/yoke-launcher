@@ -466,4 +466,36 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="assistant_palette">Command palette</string>
     <string name="assistant_today">Today sheet</string>
     <string name="assistant_conductore">Conductore sheet</string>
+    <!--YOK-038 Yoke as phone app (opt-in, own :phone process)-->
+    <string name="phone_setting">Use Yoke as phone app</string>
+    <string name="phone_title">Yoke as phone app</string>
+    <string name="phone_message">Yoke can be the phone\'s default phone app: calls show on Yoke\'s own call screen and tel: links open Yoke\'s dialer. It runs in a separate process, so a launcher crash can\'t touch a call, and emergency numbers always go straight through.\n\nTo switch back: Settings → Apps → Default apps → Phone app, and pick the previous one (or tap Switch back here).</string>
+    <string name="phone_status_yoke">Yoke is the phone app now.</string>
+    <string name="phone_status_other">Phone app now: %1$s</string>
+    <string name="phone_status_none">No phone app is picked.</string>
+    <string name="phone_use">Use Yoke as phone app</string>
+    <string name="phone_switch_back">Switch back</string>
+    <string name="phone_turn_off">Turn off</string>
+    <string name="phone_not_picked">Not picked yet</string>
+    <string name="phone_switching">Switching back</string>
+    <string name="phone_role_unavailable">This phone doesn\'t let apps become the phone app.</string>
+    <string name="phone_title_dial">Phone</string>
+    <string name="phone_dial_hint">Number</string>
+    <string name="phone_call">Call</string>
+    <string name="phone_needs_permission">Yoke needs the phone permission to place calls.</string>
+    <string name="phone_call_failed">Couldn\'t place the call.</string>
+    <string name="phone_incoming">Incoming call</string>
+    <string name="phone_waiting">Call waiting</string>
+    <string name="phone_calling">Calling…</string>
+    <string name="phone_connecting">Connecting…</string>
+    <string name="phone_on_call">On call</string>
+    <string name="phone_on_hold">On hold</string>
+    <string name="phone_ended">Call ended</string>
+    <string name="phone_unknown_number">Unknown number</string>
+    <string name="phone_answer">Answer</string>
+    <string name="phone_decline">Decline</string>
+    <string name="phone_hang_up">Hang up</string>
+    <string name="phone_channel_incoming">Incoming calls</string>
+    <string name="phone_channel_ongoing">Ongoing calls</string>
+    <!--/YOK-038-->
 </resources>

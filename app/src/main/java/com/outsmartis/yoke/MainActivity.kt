@@ -154,6 +154,8 @@ class MainActivity : AppCompatActivity() {
         isResumed = true
         // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
         com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
+        // YOK-038: back from Default apps after "Switch back": drop the phone components once the role moved.
+        com.outsmartis.yoke.phone.PhoneRole.reconcile(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }

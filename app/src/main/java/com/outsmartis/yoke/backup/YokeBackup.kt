@@ -33,6 +33,7 @@ object YokeBackup {
         "yoke.iconrow",
         "yoke.limits",
         "yoke.assist",
+        // Not "yoke.phone" (YOK-038): the phone app role is per device and a restore can't grant it.
     )
 
     /** Keys left out of an export and left alone by an import, per file. */
