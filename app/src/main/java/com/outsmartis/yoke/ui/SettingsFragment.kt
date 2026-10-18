@@ -242,6 +242,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
             R.id.wallpaperRow -> com.outsmartis.yoke.wallpaper.WallpaperActivity.open(requireContext())
             R.id.systemColoursRow -> showSystemColoursDialog()
+            R.id.lockScreenRow -> showLockScreenDialog() // YOK-036
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
             R.id.fontText -> showFontDialog()
@@ -317,6 +318,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.systemColoursRow.setOnClickListener(this)
+        binding.lockScreenRow.setOnClickListener(this) // YOK-036
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
         binding.homeAppStyle.setOnClickListener(this) // YOK-031
@@ -598,6 +600,75 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun populateWallpaper() {
         binding.wallpaperRow.text = com.outsmartis.yoke.wallpaper.WallpaperActivity.summary(requireContext())
         populateSystemColours()
+        populateLockScreen()
+    }
+
+    // YOK-036
+    private fun lockScreenLabel(level: com.outsmartis.yoke.wallpaper.LockScreenLevel) = when (level) {
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.OFF -> R.string.lock_screen_off
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER -> R.string.lock_screen_wallpaper
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER_SYSTEM -> R.string.lock_screen_wallpaper_system
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke
+    }
+
+    private fun populateLockScreen() {
+        val ctx = requireContext()
+        val status = com.outsmartis.yoke.wallpaper.LockScreenSync.status(ctx)
+        val level = com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx)
+        binding.lockScreenRow.setText(
+            when {
+                status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission ->
+                    if (com.outsmartis.yoke.theme.SystemPaletteSync.supported()) R.string.system_colours_needs_permission
+                    else R.string.lock_screen_system_unsupported
+                com.outsmartis.yoke.wallpaper.LockScreenLogic.needsWallpaper(level, com.outsmartis.yoke.wallpaper.WallpaperPrefs(ctx).applied) ->
+                    R.string.lock_screen_not_applied
+                else -> lockScreenLabel(level)
+            }
+        )
+    }
+
+    /** One choice of four; levels that cannot work yet say why instead of doing nothing. */
+    private fun showLockScreenDialog() {
+        val ctx = requireContext()
+        val sync = com.outsmartis.yoke.wallpaper.LockScreenSync
+        val levels = com.outsmartis.yoke.wallpaper.LockScreenLevel.entries
+        val labels = levels.map { level ->
+            val label = getString(lockScreenLabel(level))
+            when {
+                sync.available(ctx, level) -> label
+                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> "$label (${getString(R.string.lock_screen_yoke_soon)})"
+                !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> "$label (${getString(R.string.lock_screen_system_unsupported)})"
+                else -> "$label (${getString(R.string.system_colours_needs_permission)})"
+            }
+        }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.lock_screen_title)
+            .setSingleChoiceItems(labels, levels.indexOf(sync.level(ctx))) { dialog, which ->
+                val level = levels[which]
+                if (sync.available(ctx, level)) {
+                    val needsWallpaper = sync.setLevel(ctx, level)
+                    if (_binding != null) populateLockScreen()
+                    if (needsWallpaper) {
+                        androidx.appcompat.app.AlertDialog.Builder(ctx)
+                            .setTitle(R.string.lock_screen_title)
+                            .setMessage(R.string.lock_screen_needs_wallpaper)
+                            .setPositiveButton(R.string.lock_screen_open_wallpaper) { _, _ ->
+                                com.outsmartis.yoke.wallpaper.WallpaperActivity.open(ctx)
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
+                } else {
+                    val reason = when {
+                        level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke_soon
+                        !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> R.string.lock_screen_system_unsupported
+                        else -> R.string.lock_screen_system_needs_permission
+                    }
+                    Toast.makeText(ctx, reason, Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun populateSystemColours() {
@@ -627,6 +698,14 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 action = action,
                 message = R.string.system_colours_message,
                 onAction = {
+                    com.outsmartis.yoke.wallpaper.LockScreenSync.userChangedColours(ctx) // YOK-036
+                    // The Lock screen level "Wallpaper + system" owns this switch: turning colours off drops it to
+                    // "Wallpaper" instead of being switched back on at the next resume.
+                    if (on && com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx).includesSystem) {
+                        com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel(
+                            ctx, com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER,
+                        )
+                    }
                     when {
                         on -> SystemPaletteSync.setEnabled(ctx, false)
                         hasPermission -> SystemPaletteSync.setEnabled(ctx, true)
@@ -647,6 +726,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) {
             // Catches a permission granted since (Smart grayscale's screen, or adb).
             SystemPaletteSync.sync(requireContext())
+            com.outsmartis.yoke.wallpaper.LockScreenSync.sync(requireContext()) // YOK-036
             populateWallpaper()
             populateSummaries()
             populateConnections()
