@@ -73,13 +73,16 @@ sealed class GestureAction(val type: String, val label: String) {
         /** Action types Yoke no longer offers. */
         val RETIRED = setOf("next_theme", "next_background")
 
-        /** Actions without parameters, in the order the picker lists them. */
-        val simple: List<GestureAction> = listOf(
+        /**
+         * Actions without parameters, in the order the picker lists them. Lazy: an eager list is built
+         * while the first action object touched (say [None]) is still initialising, which leaves a null in it.
+         */
+        val simple: List<GestureAction> by lazy { listOf(
             None, AppDrawer, Search, Notifications, QuickSettings, Lock, RecentApps, Torch,
             MediaPlayPause, MediaNext, MediaPrevious, CockpitQuickAdd, CockpitVoiceAdd, CockpitBoard, CockpitCalendar, CockpitToday, ConductoreSheet,
             CommandPalette, ThemePicker, GestureCheatSheet, Settings,
             WidgetPage, ToggleGrayscale, PauseGrayscale, ToggleIconRow,
-        )
+        ) }
 
         /** Throws [IllegalArgumentException] with a readable message when [json] is not a valid action. */
         fun fromJson(json: JSONObject): GestureAction {
