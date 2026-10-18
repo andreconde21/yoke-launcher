@@ -7,6 +7,7 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.NotificationListenerService
@@ -92,7 +93,12 @@ class YokeNotificationListener : NotificationListenerService() {
 
     fun channelLockVisibility(key: String): Int = try {
         val ranking = Ranking()
-        if (currentRanking.getRanking(key, ranking)) ranking.channel?.lockscreenVisibility ?: -1000 else -1000
+        when {
+            !currentRanking.getRanking(key, ranking) -> -1000
+            // The system's combined per-app/channel value, better than the channel's own (API 28+)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> ranking.lockscreenVisibilityOverride
+            else -> ranking.channel?.lockscreenVisibility ?: -1000
+        }
     } catch (e: RuntimeException) {
         -1000
     }

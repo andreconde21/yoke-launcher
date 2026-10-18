@@ -38,10 +38,6 @@ class LockScreenService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!LockScreenPolicy.shouldRunService(LockScreenPrefs(this).enabled, LockScreenController.launchPathOpen())) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
         LockScreenController.ensureChannels(this)
         val notification = NotificationCompat.Builder(this, LockScreenController.CHANNEL_SERVICE)
             .setSmallIcon(R.drawable.ic_lock_screen)
@@ -57,6 +53,11 @@ class LockScreenService : Service() {
             )
         } catch (e: RuntimeException) {
             Log.w(LockScreenController.TAG, "startForeground refused", e)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // Checked after startForeground: a service started with startForegroundService that stops first crashes
+        if (!LockScreenPolicy.shouldRunService(LockScreenPrefs(this).enabled, LockScreenController.launchPathOpen())) {
             stopSelf()
             return START_NOT_STICKY
         }

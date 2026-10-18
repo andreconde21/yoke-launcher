@@ -11,7 +11,6 @@ import android.os.SystemClock
 import android.os.UserManager
 import android.provider.MediaStore
 import android.provider.Settings
-import android.telecom.TelecomManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.outsmartis.yoke.R
@@ -46,8 +45,10 @@ object LockScreenController {
 
     // Dialers and emergency UIs that show over the lock screen; the secure camera is added by intent
     private val EXTRA_PROTECTED = setOf(
-        "com.android.emergency", "com.android.phone", "com.android.dialer", "com.google.android.dialer",
-        "com.samsung.android.dialer", "com.samsung.android.incallui", "com.samsung.android.emergency",
+        // Emergency UIs only. Dialers are left out: the foreground package only changes on window-state events,
+        // so a dialer opened while unlocked would block the lock screen until another app came to the front.
+        // A call in progress is already handled by the audio mode in the policy.
+        "com.android.emergency", "com.samsung.android.emergency",
     )
 
     fun isEnabled(context: Context): Boolean = LockScreenPrefs(context).enabled
@@ -130,15 +131,14 @@ object LockScreenController {
     fun interactive(context: Context): Boolean =
         context.getSystemService(PowerManager::class.java)?.isInteractive ?: true
 
-    /** Packages whose UI shows over the lock screen and must not be covered: the secure camera and dialers. */
+    /** Packages whose UI shows over the lock screen and must not be covered: the secure camera and emergency UIs. */
     private fun protectedPackages(context: Context): Set<String> {
         val found = HashSet(EXTRA_PROTECTED)
         try {
             val pm = context.packageManager
-            listOf(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE, MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA).forEach { action ->
-                pm.queryIntentActivities(Intent(action), 0).forEach { found.add(it.activityInfo.packageName) }
-            }
-            context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage?.let { found.add(it) }
+            // Only the secure camera shows over the lock screen; the normal camera app would stick (see above)
+            pm.queryIntentActivities(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE), 0)
+                .forEach { found.add(it.activityInfo.packageName) }
         } catch (e: RuntimeException) {
             Log.w(TAG, "protected packages", e)
         }
