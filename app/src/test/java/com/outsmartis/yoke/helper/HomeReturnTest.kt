@@ -15,6 +15,12 @@ class HomeReturnTest {
     }
 
     @Test
+    fun onlyAStopWithTheScreenOffPopsToHome() {
+        assertTrue(HomeReturn.popOnStop(false))
+        assertFalse(HomeReturn.popOnStop(true))
+    }
+
+    @Test
     fun scrollIsRestoredOnlyOnceTheContentIsTallEnough() {
         assertNull(HomeReturn.scrollTarget(900, 1500, 1000)) // only 500 scrollable: rows still filling in
         assertEquals(900, HomeReturn.scrollTarget(900, 2000, 1000))

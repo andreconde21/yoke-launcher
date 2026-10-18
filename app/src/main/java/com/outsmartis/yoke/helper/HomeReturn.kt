@@ -2,11 +2,14 @@ package com.outsmartis.yoke.helper
 
 /**
  * When the launcher drops back to its home screen. Only when the user really goes home (the HOME
- * intent arrives in onNewIntent) or the screen turns off. Stops and "leave hints" are not triggers:
+ * intent arrives in onNewIntent) or the activity stops with the screen off. Other stops and "leave hints" are not triggers:
  * Yoke's own file pickers, permission prompts and settings jumps cause them too, and popping the
  * back stack then destroys the screen that is waiting for the result.
  */
 object HomeReturn {
+
+    /** A stop caused by the screen turning off is the user leaving; any stop with the screen on is not. */
+    fun popOnStop(screenInteractive: Boolean): Boolean = !screenInteractive
 
     fun shouldPop(privateSpaceToggling: Boolean): Boolean = !privateSpaceToggling
 
