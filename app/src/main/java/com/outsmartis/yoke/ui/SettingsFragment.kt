@@ -86,25 +86,26 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         return binding.root
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        _binding?.let { outState.putInt(STATE_SCROLL, it.scrollView.scrollY) }
-    }
-
     /**
-     * After a recreate (a theme change) the saved scroll position is applied as soon as the rows have
-     * their height again; the framework's own restore is clamped while they are still filling in and
-     * left Settings at the top.
+     * The scroll position survives a recreate (a theme change), even two in a row: the second one used to
+     * save the not-yet-restored top. [SettingsScroll] holds it in the process, applies it as soon as the
+     * rows have their height again (the framework's own restore is clamped while they are still filling
+     * in) and records user scrolling only once the restore is done.
      */
-    private fun restoreScroll(wanted: Int) {
+    private fun trackScroll() {
         val scroll = binding.scrollView
+        var wanted = SettingsScroll.takeWanted()
         val deadline = android.os.SystemClock.uptimeMillis() + 2000
+        scroll.viewTreeObserver.addOnScrollChangedListener { if (wanted == 0) SettingsScroll.y = scroll.scrollY }
+        if (wanted == 0) return
         scroll.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 val child = scroll.getChildAt(0)
                 val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(wanted, it.height, scroll.height) }
                 if (target != null) scroll.scrollTo(0, target)
                 if (target != null || android.os.SystemClock.uptimeMillis() > deadline) {
+                    SettingsScroll.y = scroll.scrollY
+                    wanted = 0
                     if (scroll.viewTreeObserver.isAlive) scroll.viewTreeObserver.removeOnGlobalLayoutListener(this)
                 }
             }
@@ -113,7 +114,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        savedInstanceState?.getInt(STATE_SCROLL, 0)?.takeIf { it > 0 }?.let(::restoreScroll)
+        trackScroll()
         prefs = Prefs(requireContext())
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
@@ -1113,15 +1114,28 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         dialog = null
         applyTextSizeScale()
         weatherSettings = null
+        SettingsScroll.onViewDestroyed(activity?.isChangingConfigurations == true)
         super.onDestroyView()
         _binding = null
     }
 }
-
-private const val STATE_SCROLL = "settings_scroll_y"
 
 private val DICTATION_LANGUAGES = listOf(
     "" to R.string.dictation_language_phone,
     "pt-PT" to R.string.dictation_language_pt,
     "en-US" to R.string.dictation_language_en,
 )
+
+/** Settings' scroll position across activity recreates; reset whenever the page is left for real. */
+object SettingsScroll {
+    @Volatile var y = 0
+    private var recreating = false
+
+    /** The position to restore into a view created after a recreate, else 0. */
+    fun takeWanted(): Int = (if (recreating) y else 0).also { recreating = false; if (it == 0) y = 0 }
+
+    fun onViewDestroyed(changingConfigurations: Boolean) {
+        recreating = changingConfigurations
+        if (!changingConfigurations) y = 0
+    }
+}
