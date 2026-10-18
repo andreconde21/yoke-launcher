@@ -14,7 +14,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -41,6 +40,8 @@ import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.LinkEntry
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.FragmentHomeBinding
+import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.showStatusBar
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.dpToPx
 import com.outsmartis.yoke.helper.getUserHandleFromString
@@ -75,6 +76,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
     private var appsBasePaddingBottom = 0
+    /** Bottom space the first-run tips need, so the home apps never run into them. */
+    private var tipsReserve = 0
     private val iconPrefsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
         if (_binding != null && isAdded) renderIconRow()
     }
@@ -94,6 +97,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         appsBasePaddingBottom = binding.homeAppsLayout.paddingBottom
         iconPrefs.registerListener(iconPrefsListener)
         keepAppsBelowTopBlock()
+        keepAppsAboveTips()
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
         } ?: throw Exception("Invalid Activity")
@@ -370,7 +374,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         iconRow = null
         val apps = b.homeAppsLayout
         fun setBottomPadding(px: Int) {
-            if (apps.paddingBottom != px) apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, px)
+            val wanted = maxOf(px, tipsReserve)
+            if (apps.paddingBottom != wanted) apps.setPadding(apps.paddingLeft, apps.paddingTop, apps.paddingRight, wanted)
         }
         if (!iconPrefs.enabled || iconPrefs.slots.isEmpty()) {
             setBottomPadding(appsBasePaddingBottom)
@@ -666,24 +671,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     private fun showStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            requireActivity().window.insetsController?.show(WindowInsets.Type.statusBars())
-        else
-            @Suppress("DEPRECATION", "InlinedApi")
-            requireActivity().window.decorView.apply {
-                systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            }
+        activity?.window?.showStatusBar()
     }
 
     private fun hideStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            requireActivity().window.insetsController?.hide(WindowInsets.Type.statusBars())
-        else {
-            @Suppress("DEPRECATION")
-            requireActivity().window.decorView.apply {
-                systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE or View.SYSTEM_UI_FLAG_FULLSCREEN
-            }
-        }
+        activity?.window?.hideStatusBar()
     }
 
     private fun openScreenTimeDigitalWellbeing() {
@@ -787,6 +779,20 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             val wanted = if (block.visibility == View.VISIBLE) maxOf(minTop, block.bottom + 16.dpToPx()) else minTop
             if (apps.paddingTop != wanted) apps.post {
                 apps.setPadding(apps.paddingLeft, wanted, apps.paddingRight, apps.paddingBottom)
+            }
+        }
+    }
+
+    /** The first-run hint sits at the bottom; reserve its height so the 5th/6th apps do not overlap it. */
+    private fun keepAppsAboveTips() {
+        binding.firstRunTips.addOnLayoutChangeListener { tips, _, top, _, bottom, _, _, _, _ ->
+            val b = _binding ?: return@addOnLayoutChangeListener
+            val wanted = if (tips.visibility == View.VISIBLE) (bottom - top) + 56.dpToPx() + 8.dpToPx() else 0
+            if (wanted != tipsReserve) {
+                tipsReserve = wanted
+                b.homeAppsLayout.post {
+                    if (_binding != null) renderIconRow()
+                }
             }
         }
     }
