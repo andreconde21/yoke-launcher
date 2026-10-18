@@ -131,8 +131,10 @@ class LockScreenActivity : AppCompatActivity() {
      */
     private fun allowed(): Boolean {
         val offAt = intent?.getLongExtra(EXTRA_OFF_AT, 0L) ?: 0L
-        val ok = LockScreenPolicy.acceptCreate(interactive(), offAt, LockScreenController.screenOnAt) &&
-            LockScreenController.decide(this) == LockScreenPolicy.Decision.SHOW
+        val afterCall = intent?.getBooleanExtra(EXTRA_AFTER_CALL, false) ?: false
+        val ok = LockScreenPolicy.acceptCreate(
+            interactive(), offAt, LockScreenController.screenOnAt, afterCall, keyguard().isKeyguardLocked,
+        ) && LockScreenController.decide(this, ignoreScreenOn = afterCall) == LockScreenPolicy.Decision.SHOW
         if (!ok) android.util.Log.d(LockScreenController.TAG, "activity not kept up")
         return ok
     }
@@ -300,8 +302,12 @@ class LockScreenActivity : AppCompatActivity() {
         /** elapsedRealtime of the screen-off this start answers; a start without it is refused. */
         private const val EXTRA_OFF_AT = "off_at"
 
-        fun intent(context: Context, offAt: Long): Intent = Intent(context, LockScreenActivity::class.java)
+        /** The start answers a call ending with the screen on and the keyguard still up (no screen-off stamp). */
+        private const val EXTRA_AFTER_CALL = "after_call"
+
+        fun intent(context: Context, offAt: Long, afterCall: Boolean = false): Intent = Intent(context, LockScreenActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             .putExtra(EXTRA_OFF_AT, offAt)
+            .putExtra(EXTRA_AFTER_CALL, afterCall)
     }
 }

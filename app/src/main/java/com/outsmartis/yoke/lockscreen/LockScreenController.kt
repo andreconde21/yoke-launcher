@@ -94,8 +94,25 @@ object LockScreenController {
         if (!interactive(app)) startDirect(app, offAt) else Log.d(TAG, "not shown: ${LockScreenPolicy.Decision.SCREEN_ON}")
     }
 
+    /**
+     * A call just ended. Screen off: the usual screen-off path. Screen on with the keyguard still up (the
+     * call UI closes onto the stock lock screen): put the Yoke lock screen back over it.
+     */
+    fun onCallEnded(context: Context) {
+        val app = context.applicationContext
+        if (!interactive(app)) return onScreenOff(app)
+        val locked = app.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked ?: false
+        if (!LockScreenPolicy.showAfterCall(true, locked)) return
+        val decision = decide(app, ignoreScreenOn = true)
+        if (decision != LockScreenPolicy.Decision.SHOW) {
+            Log.d(TAG, "not shown after call: $decision")
+            return
+        }
+        startDirect(app, 0L, afterCall = true)
+    }
+
     /** The full launch decision from live state. Also called by the activity's onCreate. */
-    fun decide(context: Context): LockScreenPolicy.Decision {
+    fun decide(context: Context, ignoreScreenOn: Boolean = false): LockScreenPolicy.Decision {
         val audio = context.getSystemService(AudioManager::class.java)
         val usages = try {
             audio?.activePlaybackConfigurations?.map { it.audioAttributes.usage }.orEmpty()
@@ -111,7 +128,7 @@ object LockScreenController {
             userUnlocked = unlocked,
             audioMode = audio?.mode ?: LockScreenPolicy.MODE_NORMAL,
             playingUsages = usages,
-            interactive = interactive(context),
+            interactive = !ignoreScreenOn && interactive(context),
             lockPending = lockPending,
             otherActivityInFront = LockScreenPolicy.isProtectedForeground(
                 MyAccessibilityService.foregroundPackage, protectedPackages(context),
@@ -136,8 +153,8 @@ object LockScreenController {
         return found
     }
 
-    private fun startDirect(context: Context, offAt: Long) {
-        val intent = LockScreenActivity.intent(context, offAt)
+    private fun startDirect(context: Context, offAt: Long, afterCall: Boolean = false) {
+        val intent = LockScreenActivity.intent(context, offAt, afterCall)
         // The system-bound accessibility service exempts the app from the background start block
         val starter: Context = MyAccessibilityService.instance ?: context
         try {
