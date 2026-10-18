@@ -62,7 +62,7 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val colour = themeColour(app)
-        val target = prefs.choice.target
+        val target = prefs.effectiveTarget
         worker.execute {
             val error = setSolid(app, colour, target)
             if (error == null) {
@@ -90,7 +90,7 @@ object WallpaperApplier {
         val prefs = WallpaperPrefs(app)
         val choice = prefs.choice
         if (!prefs.applied || choice.source != WallpaperSource.THEME_COLOUR) return
-        if (prefs.lastSolid == "${themeColour(app)}:${choice.target.name}") return
+        if (prefs.lastSolid == "${themeColour(app)}:${prefs.effectiveTarget.name}") return
         applyThemeColour(app)
     }
 
@@ -183,7 +183,7 @@ object WallpaperApplier {
             }
             val prefs = WallpaperPrefs(app)
             prefs.choice = prefs.choice.copy(source = WallpaperSource.IMAGE)
-            val error = setBitmap(app, bmp, prefs.choice.target)
+            val error = setBitmap(app, bmp, prefs.effectiveTarget)
             bmp.recycle()
             if (error == null) prefs.applied = true
             post(callback, error)
@@ -211,7 +211,7 @@ object WallpaperApplier {
     private fun setAndRemember(context: Context, bmp: Bitmap): String? {
         val prefs = WallpaperPrefs(context)
         val error = try {
-            setBitmap(context, bmp, prefs.choice.target)
+            setBitmap(context, bmp, prefs.effectiveTarget)
         } finally {
             bmp.recycle()
         }

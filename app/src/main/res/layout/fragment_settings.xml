@@ -520,6 +520,31 @@
                             android:padding="8dp"
                             android:text="@string/off" />
                     </FrameLayout>
+                    <!-- YOK-036 -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/lock_screen_row"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/lockScreenRow"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/off" />
+                    </FrameLayout>
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -862,36 +887,6 @@
                             android:padding="8dp"
                             android:text="@string/off" />
                     </LinearLayout>
-                    <!-- YOK-037: temporary on/off until YOK-036's "Lock screen" setting takes it over -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            style="@style/TextSmall"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginEnd="24dp"
-                            android:layout_weight="1"
-                            android:lines="1"
-                            android:paddingVertical="8dp"
-                            android:text="@string/lock_screen_yoke_setting"
-                            android:textColor="?attr/primaryColor" />
-
-                        <TextView
-                            android:id="@+id/lockScreenYokeRow"
-                            style="@style/TextSmallBold"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="end|bottom"
-                            android:layout_marginEnd="4dp"
-                            android:lines="1"
-                            android:padding="8dp"
-                            android:text="@string/off" />
-                    </LinearLayout>
-                    <!-- /YOK-037 -->
             </LinearLayout>
 
             <LinearLayout

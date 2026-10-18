@@ -238,7 +238,7 @@
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
             android:taskAffinity="com.outsmartis.yoke.lockscreen"
-            android:theme="@style/AppTheme"
+            android:theme="@style/LockScreenTheme"
             tools:ignore="LockedOrientationActivity" />
         <service
             android:name=".lockscreen.LockScreenService"

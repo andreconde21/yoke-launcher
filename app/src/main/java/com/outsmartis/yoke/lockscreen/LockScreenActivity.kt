@@ -66,6 +66,7 @@ class LockScreenActivity : AppCompatActivity() {
         binding = ActivityLockScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
+        makeOpaque()
         ThemeApplier.apply(binding.root, surface = true)
         ContextCompat.registerReceiver(
             this, unlockedReceiver, IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED,
@@ -82,6 +83,19 @@ class LockScreenActivity : AppCompatActivity() {
             renderNotifications(it)
             bindMedia() // a player starting or stopping posts or removes its notification
         }
+    }
+
+    /**
+     * The keyguard's own clock must not show through (seen on Android 16): paint the window and the
+     * root in the theme background, and never ask for the wallpaper layer. A themed wallpaper is
+     * not drawn here; an opaque theme colour is the safe look over a keyguard.
+     */
+    private fun makeOpaque() {
+        val theme = com.outsmartis.yoke.theme.ThemeStore.current(this)
+        val colour = theme?.background ?: android.graphics.Color.BLACK
+        window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(colour or 0xFF000000.toInt()))
+        binding.root.setBackgroundColor(colour or 0xFF000000.toInt())
     }
 
     private fun showOverKeyguard() {

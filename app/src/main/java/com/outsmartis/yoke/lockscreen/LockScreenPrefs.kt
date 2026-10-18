@@ -1,21 +1,18 @@
 package com.outsmartis.yoke.lockscreen
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
+import com.outsmartis.yoke.wallpaper.LockScreenLevel
+import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
-/** Yoke lock screen settings, in the same prefs file as the rest of Yoke (so backups carry them). */
+/**
+ * Yoke lock screen settings. There is no switch of its own: the one source of truth is the
+ * "Lock screen" level (YOK-036), saved with the rest of Yoke's prefs so backups carry it.
+ */
 class LockScreenPrefs(context: Context) {
 
-    private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences("com.outsmartis.yoke", 0)
+    private val wallpaper = WallpaperPrefs(context.applicationContext)
 
-    /** Off by default; [LockScreenController.setEnabled] is the way to change it (it also starts/stops the service). */
-    var enabled: Boolean
-        get() = prefs.getBoolean(ENABLED, false)
-        set(value) = prefs.edit { putBoolean(ENABLED, value) }
-
-    companion object {
-        private const val ENABLED = "LOCK_SCREEN_YOKE_ON"
-    }
+    /** On exactly when the level is [LockScreenLevel.YOKE]. Change it with [com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel]. */
+    val enabled: Boolean
+        get() = wallpaper.lockLevel == LockScreenLevel.YOKE
 }

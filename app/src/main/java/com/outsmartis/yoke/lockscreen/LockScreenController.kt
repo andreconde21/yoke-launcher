@@ -23,8 +23,8 @@ import com.outsmartis.yoke.helper.MyAccessibilityService
  *
  * Starting an activity from the background is blocked on Android 10+; the one path used is a
  * start from the connected accessibility service (a system-bound accessibility service is an
- * exemption). There is deliberately no full-screen-intent fallback: the system wakes the screen
- * for those, which would loop (screen off, wake, screen off).
+ * exemption). Nothing else is used: a full-screen intent would make the system wake the screen,
+ * which would loop (screen off, wake, screen off).
  *
  * Every launch re-checks [decide] right before the start, and the activity re-checks in onCreate.
  * Known limit: whether another show-when-locked app (camera, emergency dialer) is in front is
@@ -57,16 +57,7 @@ object LockScreenController {
     fun launchPathOpen(): Boolean = MyAccessibilityService.instance != null
 
     /**
-     * The on/off switch. Today the temporary Settings row calls it; YOK-036's "Lock screen"
-     * setting calls it with true for its "Yoke lock screen" level and false for every other level.
-     */
-    fun setEnabled(context: Context, on: Boolean) {
-        LockScreenPrefs(context).enabled = on
-        sync(context)
-    }
-
-    /**
-     * Starts or stops the service to match the setting (and the launch path: with the pref on but
+     * Starts or stops the service to match the "Lock screen" level being Yoke (and the launch path: with the pref on but
      * no accessibility service, e.g. after a backup restore, it stays stopped). Call from the
      * foreground (Settings, home resuming): Android 12+ refuses foreground-service starts from the background.
      */
