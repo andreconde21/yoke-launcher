@@ -6,8 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -34,6 +37,13 @@ class LockScreenService : Service() {
         }
     }
     private var registered = false
+
+    // A call ending: the system keyguard shows afterwards, so put ours back when the screen is off
+    // (API 31+ only; older APIs have no permission-free call signal). A call that ends with the screen
+    // on is left to the system keyguard: the lock screen never covers an interactive display.
+    private val main = Handler(Looper.getMainLooper())
+    private var modeListener: Any? = null
+    private var wasInCall = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -67,10 +77,33 @@ class LockScreenService : Service() {
             )
             registered = true
         }
+        watchCallEnd()
         return START_STICKY
     }
 
+    private fun watchCallEnd() {
+        if (modeListener != null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val l = AudioManager.OnModeChangedListener { mode ->
+            val inCall = LockScreenPolicy.inCall(mode)
+            if (wasInCall && !inCall) {
+                // Let the call UI close first; onScreenOff re-checks everything (screen off, still locked)
+                main.postDelayed({ LockScreenController.onScreenOff(this) }, CALL_END_DELAY_MS)
+            }
+            wasInCall = inCall
+        }
+        modeListener = l
+        audio.addOnModeChangedListener(ContextCompat.getMainExecutor(this), l)
+    }
+
     override fun onDestroy() {
+        main.removeCallbacksAndMessages(null)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (modeListener as? AudioManager.OnModeChangedListener)?.let {
+                (getSystemService(Context.AUDIO_SERVICE) as AudioManager).removeOnModeChangedListener(it)
+            }
+        }
+        modeListener = null
         if (registered) {
             registered = false
             try {
@@ -79,5 +112,9 @@ class LockScreenService : Service() {
             }
         }
         super.onDestroy()
+    }
+
+    private companion object {
+        const val CALL_END_DELAY_MS = 1000L
     }
 }

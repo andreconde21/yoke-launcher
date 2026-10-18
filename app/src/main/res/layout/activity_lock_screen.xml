@@ -119,6 +119,9 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="56dp"
+        android:background="@null"
+        android:defaultFocusHighlightEnabled="false"
+        android:focusable="false"
         android:padding="12dp"
         android:text="@string/lock_screen_yoke_unlock_hint"
         android:textColor="?attr/primaryColorTrans50" />

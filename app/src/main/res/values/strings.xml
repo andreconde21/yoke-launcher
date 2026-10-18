@@ -474,6 +474,8 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="lock_screen_yoke_play_pause">Play or pause</string>
     <string name="lock_screen_yoke_next">Next</string>
     <string name="lock_screen_yoke_needs_launch">The Yoke lock screen needs Yoke\'s accessibility service. Turn it on in accessibility settings.</string>
+    <string name="lock_screen_yoke_why_accessibility">The Yoke lock screen can only open over the system lock screen through Yoke\'s accessibility service. Turn it on to use it.</string>
+    <string name="lock_screen_yoke_open_settings">Open settings</string>
     <string name="lock_screen_yoke_needs_accessibility">Needs accessibility</string>
     <!-- /YOK-037 -->
     <!-- YOK-036 -->
