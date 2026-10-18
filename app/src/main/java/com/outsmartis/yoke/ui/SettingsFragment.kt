@@ -785,15 +785,15 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         }
     }
 
-    // The Yoke level waits for the accessibility service: explain, then open settings; onResume applies it
-    private var pendingYokeLevel = false
+    // The Yoke level waits for the accessibility service: explain, then open settings; onResume applies it.
+    // Kept in prefs so a recreate or kill while the user is in accessibility settings doesn't lose it.
 
     private fun askAccessibilityForLockScreen(ctx: Context) {
         androidx.appcompat.app.AlertDialog.Builder(ctx)
             .setTitle(R.string.lock_screen_title)
             .setMessage(R.string.lock_screen_yoke_why_accessibility)
             .setPositiveButton(R.string.lock_screen_yoke_open_settings) { _, _ ->
-                pendingYokeLevel = true
+                prefs.pendingYokeLevel = true
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -801,8 +801,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     }
 
     private fun applyPendingYokeLevel() {
-        if (!pendingYokeLevel || !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen()) return
-        pendingYokeLevel = false
+        if (!prefs.pendingYokeLevel || !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen()) return
+        prefs.pendingYokeLevel = false
         com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel(requireContext(), com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE)
         populateLockScreen()
         askLockScreenYokeAccess()

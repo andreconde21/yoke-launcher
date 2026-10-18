@@ -84,6 +84,7 @@ class LockScreenService : Service() {
     private fun watchCallEnd() {
         if (modeListener != null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        wasInCall = LockScreenPolicy.inCall(audio.mode)
         val l = AudioManager.OnModeChangedListener { mode ->
             val inCall = LockScreenPolicy.inCall(mode)
             if (wasInCall && !inCall) {
