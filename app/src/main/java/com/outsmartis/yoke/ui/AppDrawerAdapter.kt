@@ -102,7 +102,7 @@ class AppDrawerAdapter(
     var appFilteredList: MutableList<AppModel> = mutableListOf()
 
     override fun getItemViewType(position: Int): Int {
-        return when (appFilteredList.getOrNull(position)) {
+        return when (currentList.getOrNull(position)) {
             is AppModel.PrivateSpaceHeader -> VIEW_TYPE_PRIVATE_HEADER
             else -> VIEW_TYPE_APP
         }
@@ -132,8 +132,9 @@ class AppDrawerAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         try {
-            if (appFilteredList.isEmpty() || position == RecyclerView.NO_POSITION) return
-            val appModel = appFilteredList[holder.bindingAdapterPosition]
+            // Bind from the committed list (what the RecyclerView counts), never from appFilteredList: that one
+            // is already the next result while DiffUtil still runs, so positions would be off and rows swapped.
+            val appModel = currentList.getOrNull(position) ?: return
             when (holder) {
                 is PrivateSpaceHeaderViewHolder -> {
                     holder.bind(
@@ -325,13 +326,15 @@ class AppDrawerAdapter(
                 // squeezing the title.
                 val oneLine = paint.measureText(title) + suffixPaint.measureText("  $rawSuffix") <= avail
                 val twoLines = rawSuffix.isNotEmpty() && !oneLine
+                // A row without suffix whose title is too long wraps to a second line instead of cutting the query
+                val wrapTitle = rawSuffix.isEmpty() && paint.measureText(title) > avail
                 val suffix = when {
                     rawSuffix.isEmpty() -> ""
                     twoLines -> "\n" + android.text.TextUtils.ellipsize(rawSuffix, suffixPaint, avail, end)
                     else -> "  $rawSuffix"
                 }
                 val titleSpace = if (twoLines) avail else (avail - suffixPaint.measureText(suffix)).coerceAtLeast(0f)
-                val fitted = if (at >= 0) {
+                val cut = if (at >= 0) {
                     val head = title.substring(0, at)
                     val tail = title.substring(at + q!!.length)
                     val room = titleSpace - paint.measureText(head) - paint.measureText(tail)
@@ -339,7 +342,8 @@ class AppDrawerAdapter(
                 } else {
                     android.text.TextUtils.ellipsize(title, paint, titleSpace, end).toString()
                 }
-                appTitle.maxLines = if (twoLines) 2 else 1
+                val fitted = if (wrapTitle) title else cut
+                appTitle.maxLines = if (twoLines || wrapTitle) 2 else 1
                 appTitle.text = if (suffix.isEmpty()) fitted else SpannableString(fitted + suffix).apply {
                     setSpan(RelativeSizeSpan(0.65f), fitted.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
