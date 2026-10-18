@@ -48,7 +48,7 @@ object ThemeStore {
         val r = resolved(context)
         val wallpaper = WallpaperPrefs(context).windowSignature
         val t = r.theme ?: return "${r.id}:$wallpaper"
-        return "${r.id}:${t.background}:${t.foreground}:${t.accent}:${t.secondary}:${ThemePrefs(context).jetBrainsMono}:$wallpaper"
+        return "${r.id}:${t.background}:${t.foreground}:${t.accent}:${t.secondary}:${ThemePrefs(context).font.id}:$wallpaper"
     }
 
     /** Night mode the activity should run in: the theme's own mode, else the launcher's light/dark setting. */
