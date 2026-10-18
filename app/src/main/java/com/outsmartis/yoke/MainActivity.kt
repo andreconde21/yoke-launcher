@@ -300,6 +300,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun backToHomeScreen() {
         if (viewModel.isPrivateSpaceToggling) return
+        // A recreate (theme, font, system colours changing) stops the activity too: stay on the current screen.
+        if (isChangingConfigurations) return
         messageDialog?.dismiss()
         if (navController.currentDestination?.id != R.id.mainFragment)
             navController.popBackStack(R.id.mainFragment, false)
