@@ -143,7 +143,9 @@ class MainActivity : AppCompatActivity() {
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
-            recreate() // the user did not watch this change happen (picker): no fade
+            // Back from the picker: fade from the old home to the new look, so there is no bare window
+            // (black frame) between the two; cases the fade cannot cover recreate directly.
+            ThemeFade.recreate(this)
             return
         }
         themeObserver?.unregister()
