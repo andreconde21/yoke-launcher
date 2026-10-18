@@ -158,7 +158,9 @@
                     android:textAlignment="viewEnd"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    tools:text="High 21 Low 13" />
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    tools:text="H 21° · L 13°" />
             </LinearLayout>
         </LinearLayout>
 

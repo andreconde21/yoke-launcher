@@ -479,6 +479,6 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="glance_today">Today</string>
     <string name="glance_tomorrow">Tomorrow</string>
     <string name="glance_all_day">All day</string>
-    <string name="glance_high_low">High %1$d Low %2$d</string>
+    <string name="glance_high_low">H %1$d° · L %2$d°</string>
     <string name="glance_event_missing">No app found to open this</string>
 </resources>
