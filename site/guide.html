@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yoke guide</title>
+  <meta name="description" content="How to set up Yoke: Omarchy themes and following your PC, smart grayscale, limited apps, voice quick-add, the long-press power assistant, Shizuku and backups.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><use href="icon.svg#glyph"/></svg>
+        Yoke
+      </a>
+      <nav>
+        <a href="https://github.com/andreconde21/yoke-launcher">Source</a>
+        <a href="/guide" aria-current="page">Guide</a>
+        <a href="/download">Download</a>
+      </nav>
+    </header>
+
+    <main class="guide">
+      <h1>The Yoke guide</h1>
+      <p class="meta">Everything Yoke can do, where to find it, and what it needs. Every feature below is optional: Yoke works as a plain text launcher with all of them off.</p>
+
+      <nav class="toc" aria-label="On this page">
+        <a href="#start">Getting started</a>
+        <a href="#settings">Where settings live</a>
+        <a href="#themes">Themes and your Omarchy PC</a>
+        <a href="#grayscale">Smart grayscale</a>
+        <a href="#limits">Limited apps</a>
+        <a href="#cockpit">Cockpit tasks and voice</a>
+        <a href="#assistant">Long-press power</a>
+        <a href="#hold">Hold an app</a>
+        <a href="#palette">Command palette</a>
+        <a href="#gestures">Gestures</a>
+        <a href="#shizuku">Shizuku and permissions</a>
+        <a href="#backup">Backup</a>
+        <a href="#privacy">Privacy</a>
+      </nav>
+
+      <section id="start">
+        <h2>Getting started</h2>
+        <ol>
+          <li><strong>Install the APK</strong> from the <a href="/download">download page</a> and allow your browser to install apps when Android asks.</li>
+          <li><strong>Make Yoke your home app:</strong> press home and pick Yoke, or Settings, Apps, Default apps, Home app.</li>
+          <li><strong>Pick your home apps:</strong> tap an empty slot on home to choose its app. Settings, Home screen, <em>Apps on home screen</em> sets how many there are.</li>
+          <li><strong>Open Settings</strong> any time: swipe up and type "settings", or <code>&gt;Settings</code> in the command palette.</li>
+        </ol>
+        <p>Android 13 and newer protect sideloaded apps: before you can turn on Yoke's accessibility service (needed for double tap to lock, smart grayscale and limited apps from outside Yoke), open Yoke's <em>App info</em>, tap the three dots and choose <em>Allow restricted settings</em>.</p>
+      </section>
+
+      <section id="settings">
+        <h2>Where settings live</h2>
+        <p>Settings are grouped in six sections, and the search box at the top finds any row by name.</p>
+        <dl class="defs">
+          <dt>Home screen</dt><dd>Number of home apps, date and time, weather, Cockpit agenda line, dictation language, notifications on home, now playing, screen time, alignment.</dd>
+          <dt>Look</dt><dd>Theme, wallpaper, system colours follow theme, font, bold font, text size, icon row, Android status bar.</dd>
+          <dt>Behaviour</dt><dd>Gestures, double tap to lock, keyboard and auto-launch, search sources, web links, long-press power.</dd>
+          <dt>Focus</dt><dd>Smart grayscale, limited apps.</dd>
+          <dt>Connections</dt><dd>Obsidian vault, Conductore, secure settings permission, accessibility, Shizuku (optional).</dd>
+          <dt>Data</dt><dd>Backup and restore.</dd>
+        </dl>
+      </section>
+
+      <section id="themes">
+        <h2>Themes and your Omarchy PC</h2>
+        <p>Yoke ships every <a href="https://omarchy.org">Omarchy</a> theme, from Tokyo Night and Catppuccin to Rosé Pine and the light ones. A theme colours home, the drawer, the palette and every sheet. Pinch on home (or Settings, Look, Theme) opens the picker with a live preview.</p>
+
+        <h3>Follow my Omarchy PC</h3>
+        <p>If you use <strong>Conductore</strong> with an Omarchy PC, the phone can wear the same theme as your desktop and change when it changes.</p>
+        <ol>
+          <li><strong>In Conductore:</strong> open Appearance and pick your PC under <em>Follow Omarchy theme from machine</em>. Conductore reads the PC's current Omarchy theme over SSH whenever it starts or comes back, your own custom themes included.</li>
+          <li><strong>In Yoke:</strong> Settings, Look, Theme, and choose <em>Follow my Omarchy PC</em>. Yoke reads the theme Conductore last synced and follows it live.</li>
+        </ol>
+        <p>If the row says <em>(not available)</em>, Conductore is missing, too old, or not following a machine yet. Only apps signed with the same key can read what Conductore shares, through the permission <code>com.outsmartis.permission.READ_LAUNCHER_DETAILS</code>.</p>
+
+        <h3>Wallpaper</h3>
+        <p>Settings, Look, Wallpaper. The source can be the theme colour, one of the theme's Omarchy backgrounds (downloaded once), or your own photo. <em>Apply to</em> sets home, the lock screen or both, and <em>Dim wallpaper</em> keeps text readable over a busy picture. Samsung phones may ignore a lock-screen wallpaper set by a launcher; use Settings, Wallpaper and style there.</p>
+
+        <h3>System colours follow theme</h3>
+        <p>Android's own colours (Quick Settings, the Settings app, Material You apps, the keyboard) can take the Yoke theme's accent. Turn it on in Settings, Look. It needs the secure settings permission described under <a href="#shizuku">Shizuku</a>. Turning it off, or picking System default, gives your previous colours back. Some phones, Samsung's One UI among them, may ignore it.</p>
+
+        <h3>Font</h3>
+        <p>Settings, Look, Font: the system font or JetBrains Mono, Omarchy's font (bundled under the SIL Open Font License).</p>
+      </section>
+
+      <section id="grayscale">
+        <h2>Smart grayscale</h2>
+        <p>The whole phone turns grayscale, except while an app you chose is in front. Colourful feeds stop pulling at you, while maps, photos and the camera stay in colour.</p>
+
+        <h3>One-time setup</h3>
+        <p>Yoke switches Android's own colour correction on and off. That needs a permission (<code>WRITE_SECURE_SETTINGS</code>) that Android only lets developer tools grant. You grant it once, it survives Yoke updates, and Yoke uses it only for this and for system colours. Pick one way:</p>
+        <ol>
+          <li><strong>On the phone, with Shizuku</strong> (no computer): install Shizuku from Google Play or GitHub, start it with Wireless debugging, then open Yoke, Settings, Focus, Smart grayscale and tap <em>Grant with Shizuku</em>. Allow Shizuku's prompt. Yoke runs only <code>pm grant</code> for itself.</li>
+          <li><strong>From a computer, with adb:</strong>
+            <div class="card-sample">adb shell pm grant com.outsmartis.yoke android.permission.WRITE_SECURE_SETTINGS</div>
+            The Smart grayscale screen has this command ready to copy.</li>
+        </ol>
+        <p>Then turn on Yoke's accessibility service (Smart grayscale has a button for it). It only reads the name of the app in front, never what's on screen. The status lines at the top of Smart grayscale show <em>Permission: granted</em> and <em>Accessibility service: on</em> when both are done.</p>
+
+        <h3>Choosing exceptions</h3>
+        <p><em>Exceptions</em> lists your apps with a search box; ticked apps stay in colour. Under it, <em>Recently in front</em> shows the apps you just used, including helper apps such as a gallery opened from the camera, so you can keep one in colour with a tap.</p>
+
+        <h3>Day to day</h3>
+        <ul>
+          <li><strong>Pause for 15 min</strong> gives colour back for a while; tap the note on home to resume early. In the palette: <code>&gt;Pause grayscale 15 min</code> and <code>&gt;Grayscale on/off</code>.</li>
+          <li><strong>Quick Settings tile:</strong> add <em>Grayscale</em> to Quick Settings to switch it from anywhere.</li>
+          <li><strong>In the car:</strong> <em>Colour while CarMirror is on the car screen</em> keeps the phone in colour while CarMirror mirrors it to the car.</li>
+        </ul>
+      </section>
+
+      <section id="limits">
+        <h2>Limited apps</h2>
+        <p>Friction instead of timers. A limited app opens only after a short, calm pause, and the pause grows each time you open it that day.</p>
+        <ul>
+          <li><strong>Limit an app:</strong> long-press it and choose <em>Limit this app</em>, or tick it in Settings, Focus, Limited apps.</li>
+          <li><strong>The pause screen</strong> shows the app, how many times you've opened it today and a countdown. <em>Not now</em> takes you home; <em>Open</em> appears when the countdown ends.</li>
+          <li><strong>The curve:</strong> 3, 5, 8, 13, 21, 34 seconds, then 60 seconds for every further open. It resets every day at 04:00. Open counts never leave the phone.</li>
+        </ul>
+
+        <h3>How strict it is</h3>
+        <p>Yoke uses the strongest level your phone allows. The levels add up, and nothing needs Shizuku unless you want the last one.</p>
+        <table class="gestures">
+          <tbody>
+            <tr><th>Yoke only</th><td>Always on. Every way of opening the app from Yoke (home, drawer, search, gestures, icon row, notifications on home) goes through the pause.</td></tr>
+            <tr><th>Accessibility</th><td>With Yoke's accessibility service on, opening the app from a notification, recents, a link or another app also brings up the pause. After the countdown the app is yours until you leave it.</td></tr>
+            <tr><th>Hard pause</th><td>Per app, off by default, needs <a href="#shizuku">Shizuku</a>. Android itself pauses the app: its icon is greyed out everywhere and it can't be opened until Yoke's countdown ends. Its notifications are hidden while paused, so don't use it for messengers. Turn hard pause off before uninstalling Yoke.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="cockpit">
+        <h2>Cockpit tasks and voice</h2>
+        <p>Yoke writes cards straight into your Obsidian vault in the format of the <strong>Cockpit Board</strong> plugin, so Syncthing (or any sync) carries them to your desk. You don't need Cockpit to use Yoke; these rows simply stay off.</p>
+        <ol>
+          <li><strong>Connect the vault:</strong> swipe left on home, tap <em>Pick vault folder</em> and choose your synced vault. Yoke reads the board's folder and columns from the plugin's own settings.</li>
+          <li><strong>Add a task:</strong> swipe left, type, pick a column and press Enter. Sharing text from any app to Yoke works too.</li>
+          <li><strong>Today:</strong> a line under the clock shows what's due. Tap it to finish, reschedule or open a card; long-press it to open the board.</li>
+        </ol>
+
+        <h3>Say it instead</h3>
+        <p>Tap the microphone in the quick-add sheet, or bind <em>Add to Cockpit (voice)</em> to a gesture, or type <code>&gt;Dictate task</code>. Yoke uses the phone's on-device recognizer when it has one, and understands dates and times in Portuguese and English:</p>
+        <div class="card-sample">"Ligar ao contabilista amanhã às 10"
+→ title "Ligar ao contabilista", due tomorrow, 10:00
+
+"Call the accountant on Friday at 3pm"
+→ title "Call the accountant", due Friday, 15:00</div>
+        <p>The detected date shows on its chip before you save, and <em>No date</em> clears it. A bare number is never read as a date, so "the 1st draft" stays a title. The recognition language follows the phone, or pick Português or English in Settings, Home screen, dictation language.</p>
+      </section>
+
+      <section id="assistant">
+        <h2>Long-press power</h2>
+        <p>Yoke can be Android's digital assistant, so long-pressing power opens a Yoke action over whatever app you're in. It's off by default and Yoke doesn't appear as an assistant until you turn it on.</p>
+        <ol>
+          <li>Settings, Behaviour, <em>Long-press power</em>: choose what it opens. Voice quick-add (default), quick-add, command palette, Today sheet or the Conductore sheet.</li>
+          <li>Tap <em>Open assistant settings</em> and pick Yoke as the digital assistant.</li>
+          <li><strong>Samsung:</strong> the side key opens Bixby by default. In Settings, Advanced features, Side button, choose <em>Digital assistant</em> for press and hold.</li>
+        </ol>
+        <p>To go back, pick Google or Bixby again in the same system screen, or turn the setting off in Yoke.</p>
+      </section>
+
+      <section id="hold">
+        <h2>Hold an app</h2>
+        <p>Long-press an app for its sheet: shortcuts, app info, rename, hide, <em>Limit this app</em>. Hidden apps come back with <code>&gt;Hidden apps</code> in the palette. Apps that support Yoke's details contract also show a small live view.</p>
+        <p><strong>Conductore</strong> shows your coding agents grouped by project, with the ones waiting on you counted at the top. Answer a question or choose Allow or Deny in the sheet without opening Conductore. Replies made while Conductore is locked wait and send when you unlock it.</p>
+      </section>
+
+      <section id="palette">
+        <h2>Command palette</h2>
+        <p>Long-press home or swipe up with two fingers, and type. It searches apps, app shortcuts, links, Cockpit cards, vault notes, contacts and settings; choose which sources in Settings, Behaviour, Search. When only one app is left, it opens.</p>
+        <table class="gestures">
+          <tbody>
+            <tr><th><code>=</code></th><td>Calculator: <code>=12*1.23</code></td></tr>
+            <tr><th><code>&gt;</code></th><td>Yoke's actions: <code>&gt;Settings</code>, <code>&gt;Dictate task</code>, <code>&gt;Grayscale on/off</code>, <code>&gt;Wallpaper</code></td></tr>
+            <tr><th><code>/</code></th><td>Jump straight into an app shortcut</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="gestures">
+        <h2>Gestures</h2>
+        <p>Settings, Behaviour, Gestures. Swipes in four directions with one or two fingers, edge swipes, double tap, long press, pinch, taps on the clock and date, and volume keys. Each can open an app, an app shortcut, a link or a Yoke action. Export the set as JSON to bring it to another phone.</p>
+        <table class="gestures">
+          <caption>The defaults.</caption>
+          <tbody>
+            <tr><th>Swipe up</th><td>App drawer</td></tr>
+            <tr><th>Swipe down</th><td>Notifications</td></tr>
+            <tr><th>Two fingers down</th><td>Quick settings</td></tr>
+            <tr><th>Swipe left</th><td>Add a task to Cockpit</td></tr>
+            <tr><th>Swipe right</th><td>Conductore agents</td></tr>
+            <tr><th>Double tap</th><td>Lock the phone (needs the accessibility service)</td></tr>
+            <tr><th>Long press, or two fingers up</th><td>Command palette</td></tr>
+            <tr><th>Pinch</th><td>Theme picker</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="shizuku">
+        <h2>Shizuku and permissions</h2>
+        <p>Yoke works fully without Shizuku. Shizuku is an app that lets other apps run a few developer commands without a computer, started once with Wireless debugging. Yoke uses it for exactly two things:</p>
+        <ul>
+          <li><strong>Granting the secure settings permission</strong> once, used by smart grayscale and system colours. After the grant, Shizuku doesn't need to keep running.</li>
+          <li><strong>Hard pause</strong> for limited apps, which needs Shizuku running.</li>
+        </ul>
+        <p>Settings, Connections, Shizuku (optional) explains each step and shows whether Shizuku is installed, running and allowed. Rows that need it are shown but disabled with <em>Needs Shizuku</em> until it's ready.</p>
+        <table class="gestures">
+          <caption>Everything Yoke may ask for, and when.</caption>
+          <tbody>
+            <tr><th>Accessibility service</th><td>Double tap to lock, smart grayscale, limited apps opened from outside Yoke. Reads only the name of the app in front.</td></tr>
+            <tr><th>Notification access</th><td>Only if you turn on notifications on home.</td></tr>
+            <tr><th>Microphone</th><td>The first time you dictate a task.</td></tr>
+            <tr><th>Coarse location</th><td>Only if weather uses <em>Current location</em>.</td></tr>
+            <tr><th>Secure settings</th><td>Smart grayscale and system colours, granted with Shizuku or adb.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="backup">
+        <h2>Backup</h2>
+        <p>Settings, Data, Backup. <em>Export to file</em> writes all your Yoke settings to one file; <em>Import from file</em> replaces them. With a vault connected, <em>Keep a copy in my vault</em> saves <code>.yoke/backup.json</code> automatically, and <em>Restore from vault copy</em> brings it back on a new phone. The vault folder itself, widgets and cached data stay on the phone.</p>
+      </section>
+
+      <section id="privacy">
+        <h2>Privacy</h2>
+        <p>No ads, no tracking, no account. The only network calls are the optional weather line (Open-Meteo, sending only a city's coordinates rounded to two decimals) and downloading Omarchy backgrounds when you pick one. Everything else, open counts and settings included, stays on the phone.</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Yoke is free software under the GPLv3, a fork of <a href="https://github.com/tanujnotes/Olauncher">Olauncher</a> by Tanuj. Themes from <a href="https://github.com/basecamp/omarchy">Omarchy</a> (MIT).</p>
+    </footer>
+  </div>
+  <script src="themes.js"></script>
+</body>
+</html>
