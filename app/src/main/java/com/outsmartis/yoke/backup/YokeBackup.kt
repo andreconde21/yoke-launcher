@@ -44,7 +44,6 @@ object YokeBackup {
             "GRAYSCALE_LAST_PACKAGE", "GRAYSCALE_PAUSED_UNTIL", "GRAYSCALE_CAR_MIRROR_UNTIL",
         ),
         "yoke.theme" to setOf("conductore_last_known", "system_colours_took_over", "system_colours_previous"),
-        "yoke.wallpaper" to setOf("lock_forced_colours"), // YOK-036: device state, like system_colours_took_over
         "com.outsmartis.yoke.weather" to setOf("READING", "USE_CURRENT"), // cache; the location permission is per device
         "yoke.cockpit" to setOf("vault_uri", "agenda_line", "agenda_at"),
         "yoke.backup" to setOf("last_vault_backup", "last_vault_hash"),

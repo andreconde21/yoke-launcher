@@ -44,15 +44,23 @@ object LockScreenSync {
         LockScreenLevel.YOKE -> Status.Yoke
     }
 
-    fun setLevel(context: Context, level: LockScreenLevel) {
+    /**
+     * Saves [level] and applies it. Returns true when the level wants a wallpaper but the user has not
+     * applied a Yoke wallpaper yet (nothing is written then; the caller should say so).
+     */
+    fun setLevel(context: Context, level: LockScreenLevel): Boolean {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val before = prefs.lockLevel
         prefs.lockLevel = level
         syncSystem(app, level)
-        // Needs a (re)apply when the lock screen was not covered before or the target just widened.
-        val widened = level.effectiveTarget(prefs.choice.target) != before.effectiveTarget(prefs.choice.target)
-        if (level.includesWallpaper && (!before.includesWallpaper || widened)) WallpaperApplier.reapply(app)
+        if (LockScreenLogic.shouldReapply(before, level, prefs.choice.target, prefs.applied)) WallpaperApplier.reapply(app)
+        return LockScreenLogic.needsWallpaper(level, prefs.applied)
+    }
+
+    /** Call when the user flips "System colours follow theme" themselves: the level no longer owns that switch. */
+    fun userChangedColours(context: Context) {
+        WallpaperPrefs(context.applicationContext).lockForcedColours = false
     }
 
     /** Call when the theme or the permission may have changed (the theme path already runs SystemPaletteSync). */
@@ -64,15 +72,17 @@ object LockScreenSync {
     private fun syncSystem(app: Context, level: LockScreenLevel) {
         val prefs = WallpaperPrefs(app)
         val themePrefs = ThemePrefs(app)
-        if (level.includesSystem) {
-            if (!SystemPaletteSync.supported() || !GrayscaleController.hasPermission(app)) return
-            if (!themePrefs.systemColours) {
+        val canWrite = SystemPaletteSync.supported() && GrayscaleController.hasPermission(app)
+        when (LockScreenLogic.colourAction(level, themePrefs.systemColours, prefs.lockForcedColours, canWrite)) {
+            LockScreenLogic.ColourAction.FORCE_ON -> {
                 prefs.lockForcedColours = true
                 SystemPaletteSync.setEnabled(app, true)
             }
-        } else if (prefs.lockForcedColours) {
-            prefs.lockForcedColours = false
-            SystemPaletteSync.setEnabled(app, false)
+            LockScreenLogic.ColourAction.RESTORE -> {
+                prefs.lockForcedColours = false
+                SystemPaletteSync.setEnabled(app, false)
+            }
+            LockScreenLogic.ColourAction.NONE -> Unit
         }
     }
 }

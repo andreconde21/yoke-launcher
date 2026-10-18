@@ -476,4 +476,8 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="lock_screen_yoke_soon">Coming soon</string>
     <string name="lock_screen_system_needs_permission">Needs permission: grant it once from Smart grayscale</string>
     <string name="lock_screen_system_unsupported">Needs Android 12</string>
+    <string name="lock_screen_not_applied">Wallpaper (none applied yet)</string>
+    <string name="lock_screen_needs_wallpaper">The lock screen only follows your theme once a Yoke wallpaper is applied. Yoke never replaces your system wallpaper by itself. Open the Wallpaper screen and pick one.</string>
+    <string name="lock_screen_open_wallpaper">Open Wallpaper</string>
+    <string name="wallpaper_target_widened">The Lock screen setting adds the lock screen, so Home is applied as Both.</string>
 </resources>

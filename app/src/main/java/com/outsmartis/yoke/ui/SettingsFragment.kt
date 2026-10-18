@@ -580,9 +580,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun populateLockScreen() {
         val ctx = requireContext()
         val status = com.outsmartis.yoke.wallpaper.LockScreenSync.status(ctx)
+        val level = com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx)
         binding.lockScreenRow.setText(
-            if (status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission) R.string.system_colours_needs_permission
-            else lockScreenLabel(com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx))
+            when {
+                status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission ->
+                    if (com.outsmartis.yoke.theme.SystemPaletteSync.supported()) R.string.system_colours_needs_permission
+                    else R.string.lock_screen_system_unsupported
+                com.outsmartis.yoke.wallpaper.LockScreenLogic.needsWallpaper(level, com.outsmartis.yoke.wallpaper.WallpaperPrefs(ctx).applied) ->
+                    R.string.lock_screen_not_applied
+                else -> lockScreenLabel(level)
+            }
         )
     }
 
@@ -596,6 +603,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             when {
                 sync.available(ctx, level) -> label
                 level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> "$label (${getString(R.string.lock_screen_yoke_soon)})"
+                !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> "$label (${getString(R.string.lock_screen_system_unsupported)})"
                 else -> "$label (${getString(R.string.system_colours_needs_permission)})"
             }
         }.toTypedArray()
@@ -604,8 +612,18 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             .setSingleChoiceItems(labels, levels.indexOf(sync.level(ctx))) { dialog, which ->
                 val level = levels[which]
                 if (sync.available(ctx, level)) {
-                    sync.setLevel(ctx, level)
+                    val needsWallpaper = sync.setLevel(ctx, level)
                     if (_binding != null) populateLockScreen()
+                    if (needsWallpaper) {
+                        androidx.appcompat.app.AlertDialog.Builder(ctx)
+                            .setTitle(R.string.lock_screen_title)
+                            .setMessage(R.string.lock_screen_needs_wallpaper)
+                            .setPositiveButton(R.string.lock_screen_open_wallpaper) { _, _ ->
+                                com.outsmartis.yoke.wallpaper.WallpaperActivity.open(ctx)
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
                 } else {
                     val reason = when {
                         level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke_soon
@@ -646,6 +664,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 action = action,
                 message = R.string.system_colours_message,
                 onAction = {
+                    com.outsmartis.yoke.wallpaper.LockScreenSync.userChangedColours(ctx) // YOK-036
                     when {
                         on -> SystemPaletteSync.setEnabled(ctx, false)
                         hasPermission -> SystemPaletteSync.setEnabled(ctx, true)
@@ -666,6 +685,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) {
             // Catches a permission granted since (Smart grayscale's screen, or adb).
             SystemPaletteSync.sync(requireContext())
+            com.outsmartis.yoke.wallpaper.LockScreenSync.sync(requireContext()) // YOK-036
             populateWallpaper()
             populateSummaries()
             populateConnections()

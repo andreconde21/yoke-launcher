@@ -30,7 +30,7 @@ class WallpaperPrefs(context: Context) {
         get() = LockScreenLevel.decode(prefs.getString("lock_level", null))
         set(value) = prefs.edit().putString("lock_level", value.name).apply()
 
-    /** True when the System level (not the user) switched "System colours follow theme" on. Device state, not backed up. */
+    /** True when the System level (not the user) switched "System colours follow theme" on. Backed up together with the theme's systemColours flag it explains, so a restore stays consistent. */
     var lockForcedColours: Boolean
         get() = prefs.getBoolean("lock_forced_colours", false)
         set(value) = prefs.edit().putBoolean("lock_forced_colours", value).apply()

@@ -98,7 +98,7 @@ class WallpaperActivity : AppCompatActivity() {
         content.addView(header(R.string.wallpaper_target))
         content.addView(chips(
             listOf(R.string.wallpaper_target_home, R.string.wallpaper_target_lock, R.string.wallpaper_target_both),
-            WallpaperTarget.entries.indexOf(choice.target),
+            WallpaperTarget.entries.indexOf(prefs.effectiveTarget),
         ) { i ->
             prefs.choice = prefs.choice.copy(target = WallpaperTarget.entries[i])
             if (prefs.applied) {
@@ -107,6 +107,9 @@ class WallpaperActivity : AppCompatActivity() {
             }
             build()
         })
+        if (prefs.lockLevel.effectiveTarget(WallpaperTarget.HOME) != WallpaperTarget.HOME && choice.target == WallpaperTarget.HOME) {
+            content.addView(text(getString(R.string.wallpaper_target_widened), 12f, secondary).apply { setPadding(dp(8), dp(6), dp(8), 0) })
+        }
 
         content.addView(header(R.string.wallpaper_dim))
         content.addView(chips(

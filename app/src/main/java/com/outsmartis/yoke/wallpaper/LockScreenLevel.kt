@@ -29,3 +29,31 @@ enum class LockScreenLevel {
         fun decode(raw: String?): LockScreenLevel = entries.firstOrNull { it.name == raw } ?: OFF
     }
 }
+
+/** The decisions behind [LockScreenSync], kept free of Android so they can be unit-tested. */
+object LockScreenLogic {
+
+    enum class ColourAction { NONE, FORCE_ON, RESTORE }
+
+    /**
+     * What the System level does to "System colours follow theme".
+     * [forced] is true when this level (not the user) switched the colours on earlier.
+     */
+    fun colourAction(level: LockScreenLevel, coloursOn: Boolean, forced: Boolean, canWrite: Boolean): ColourAction = when {
+        level.includesSystem -> if (canWrite && !coloursOn) ColourAction.FORCE_ON else ColourAction.NONE
+        forced -> ColourAction.RESTORE
+        else -> ColourAction.NONE
+    }
+
+    /**
+     * Whether changing the level from [before] to [after] should re-apply the wallpaper now.
+     * Never when no Yoke wallpaper was applied: Yoke does not overwrite the system wallpaper by itself.
+     */
+    fun shouldReapply(before: LockScreenLevel, after: LockScreenLevel, target: WallpaperTarget, applied: Boolean): Boolean {
+        if (!applied || !after.includesWallpaper) return false
+        return !before.includesWallpaper || after.effectiveTarget(target) != before.effectiveTarget(target)
+    }
+
+    /** True when [level] wants the wallpaper but there is no Yoke wallpaper applied yet, so nothing re-colours. */
+    fun needsWallpaper(level: LockScreenLevel, applied: Boolean) = level.includesWallpaper && !applied
+}
