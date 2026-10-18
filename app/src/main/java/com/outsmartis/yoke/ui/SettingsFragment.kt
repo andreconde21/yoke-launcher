@@ -128,6 +128,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) populateConnections()
     }
 
+    // YOK-037: the lock screen service's notification and its full-screen fallback need it (Android 13+)
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        if (_binding != null) checkLockScreenLaunch()
+    }
+
     /** The values shown at the end of rows that open their own screen. */
     private fun populateSummaries() {
         val ctx = requireContext()
@@ -141,6 +146,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.webLinks.text = prefs.links.size.toString()
         com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
         binding.assistantRow.text = AssistantDialog.summary(ctx)
+        binding.lockScreenYokeRow.setText(if (com.outsmartis.yoke.lockscreen.LockScreenController.isEnabled(ctx)) R.string.on else R.string.off) // YOK-037
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
         val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
         binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
@@ -246,6 +252,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 dialog?.dismiss()
                 dialog = AssistantDialog.show(requireContext()) { if (_binding != null) populateSummaries() }
             }
+            R.id.lockScreenYokeRow -> toggleLockScreenYoke() // YOK-037
             R.id.dictationLanguage -> cycleDictationLanguage()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
@@ -292,6 +299,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.grayscaleRow.setOnClickListener(this)
         binding.nowPlayingRow.setOnClickListener(this)
         binding.assistantRow.setOnClickListener(this)
+        binding.lockScreenYokeRow.setOnClickListener(this) // YOK-037
         binding.dictationLanguage.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
@@ -677,6 +685,30 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             ctx.showToast(getString(R.string.now_playing_needs_access))
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+    }
+
+    // YOK-037: temporary row; YOK-036's "Lock screen" setting calls LockScreenController.setEnabled instead
+    private fun toggleLockScreenYoke() {
+        val ctx = requireContext()
+        val lock = com.outsmartis.yoke.lockscreen.LockScreenController
+        val on = !lock.isEnabled(ctx)
+        lock.setEnabled(ctx, on)
+        populateSummaries()
+        if (!on) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else checkLockScreenLaunch()
+    }
+
+    // Neither the accessibility service nor full-screen notifications: Android will likely block the start
+    private fun checkLockScreenLaunch() {
+        val ctx = requireContext()
+        val lock = com.outsmartis.yoke.lockscreen.LockScreenController
+        if (!lock.isEnabled(ctx) || lock.canLaunch(ctx)) return
+        ctx.showToast(getString(R.string.lock_screen_yoke_needs_launch), Toast.LENGTH_LONG)
+        lock.fullScreenSettingsIntent(ctx)?.let { runCatching { startActivity(it) } }
     }
 
     private fun populateScreenTimeOnOff() {
