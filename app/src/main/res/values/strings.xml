@@ -436,7 +436,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="limits_hard_on">hard pause: on</string>
     <string name="limits_hard_off">hard pause: off</string>
     <string name="limits_hard_needs_shizuku">hard pause: needs Shizuku</string>
-    <string name="limits_count">%1$d apps</string>
+    <plurals name="limits_count">
+        <item quantity="one">%1$d app</item>
+        <item quantity="other">%1$d apps</item>
+    </plurals>
     <string name="settings_shizuku">Shizuku (optional)</string>
     <string name="shizuku_ready">Ready</string>
     <string name="shizuku_not_installed">Not installed</string>

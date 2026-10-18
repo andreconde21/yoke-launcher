@@ -116,6 +116,7 @@ object LimitedAppsDialog {
             root.addView(scroll)
             root
         }
+        d.autoShowKeyboard = false
         d.showRespectingStatusBar()
         return d
     }

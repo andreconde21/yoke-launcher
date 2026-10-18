@@ -45,6 +45,9 @@ class YokeDialog(context: Context) : AlertDialog(context) {
 
     private var blur: WindowBlur? = null
 
+    /** False for dialogs whose search field should wait for a tap instead of opening the keyboard. */
+    var autoShowKeyboard = true
+
     fun showRespectingStatusBar() {
         val window = window
         if (window == null || Prefs(context).showStatusBar) {
@@ -67,6 +70,10 @@ class YokeDialog(context: Context) : AlertDialog(context) {
         val window = window ?: return
         val field = findEditText(window.decorView) ?: return
         window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        if (!autoShowKeyboard) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+            return
+        }
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         field.showKeyboard()
     }
