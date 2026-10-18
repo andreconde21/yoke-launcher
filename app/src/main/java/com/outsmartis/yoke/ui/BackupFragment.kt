@@ -74,7 +74,7 @@ class BackupFragment : BaseFragment() {
     }
 
     private fun exportTo(uri: Uri) {
-        val ctx = requireContext()
+        val ctx = context?.applicationContext ?: return
         val ok = runCatching {
             ctx.contentResolver.openOutputStream(uri, "wt")?.use { it.write(YokeBackup.export(ctx).toByteArray(Charsets.UTF_8)) } != null
         }.getOrDefault(false)
