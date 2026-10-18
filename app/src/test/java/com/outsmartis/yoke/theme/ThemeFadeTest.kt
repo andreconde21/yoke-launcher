@@ -1,6 +1,8 @@
 package com.outsmartis.yoke.theme
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeFadeTest {
@@ -13,11 +15,25 @@ class ThemeFadeTest {
     }
 
     @Test
-    fun normalScaleIsQuarterSecond() = assertEquals(250L, ThemeFade.durationMs(1f))
+    fun anyPositiveScaleIsBaseDuration() {
+        // The animator applies the system scale itself; scaling here too would square it.
+        assertEquals(250L, ThemeFade.durationMs(1f))
+        assertEquals(250L, ThemeFade.durationMs(0.5f))
+        assertEquals(250L, ThemeFade.durationMs(10f))
+    }
 
     @Test
-    fun scaleStretchesButIsCapped() {
-        assertEquals(125L, ThemeFade.durationMs(0.5f))
-        assertEquals(1000L, ThemeFade.durationMs(10f))
+    fun staleSnapshotIsDropped() {
+        assertFalse(ThemeFade.isStale(1000L, 1000L))
+        assertFalse(ThemeFade.isStale(4000L, 1000L))
+        assertTrue(ThemeFade.isStale(4001L, 1000L))
+        assertTrue(ThemeFade.isStale(500L, 1000L)) // clock went backwards
+    }
+
+    @Test
+    fun noFadeOverWallpaperOrWithAnimationsOff() {
+        assertTrue(ThemeFade.canFade(250L, false))
+        assertFalse(ThemeFade.canFade(250L, true))
+        assertFalse(ThemeFade.canFade(0L, false))
     }
 }

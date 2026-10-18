@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
-            ThemeFade.recreate(this)
+            recreate() // the user did not watch this change happen (picker): no fade
             return
         }
         themeObserver?.unregister()

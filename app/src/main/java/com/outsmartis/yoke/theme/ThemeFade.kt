@@ -3,12 +3,15 @@ package com.outsmartis.yoke.theme
 import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.outsmartis.yoke.helper.isEinkDisplay
+import com.outsmartis.yoke.wallpaper.WallpaperPrefs
 
 /**
  * Colour cross-fade for a theme change (YOK-033). A theme change recreates the activity, so
@@ -22,9 +25,21 @@ object ThemeFade {
     /** A snapshot older than this belongs to some other recreate (the fade would be a lie). */
     const val SNAPSHOT_MAX_AGE_MS = 3000L
 
-    /** Fade length for the system animator duration scale; 0 means no fade at all. */
+    /**
+     * Fade length for the system animator duration scale; 0 means no fade at all. The scale is only
+     * the on/off switch here: ViewPropertyAnimator multiplies the duration by it itself.
+     */
     fun durationMs(animatorScale: Float): Long =
-        if (animatorScale <= 0f || animatorScale.isNaN()) 0L else (DURATION_MS * animatorScale).toLong().coerceAtMost(1000L)
+        if (animatorScale <= 0f || animatorScale.isNaN()) 0L else DURATION_MS
+
+    /** True when a snapshot taken at [at] is too old to belong to the recreate now being revealed. */
+    fun isStale(now: Long, at: Long): Boolean = now - at > SNAPSHOT_MAX_AGE_MS || now < at
+
+    /**
+     * The snapshot cannot hold the system wallpaper, so a window that shows it (image source, or
+     * System default with no theme) would flicker or hard-cut. Those changes recreate without a fade.
+     */
+    fun canFade(duration: Long, windowShowsWallpaper: Boolean): Boolean = duration > 0 && !windowShowsWallpaper
 
     private class Snapshot(val bitmap: Bitmap, val durationMs: Long, val at: Long)
 
@@ -34,15 +49,30 @@ object ThemeFade {
     /** Same as [Activity.recreate], with the colours fading from the old look to the new one. */
     fun recreate(activity: Activity) {
         val duration = if (activity.isEinkDisplay()) 0L else durationMs(animatorScale(activity))
-        pending = if (duration > 0) snapshot(activity)?.let { Snapshot(it, duration, SystemClock.uptimeMillis()) } else null
+        dropPending()
+        if (canFade(duration, showsWallpaper(activity))) {
+            pending = snapshot(activity)?.let { Snapshot(it, duration, SystemClock.uptimeMillis()) }
+            // If the new activity never reveals it (finished, crashed), do not keep the bitmap around.
+            if (pending != null) handler.postDelayed(::dropPending, SNAPSHOT_MAX_AGE_MS)
+        }
         activity.recreate()
     }
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    private fun dropPending() {
+        pending?.bitmap?.recycle()
+        pending = null
+    }
+
+    private fun showsWallpaper(activity: Activity): Boolean =
+        ThemeStore.current(activity) == null || WallpaperPrefs(activity).imageChoice != null
 
     /** Call from onCreate after setContentView. */
     fun reveal(activity: Activity) {
         val s = pending ?: return
         pending = null
-        if (SystemClock.uptimeMillis() - s.at > SNAPSHOT_MAX_AGE_MS) return s.bitmap.recycle()
+        if (isStale(SystemClock.uptimeMillis(), s.at)) return s.bitmap.recycle()
         val decor = activity.window.decorView as? ViewGroup ?: return s.bitmap.recycle()
         val cover = ImageView(activity).apply {
             setImageBitmap(s.bitmap)

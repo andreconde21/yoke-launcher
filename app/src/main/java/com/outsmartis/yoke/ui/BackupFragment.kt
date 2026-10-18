@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import com.outsmartis.yoke.R
+import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.backup.BackupException
 import com.outsmartis.yoke.backup.VaultBackup
 import com.outsmartis.yoke.backup.YokeBackup
@@ -99,7 +100,7 @@ class BackupFragment : BaseFragment() {
                         val error = result.exceptionOrNull()
                         if (error == null) {
                             ctx.showToast(R.string.backup_imported)
-                            activity?.recreate()
+                            activity?.let { ThemeFade.recreate(it) }
                         } else {
                             ctx.showToast(getString(R.string.backup_import_failed, error.message ?: "?"))
                         }
