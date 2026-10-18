@@ -29,6 +29,8 @@
         tools:ignore="ProtectedPermissions" />
     <!--Voice quick-add: asked on first use of the microphone, never needed for typing-->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!--Asked at runtime, only when the glance card's events are set to "Calendar"; read-only-->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
     <!--"Follow Conductore" theme: read Conductore's launcher details provider-->
     <uses-permission android:name="com.outsmartis.permission.READ_LAUNCHER_DETAILS" />
 

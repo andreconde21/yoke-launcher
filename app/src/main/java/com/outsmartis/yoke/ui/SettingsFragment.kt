@@ -61,6 +61,17 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         weatherSettings?.onPermissionResult(granted)
     }
 
+    // YOK-032: READ_CALENDAR is asked only when the glance card's events are switched to "Calendar"
+    private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (_binding == null) return@registerForActivityResult
+        if (granted) {
+            setGlanceSource(com.outsmartis.yoke.glance.GlanceSource.CALENDAR)
+        } else {
+            requireContext().showToast(getString(R.string.glance_calendar_denied))
+            populateGlance()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
@@ -106,6 +117,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             }
             populateCockpitAgenda()
         }
+        initGlance() // YOK-032
         initClickListeners()
         initObservers()
         SettingsOrganizer(requireContext(), listOf(
@@ -195,6 +207,53 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun openConductore() {
         val launch = requireContext().packageManager.getLaunchIntentForPackage(com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE)
         if (launch != null) startActivity(launch) else requireContext().showToast(getString(R.string.settings_status_not_installed))
+    }
+
+    // YOK-032: the glance card rows
+    private fun initGlance() {
+        populateGlance()
+        binding.glanceToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.enabled = !glance.enabled
+            populateGlance()
+        }
+        binding.glanceSource.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            val next = glance.source.next()
+            when {
+                next == com.outsmartis.yoke.glance.GlanceSource.CALENDAR &&
+                    !com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext()) ->
+                    calendarPermission.launch(com.outsmartis.yoke.glance.GlanceRepository.PERMISSION)
+                next == com.outsmartis.yoke.glance.GlanceSource.COCKPIT &&
+                    com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).vaultUri == null -> {
+                    setGlanceSource(next)
+                    requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
+                }
+                else -> setGlanceSource(next)
+            }
+        }
+        binding.glanceWeatherToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.showWeather = !glance.showWeather
+            populateGlance()
+        }
+    }
+
+    private fun setGlanceSource(source: com.outsmartis.yoke.glance.GlanceSource) {
+        com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source = source
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
+        populateGlance()
+    }
+
+    private fun populateGlance() {
+        val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+        binding.glanceToggle.text = getString(if (glance.enabled) R.string.on else R.string.off)
+        binding.glanceSource.setText(when (glance.source) {
+            com.outsmartis.yoke.glance.GlanceSource.NONE -> R.string.glance_source_none
+            com.outsmartis.yoke.glance.GlanceSource.CALENDAR -> R.string.glance_source_calendar
+            com.outsmartis.yoke.glance.GlanceSource.COCKPIT -> R.string.glance_source_cockpit
+        })
+        binding.glanceWeatherToggle.text = getString(if (glance.showWeather) R.string.on else R.string.off)
     }
 
     private fun populateCockpitAgenda() {

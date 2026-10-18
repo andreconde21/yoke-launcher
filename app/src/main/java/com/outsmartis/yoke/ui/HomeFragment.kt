@@ -1,12 +1,18 @@
 package com.outsmartis.yoke.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.content.res.Configuration
 import android.os.BatteryManager
+import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.CalendarContract
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
@@ -15,6 +21,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -54,6 +61,17 @@ import com.outsmartis.yoke.cockpit.CockpitAgendaRepository
 import com.outsmartis.yoke.cockpit.CockpitLinks
 import com.outsmartis.yoke.cockpit.CockpitPrefs
 import com.outsmartis.yoke.cockpit.CockpitTodaySheet
+import com.outsmartis.yoke.glance.DayLabel
+import com.outsmartis.yoke.glance.GlanceEvent
+import com.outsmartis.yoke.glance.GlanceLogic
+import com.outsmartis.yoke.glance.GlancePrefs
+import com.outsmartis.yoke.glance.GlanceRepository
+import com.outsmartis.yoke.glance.GlanceSource
+import com.outsmartis.yoke.helper.isEinkDisplay
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import com.outsmartis.yoke.helper.getColorFromAttr
 import com.outsmartis.yoke.notifications.HomeNotifications
 import com.outsmartis.yoke.notifications.NotificationLogic
@@ -111,7 +129,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         super.onResume()
         NotificationStore.refresh()
         populateHomeScreen(false)
-        WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateWeather() }
+        WeatherRepository.refreshIfNeeded(requireContext()) { if (_binding != null) { populateWeather(); populateGlance() } }
+        GlanceRepository.refresh(requireContext()) { if (_binding != null) populateGlance() } // YOK-032
         CockpitAgendaRepository.refreshIfNeeded(requireContext()) { if (_binding != null) populateAgenda() }
         // Gestures may have been edited; only wait for a second tap when double tap is bound
         mainTouchListener?.setDoubleTapEnabled(gestureRunner().isBound(Trigger.DOUBLE_TAP))
@@ -128,6 +147,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             R.id.clock -> gestureRunner().run(Trigger.TAP_CLOCK)
             R.id.date -> gestureRunner().run(Trigger.TAP_DATE)
             R.id.weather -> gestureRunner().run(Trigger.TAP_WEATHER)
+            R.id.glanceEvent -> openGlanceEvent()
+            R.id.glanceWeather -> gestureRunner().run(Trigger.TAP_WEATHER)
             R.id.agenda -> CockpitTodaySheet.show(requireContext()) { if (_binding != null) populateAgenda() }
             R.id.setDefaultLauncher -> viewModel.resetLauncherLiveData.call()
             R.id.tvScreenTime -> openScreenTimeDigitalWellbeing()
@@ -246,6 +267,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.weather.setOnClickListener(this)
         binding.weather.setOnLongClickListener(this)
         binding.agenda.setOnClickListener(this)
+        binding.glanceEvent.setOnClickListener(this)
+        binding.glanceWeather.setOnClickListener(this)
         binding.agenda.setOnLongClickListener(this)
         binding.setDefaultLauncher.setOnClickListener(this)
         binding.setDefaultLauncher.setOnLongClickListener(this)
@@ -303,6 +326,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.date.text = dateText.replace(".,", ",")
         populateWeather()
         populateAgenda()
+        populateGlance()
     }
 
     /** One line under the date: nothing when off, no data yet, stale, or the date is hidden. */
@@ -321,6 +345,93 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val text = if (cockpit.agendaEnabled && Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)) cockpit.agendaLine else ""
         binding.agenda.text = text
         binding.agenda.isVisible = text.isNotEmpty()
+    }
+
+    // YOK-032: the glance card. The event half comes from GlanceRepository's cached events, picked at the current time.
+    private val glanceHandler = Handler(Looper.getMainLooper())
+    private val glanceTick = Runnable {
+        if (_binding == null) return@Runnable
+        GlanceRepository.refresh(requireContext()) { if (_binding != null) populateGlance() }
+        populateGlance()
+    }
+    private var glanceEvent: GlanceEvent? = null
+
+    private fun populateGlance() {
+        glanceHandler.removeCallbacks(glanceTick)
+        val ctx = requireContext()
+        val glance = GlancePrefs(ctx)
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
+        val visible = glance.enabled && Constants.DateTime.isDateVisible(prefs.dateTimeVisibility)
+
+        val event = if (visible && glance.source != GlanceSource.NONE) GlanceLogic.pickNext(GlanceRepository.events, now, zone) else null
+        glanceEvent = event
+        binding.glanceEvent.isVisible = event != null
+        if (event != null) {
+            val time = if (event.allDay) getString(R.string.glance_all_day) else {
+                Instant.ofEpochMilli(event.start).atZone(zone).toLocalTime()
+                    .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+            }
+            binding.glanceEventTitle.text = if (event.allDay) event.title else "$time ${event.title}"
+            binding.glanceEventWhen.text = getString(when (GlanceLogic.dayLabel(event, now, zone)) {
+                DayLabel.NOW -> R.string.glance_now
+                DayLabel.TODAY -> R.string.glance_today
+                DayLabel.TOMORROW -> R.string.glance_tomorrow
+            }).let { if (event.allDay) "$it · $time" else it }
+            // Look again when the event starts (the label changes) and when it ends (the next one takes over)
+            glanceHandler.postDelayed(glanceTick, (GlanceLogic.nextChangeAt(event, now) - now).coerceAtLeast(1000L) + 500L)
+        }
+
+        val weatherPrefs = WeatherPrefs(ctx)
+        val weather = if (visible && glance.showWeather && weatherPrefs.enabled) {
+            GlanceLogic.weather(weatherPrefs.reading, weatherPrefs.units, weatherPrefs.showHighLow, now)
+        } else null
+        binding.glanceWeather.isVisible = weather != null
+        if (weather != null) {
+            binding.glanceWeatherNow.text = listOf(weather.temp, weather.description).filter { it.isNotBlank() }.joinToString(" ")
+            binding.glanceWeatherRange.isVisible = weather.high != null && weather.low != null
+            if (weather.high != null && weather.low != null) {
+                binding.glanceWeatherRange.text = getString(R.string.glance_high_low, weather.high, weather.low)
+            }
+        }
+
+        binding.glanceCard.isVisible = event != null || weather != null
+        if (binding.glanceCard.isVisible) styleGlanceCard()
+    }
+
+    /** A translucent surface where the system blurs windows, a solid theme surface elsewhere (and always on e-ink). */
+    private fun styleGlanceCard() {
+        val ctx = requireContext()
+        val theme = ThemeStore.current(ctx)
+        val surface = theme?.surface ?: (ctx.getColorFromAttr(R.attr.dialogShadeColor) or (0xFF shl 24))
+        val frosted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !ctx.isEinkDisplay() &&
+            (ctx.getSystemService(Context.WINDOW_SERVICE) as WindowManager).isCrossWindowBlurEnabled
+        val fill = if (frosted) (surface and 0x00FFFFFF) or (0xCC shl 24) else surface
+        binding.glanceCard.background = GradientDrawable().apply {
+            setColor(fill)
+            cornerRadius = 16.dpToPx().toFloat()
+        }
+        val fg = theme?.foreground ?: ctx.getColorFromAttr(R.attr.primaryColor)
+        val secondary = theme?.secondary ?: ctx.getColorFromAttr(R.attr.primaryColorTrans50)
+        binding.glanceEventTitle.setTextColor(fg)
+        binding.glanceWeatherNow.setTextColor(fg)
+        binding.glanceEventWhen.setTextColor(secondary)
+        binding.glanceWeatherRange.setTextColor(secondary)
+    }
+
+    /** Opens the shown event in its source: the calendar app's event view, or the Cockpit card in Obsidian. */
+    private fun openGlanceEvent() {
+        val event = glanceEvent ?: return
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(event.uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (event.uri.startsWith("content:")) {
+            intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, event.start)
+            intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, event.end)
+        }
+        try {
+            startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+            requireContext().showToast(getString(if (event.uri.startsWith("content:")) R.string.glance_event_missing else R.string.obsidian_missing))
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -791,8 +902,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        glanceHandler.removeCallbacks(glanceTick) // YOK-032
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        glanceHandler.removeCallbacks(glanceTick)
         if (::iconPrefs.isInitialized) iconPrefs.unregisterListener(iconPrefsListener)
         iconRow = null
         mainTouchListener = null
