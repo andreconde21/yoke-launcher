@@ -20,9 +20,6 @@ import com.outsmartis.yoke.theme.ThemePrefs
  */
 object LockScreenSync {
 
-    /** Flip to true when the Yoke lock screen of YOK-037 exists. */
-    const val YOKE_AVAILABLE = false
-
     enum class Status { Off, Wallpaper, WallpaperSystem, Yoke, NeedsPermission }
 
     fun level(context: Context) = WallpaperPrefs(context).lockLevel
@@ -31,7 +28,7 @@ object LockScreenSync {
     fun available(context: Context, level: LockScreenLevel): Boolean = when (level) {
         LockScreenLevel.OFF, LockScreenLevel.WALLPAPER -> true
         LockScreenLevel.WALLPAPER_SYSTEM -> systemAvailable(context)
-        LockScreenLevel.YOKE -> YOKE_AVAILABLE
+        LockScreenLevel.YOKE -> true // needs accessibility, but is chosen first and then asks for it
     }
 
     fun systemAvailable(context: Context) =
@@ -54,6 +51,7 @@ object LockScreenSync {
         val before = prefs.lockLevel
         prefs.lockLevel = level
         syncSystem(app, level)
+        com.outsmartis.yoke.lockscreen.LockScreenController.sync(app) // Yoke level starts the service, any other stops it
         if (LockScreenLogic.shouldReapply(before, level, prefs.choice.target, prefs.applied)) WallpaperApplier.reapply(app)
         return LockScreenLogic.needsWallpaper(level, prefs.applied)
     }
@@ -67,6 +65,7 @@ object LockScreenSync {
     fun sync(context: Context) {
         val app = context.applicationContext
         syncSystem(app, level(app))
+        com.outsmartis.yoke.lockscreen.LockScreenController.sync(app)
     }
 
     private fun syncSystem(app: Context, level: LockScreenLevel) {
