@@ -77,8 +77,9 @@ class PauseActivity : AppCompatActivity() {
         root.addView(countdown)
         root.addView(text(getString(R.string.limits_breathe), 16f, secondary))
         val buttons = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            // Stacked, each centred; "Open" keeps its space (invisible) so "Not now" never shifts.
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             setPadding(0, (32 * d).toInt(), 0, 0)
         }
         val notNow = text(getString(R.string.limits_not_now), 20f, fg).apply {
