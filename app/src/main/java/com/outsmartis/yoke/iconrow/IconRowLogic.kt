@@ -14,6 +14,75 @@ enum class IconStyle(val id: String) {
     }
 }
 
+/** How the home screen apps are drawn (YOK-031). Stored by [id] in the icon row prefs. */
+enum class HomeAppStyle(val id: String) {
+    TEXT("text"), ICON_TEXT("icon_text"), ICON("icon");
+
+    val showsIcon get() = this != TEXT
+    val showsText get() = this != ICON
+
+    companion object {
+        fun fromId(id: String?) = entries.firstOrNull { it.id == id } ?: TEXT
+    }
+}
+
+/** Where a home app icon comes from (YOK-031). LETTER is the framed first letter. */
+enum class HomeIconSource { NONE, APP, SHORTCUT, LETTER }
+
+/** What one home slot shows: the pure decision behind HomeFragment.renderHomeIcons. */
+data class HomeSlotPlan(
+    val showsText: Boolean,
+    val icon: HomeIconSource,
+    /** Work profile / Private Space badge on the icon, whatever the icon style. */
+    val badge: Boolean,
+    val contentDescription: String?,
+    /** A small accent dot for pending notifications, only where the count text is hidden. */
+    val dot: Boolean,
+)
+
+object HomeAppPlan {
+    /**
+     * [profileLabel] and [notificationsLabel] are the already translated phrases for the content description.
+     * Pinned web links have no package, so they get a letter tile and no badge.
+     */
+    fun plan(
+        style: HomeAppStyle,
+        name: String,
+        isPin: Boolean,
+        isShortcut: Boolean,
+        otherProfile: Boolean,
+        profileLabel: String,
+        notifications: Int,
+        notificationsLabel: String,
+    ): HomeSlotPlan {
+        if (!style.showsIcon) return HomeSlotPlan(true, HomeIconSource.NONE, false, null, false)
+        val source = when {
+            isPin -> HomeIconSource.LETTER
+            isShortcut -> HomeIconSource.SHORTCUT
+            else -> HomeIconSource.APP
+        }
+        val badge = otherProfile && !isPin
+        val parts = mutableListOf<String>()
+        if (!style.showsText || badge) parts += name
+        if (badge) parts += profileLabel
+        if (notifications > 0 && (!style.showsText || badge)) parts += notificationsLabel
+        return HomeSlotPlan(
+            showsText = style.showsText,
+            icon = source,
+            badge = badge,
+            contentDescription = if (parts.isEmpty()) null else parts.joinToString(", "),
+            dot = !style.showsText && notifications > 0,
+        )
+    }
+
+    /** Which icon row pref keys need the home apps redrawn: the style itself, and the colour style when icons show. */
+    fun affectsHomeApps(key: String?, homeStyle: HomeAppStyle): Boolean =
+        key == IconRowPrefs.KEY_HOME_APP_STYLE || (homeStyle.showsIcon && key == IconRowPrefs.KEY_STYLE)
+
+    /** Icon only apps are centred in their touch box so the icon follows no text alignment; else the home alignment. */
+    fun gravityFor(style: HomeAppStyle, alignment: Int, centre: Int): Int = if (style == HomeAppStyle.ICON) centre else alignment
+}
+
 enum class IconSize(val id: String, val dp: Int) {
     SMALL("small", 26), MEDIUM("medium", 32), LARGE("large", 42);
 
@@ -80,9 +149,11 @@ object IconSlots {
 
 /** Fallback for apps without a monochrome layer: turn a coloured icon into an alpha mask. */
 object IconMask {
-    /** Below this share of the square covered the mask is nearly empty; above [MAX_COVERAGE] nearly full. */
+    /** Below this share of the square covered the mask is nearly empty; above [MAX_COVERAGE] nearly full.
+     * A round icon fills pi/4 (about 0.785) of the square, so the upper bound sits below that:
+     * a full disc is a blob, not a glyph, and the letter tile is the better fallback. */
     const val MIN_COVERAGE = 0.04
-    const val MAX_COVERAGE = 0.85
+    const val MAX_COVERAGE = 0.75
     private const val OPAQUE = 16
 
     private fun lum(argb: Int): Double {
@@ -103,8 +174,9 @@ object IconMask {
      * Pixels (ARGB) to a mask tinted with [tint]'s RGB, or null when the result would be unreadable.
      * Light glyphs on a darker tile are drawn as is; when most of the opaque area is bright the
      * icon is the other way round (dark glyph on light), so the mask is inverted.
+     * [sparseOnly] additionally rejects pixels that are opaque over most of the square (adaptive foreground).
      */
-    fun toMask(pixels: IntArray, tint: Int): IntArray? {
+    fun toMask(pixels: IntArray, tint: Int, sparseOnly: Boolean = false): IntArray? {
         if (pixels.isEmpty()) return null
         var opaque = 0
         var brightSum = 0.0
@@ -113,11 +185,14 @@ object IconMask {
             brightSum += lum(p)
         }
         if (opaque == 0) return null
-        val invert = brightSum / opaque > 0.5
+        // A foreground layer that is itself solid over most of the square (a disc or full bleed) has no glyph shape.
+        if (sparseOnly && opaque.toDouble() / pixels.size > MAX_COVERAGE) return null
+        // An adaptive foreground is drawn on transparent: its glyph is the alpha shape, whatever its colour.
+        val invert = !sparseOnly && brightSum / opaque > 0.5
         val rgb = tint and 0x00FFFFFF
         var coverage = 0.0
         val out = IntArray(pixels.size) { i ->
-            val a = alphaOf(pixels[i], invert)
+            val a = if (sparseOnly) (pixels[i] ushr 24) and 0xFF else alphaOf(pixels[i], invert)
             coverage += a / 255.0
             (a shl 24) or rgb
         }
