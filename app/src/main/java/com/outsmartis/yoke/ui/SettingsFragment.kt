@@ -586,18 +586,29 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         val ctx = requireContext()
         val status = com.outsmartis.yoke.wallpaper.LockScreenSync.status(ctx)
         val level = com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx)
-        binding.lockScreenRow.setText(
-            when {
-                status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission ->
+        val text: CharSequence = when {
+            status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission ->
+                getString(
                     if (com.outsmartis.yoke.theme.SystemPaletteSync.supported()) R.string.system_colours_needs_permission
                     else R.string.lock_screen_system_unsupported
-                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE && !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
-                    R.string.lock_screen_yoke_needs_accessibility
-                com.outsmartis.yoke.wallpaper.LockScreenLogic.needsWallpaper(level, com.outsmartis.yoke.wallpaper.WallpaperPrefs(ctx).applied) ->
-                    R.string.lock_screen_not_applied
-                else -> lockScreenLabel(level)
+                )
+            level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE && !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
+                getString(R.string.lock_screen_yoke_needs_accessibility)
+            else -> {
+                // Always the level's own name; the hint (no wallpaper applied yet) is secondary text.
+                val name = getString(lockScreenLabel(level))
+                if (com.outsmartis.yoke.wallpaper.LockScreenLogic.needsWallpaper(level, com.outsmartis.yoke.wallpaper.WallpaperPrefs(ctx).applied)) {
+                    val hint = getString(R.string.lock_screen_not_applied)
+                    android.text.SpannableString("$name\n$hint").apply {
+                        setSpan(
+                            android.text.style.RelativeSizeSpan(0.8f), name.length + 1, length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                        )
+                    }
+                } else name
             }
-        )
+        }
+        binding.lockScreenRow.text = text
     }
 
     /** One choice of four; levels that cannot work yet say why instead of doing nothing. */
