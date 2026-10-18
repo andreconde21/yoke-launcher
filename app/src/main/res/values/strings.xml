@@ -203,7 +203,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="grayscale_setup_title">One-time setup</string>
     <string name="grayscale_copied">Command copied</string>
     <string name="grayscale_exceptions">Exceptions</string>
-    <string name="grayscale_exceptions_count">%1$d apps stay in colour</string>
+    <plurals name="grayscale_exceptions_count">
+        <item quantity="one">%1$d app stays in colour</item>
+        <item quantity="other">%1$d apps stay in colour</item>
+    </plurals>
     <string name="grayscale_exceptions_search">Search apps</string>
     <string name="grayscale_status_permission_ok">Permission: granted</string>
     <string name="grayscale_status_permission_missing">Permission: missing (see setup above)</string>
@@ -384,7 +387,10 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="settings_count_set">%1$d set</string>
     <string name="settings_count_apps">%1$d apps</string>
     <string name="settings_count_on">%1$d of %2$d</string>
-    <string name="settings_on_exceptions">On, %1$d exceptions</string>
+    <plurals name="settings_on_exceptions">
+        <item quantity="one">On, %1$d exception</item>
+        <item quantity="other">On, %1$d exceptions</item>
+    </plurals>
     <string name="settings_on_apps">On, %1$d apps</string>
     <string name="settings_backup_auto">Auto to vault</string>
     <string name="settings_backup_manual">Manual</string>
