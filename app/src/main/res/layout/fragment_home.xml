@@ -113,7 +113,7 @@
                 android:id="@+id/glanceEvent"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="2"
                 android:orientation="vertical">
 
                 <TextView
@@ -122,7 +122,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     tools:text="10:30 Design review" />
 
                 <TextView
@@ -135,9 +135,10 @@
 
             <LinearLayout
                 android:id="@+id/glanceWeather"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_weight="1"
                 android:gravity="end"
                 android:orientation="vertical">
 

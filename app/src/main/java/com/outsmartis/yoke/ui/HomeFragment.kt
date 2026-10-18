@@ -336,7 +336,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             WeatherFormat.line(weatherPrefs.reading, weatherPrefs.units, weatherPrefs.showHighLow, System.currentTimeMillis())
         } else ""
         binding.weather.text = text
-        binding.weather.isVisible = text.isNotEmpty()
+        binding.weather.isVisible = text.isNotEmpty() && !glanceWeatherShown // YOK-032: the glance card already shows it
     }
 
     /** The cached Cockpit agenda line under the weather: nothing when off, empty, or the date is hidden. */
@@ -355,6 +355,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         populateGlance()
     }
     private var glanceEvent: GlanceEvent? = null
+    private var glanceWeatherShown = false
 
     private fun populateGlance() {
         glanceHandler.removeCallbacks(glanceTick)
@@ -395,6 +396,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
             }
         }
 
+        glanceWeatherShown = weather != null
+        populateWeather() // hides the line under the date while the card shows the weather, restores it otherwise
         binding.glanceCard.isVisible = event != null || weather != null
         if (binding.glanceCard.isVisible) styleGlanceCard()
     }
