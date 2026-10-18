@@ -127,6 +127,9 @@ class IconRowLogicTest {
         // a glyph on transparent still passes
         val glyph = square(20, 0xFFFFFFFF.toInt(), 0, 10)
         assertNotNull(IconMask.toMask(glyph, 0xFFFFFFFF.toInt(), sparseOnly = true))
+        // a dark glyph on transparent passes too (the mask is the alpha shape, not the luminance)
+        val dark = square(20, 0xFF000000.toInt(), 0, 10)
+        assertNotNull(IconMask.toMask(dark, 0xFFFFFFFF.toInt(), sparseOnly = true))
     }
 
     // YOK-031

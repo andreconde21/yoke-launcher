@@ -187,11 +187,12 @@ object IconMask {
         if (opaque == 0) return null
         // A foreground layer that is itself solid over most of the square (a disc or full bleed) has no glyph shape.
         if (sparseOnly && opaque.toDouble() / pixels.size > MAX_COVERAGE) return null
-        val invert = brightSum / opaque > 0.5
+        // An adaptive foreground is drawn on transparent: its glyph is the alpha shape, whatever its colour.
+        val invert = !sparseOnly && brightSum / opaque > 0.5
         val rgb = tint and 0x00FFFFFF
         var coverage = 0.0
         val out = IntArray(pixels.size) { i ->
-            val a = alphaOf(pixels[i], invert)
+            val a = if (sparseOnly) (pixels[i] ushr 24) and 0xFF else alphaOf(pixels[i], invert)
             coverage += a / 255.0
             (a shl 24) or rgb
         }
