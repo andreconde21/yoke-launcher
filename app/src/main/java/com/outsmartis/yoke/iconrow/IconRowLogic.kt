@@ -149,9 +149,11 @@ object IconSlots {
 
 /** Fallback for apps without a monochrome layer: turn a coloured icon into an alpha mask. */
 object IconMask {
-    /** Below this share of the square covered the mask is nearly empty; above [MAX_COVERAGE] nearly full. */
+    /** Below this share of the square covered the mask is nearly empty; above [MAX_COVERAGE] nearly full.
+     * A round icon fills pi/4 (about 0.785) of the square, so the upper bound sits below that:
+     * a full disc is a blob, not a glyph, and the letter tile is the better fallback. */
     const val MIN_COVERAGE = 0.04
-    const val MAX_COVERAGE = 0.85
+    const val MAX_COVERAGE = 0.75
     private const val OPAQUE = 16
 
     private fun lum(argb: Int): Double {
@@ -172,8 +174,9 @@ object IconMask {
      * Pixels (ARGB) to a mask tinted with [tint]'s RGB, or null when the result would be unreadable.
      * Light glyphs on a darker tile are drawn as is; when most of the opaque area is bright the
      * icon is the other way round (dark glyph on light), so the mask is inverted.
+     * [sparseOnly] additionally rejects pixels that are opaque over most of the square (adaptive foreground).
      */
-    fun toMask(pixels: IntArray, tint: Int): IntArray? {
+    fun toMask(pixels: IntArray, tint: Int, sparseOnly: Boolean = false): IntArray? {
         if (pixels.isEmpty()) return null
         var opaque = 0
         var brightSum = 0.0
@@ -182,6 +185,8 @@ object IconMask {
             brightSum += lum(p)
         }
         if (opaque == 0) return null
+        // A foreground layer that is itself solid over most of the square (a disc or full bleed) has no glyph shape.
+        if (sparseOnly && opaque.toDouble() / pixels.size > MAX_COVERAGE) return null
         val invert = brightSum / opaque > 0.5
         val rgb = tint and 0x00FFFFFF
         var coverage = 0.0

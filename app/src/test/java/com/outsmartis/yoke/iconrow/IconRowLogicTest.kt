@@ -108,6 +108,25 @@ class IconRowLogicTest {
         assertFalse(IconMask.isReadable(0.01))
         assertTrue(IconMask.isReadable(0.3))
         assertFalse(IconMask.isReadable(0.95))
+        // YOK-031: a full round icon (pi/4 of the square) is a disc, not a glyph
+        assertFalse(IconMask.isReadable(Math.PI / 4))
+        assertTrue(IconMask.isReadable(0.74))
+    }
+
+    // YOK-031
+    @Test
+    fun filledDiscIconFallsBackToLetterTile() {
+        val size = 40
+        val c = size / 2.0
+        val disc = IntArray(size * size) { i ->
+            val dx = i % size + 0.5 - c
+            val dy = i / size + 0.5 - c
+            if (dx * dx + dy * dy <= c * c) 0xFF808080.toInt() else 0
+        }
+        assertNull(IconMask.toMask(disc, 0xFFFFFFFF.toInt(), sparseOnly = true))
+        // a glyph on transparent still passes
+        val glyph = square(20, 0xFFFFFFFF.toInt(), 0, 10)
+        assertNotNull(IconMask.toMask(glyph, 0xFFFFFFFF.toInt(), sparseOnly = true))
     }
 
     // YOK-031
