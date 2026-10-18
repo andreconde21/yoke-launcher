@@ -86,8 +86,34 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         return binding.root
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        _binding?.let { outState.putInt(STATE_SCROLL, it.scrollView.scrollY) }
+    }
+
+    /**
+     * After a recreate (a theme change) the saved scroll position is applied as soon as the rows have
+     * their height again; the framework's own restore is clamped while they are still filling in and
+     * left Settings at the top.
+     */
+    private fun restoreScroll(wanted: Int) {
+        val scroll = binding.scrollView
+        val deadline = android.os.SystemClock.uptimeMillis() + 2000
+        scroll.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val child = scroll.getChildAt(0)
+                val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(wanted, it.height, scroll.height) }
+                if (target != null) scroll.scrollTo(0, target)
+                if (target != null || android.os.SystemClock.uptimeMillis() > deadline) {
+                    if (scroll.viewTreeObserver.isAlive) scroll.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                }
+            }
+        })
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        savedInstanceState?.getInt(STATE_SCROLL, 0)?.takeIf { it > 0 }?.let(::restoreScroll)
         prefs = Prefs(requireContext())
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
@@ -1091,6 +1117,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         _binding = null
     }
 }
+
+private const val STATE_SCROLL = "settings_scroll_y"
 
 private val DICTATION_LANGUAGES = listOf(
     "" to R.string.dictation_language_phone,

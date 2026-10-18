@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
+import com.outsmartis.yoke.helper.HomeReturn
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityMainBinding
@@ -88,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         if (prefs.boldFont) theme.applyStyle(R.style.BoldFontOverlay, true)
         if (isEinkDisplay() || isSystemAnimationsDisabled()) theme.applyStyle(R.style.NoAnimationOverlay, true)
         binding = ActivityMainBinding.inflate(layoutInflater)
+        androidx.core.content.ContextCompat.registerReceiver(
+            this, screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
         ThemeFade.reveal(this)
@@ -200,13 +204,10 @@ class MainActivity : AppCompatActivity() {
         themeObserver = null
         isResumed = false
         com.outsmartis.yoke.backup.VaultBackup.maybeBackup(this)
-        backToHomeScreen()
+        // Not a trigger for backToHomeScreen: Yoke's own pickers, permission prompts and settings jumps
+        // stop and start this activity too (and fire onUserLeaveHint), and popping then destroyed the
+        // screen waiting for the result (backup export wrote an empty file). See HomeReturn.
         super.onStop()
-    }
-
-    override fun onUserLeaveHint() {
-        backToHomeScreen()
-        super.onUserLeaveHint()
     }
 
     /** Runs [EXTRA_RUN_ACTION] once the home screen has been laid out. */
@@ -308,9 +309,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun backToHomeScreen() {
-        // A recreate (theme, font, system colours changing) stops the activity too: stay on the current
-        // screen; so does the theme picker opened from Settings, which Back must return to.
-        if (!HostHold.shouldPopToHome(isChangingConfigurations, viewModel.isPrivateSpaceToggling, HostHold.hold)) return
+        // A recreate (theme, font, system colours changing) must not drop the current screen either.
+        if (isChangingConfigurations || !HomeReturn.shouldPop(viewModel.isPrivateSpaceToggling)) return
         messageDialog?.dismiss()
         if (navController.currentDestination?.id != R.id.mainFragment)
             navController.popBackStack(R.id.mainFragment, false)
@@ -357,7 +357,12 @@ class MainActivity : AppCompatActivity() {
             } catch (_: Exception) {
             }
         }
+        runCatching { unregisterReceiver(screenOffReceiver) }
         super.onDestroy()
+    }
+
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) = backToHomeScreen()
     }
 
     @Deprecated("Deprecated in Java")
