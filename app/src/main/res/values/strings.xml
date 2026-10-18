@@ -466,4 +466,14 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="assistant_palette">Command palette</string>
     <string name="assistant_today">Today sheet</string>
     <string name="assistant_conductore">Conductore sheet</string>
+    <!-- YOK-036 -->
+    <string name="lock_screen_row">Lock screen</string>
+    <string name="lock_screen_title">Lock screen</string>
+    <string name="lock_screen_off">Off</string>
+    <string name="lock_screen_wallpaper">Wallpaper</string>
+    <string name="lock_screen_wallpaper_system">Wallpaper + system</string>
+    <string name="lock_screen_yoke">Yoke lock screen</string>
+    <string name="lock_screen_yoke_soon">Coming soon</string>
+    <string name="lock_screen_system_needs_permission">Needs permission: grant it once from Smart grayscale</string>
+    <string name="lock_screen_system_unsupported">Needs Android 12</string>
 </resources>

@@ -231,6 +231,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
             R.id.wallpaperRow -> com.outsmartis.yoke.wallpaper.WallpaperActivity.open(requireContext())
             R.id.systemColoursRow -> showSystemColoursDialog()
+            R.id.lockScreenRow -> showLockScreenDialog() // YOK-036
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
             R.id.fontText -> toggleFont()
@@ -306,6 +307,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.systemColoursRow.setOnClickListener(this)
+        binding.lockScreenRow.setOnClickListener(this) // YOK-036
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
         binding.fontText.setOnClickListener(this)
@@ -564,6 +566,57 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun populateWallpaper() {
         binding.wallpaperRow.text = com.outsmartis.yoke.wallpaper.WallpaperActivity.summary(requireContext())
         populateSystemColours()
+        populateLockScreen()
+    }
+
+    // YOK-036
+    private fun lockScreenLabel(level: com.outsmartis.yoke.wallpaper.LockScreenLevel) = when (level) {
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.OFF -> R.string.lock_screen_off
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER -> R.string.lock_screen_wallpaper
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER_SYSTEM -> R.string.lock_screen_wallpaper_system
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke
+    }
+
+    private fun populateLockScreen() {
+        val ctx = requireContext()
+        val status = com.outsmartis.yoke.wallpaper.LockScreenSync.status(ctx)
+        binding.lockScreenRow.setText(
+            if (status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission) R.string.system_colours_needs_permission
+            else lockScreenLabel(com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx))
+        )
+    }
+
+    /** One choice of four; levels that cannot work yet say why instead of doing nothing. */
+    private fun showLockScreenDialog() {
+        val ctx = requireContext()
+        val sync = com.outsmartis.yoke.wallpaper.LockScreenSync
+        val levels = com.outsmartis.yoke.wallpaper.LockScreenLevel.entries
+        val labels = levels.map { level ->
+            val label = getString(lockScreenLabel(level))
+            when {
+                sync.available(ctx, level) -> label
+                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> "$label (${getString(R.string.lock_screen_yoke_soon)})"
+                else -> "$label (${getString(R.string.system_colours_needs_permission)})"
+            }
+        }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.lock_screen_title)
+            .setSingleChoiceItems(labels, levels.indexOf(sync.level(ctx))) { dialog, which ->
+                val level = levels[which]
+                if (sync.available(ctx, level)) {
+                    sync.setLevel(ctx, level)
+                    if (_binding != null) populateLockScreen()
+                } else {
+                    val reason = when {
+                        level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke_soon
+                        !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> R.string.lock_screen_system_unsupported
+                        else -> R.string.lock_screen_system_needs_permission
+                    }
+                    Toast.makeText(ctx, reason, Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun populateSystemColours() {
