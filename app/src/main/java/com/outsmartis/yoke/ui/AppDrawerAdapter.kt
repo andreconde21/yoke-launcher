@@ -305,8 +305,22 @@ class AppDrawerAdapter(
                 if (appModel is AppModel.Link) append(" ↗")
             }
             val detail = (appModel as? AppModel.PaletteResult)?.detail
-            appTitle.text = if (detail.isNullOrEmpty()) title else SpannableString("$title  $detail").apply {
-                setSpan(RelativeSizeSpan(0.65f), title.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (appModel is AppModel.PaletteResult) {
+                // Single line: shorten the label in the middle, always keep the small suffix (agent name, kind) visible
+                val paint = android.text.TextPaint(appTitle.paint)
+                val rowWidth = if (appTitle.width > 0) appTitle.width else root.resources.displayMetrics.widthPixels
+                val avail = (rowWidth - appTitle.paddingLeft - appTitle.paddingRight).toFloat()
+                val suffix = if (detail.isNullOrEmpty()) "" else "  $detail"
+                val suffixPaint = android.text.TextPaint(paint).apply { textSize = paint.textSize * 0.65f }
+                val fitted = android.text.TextUtils.ellipsize(
+                    title, paint, (avail - suffixPaint.measureText(suffix)).coerceAtLeast(0f),
+                    android.text.TextUtils.TruncateAt.MIDDLE
+                ).toString()
+                appTitle.text = if (suffix.isEmpty()) fitted else SpannableString(fitted + suffix).apply {
+                    setSpan(RelativeSizeSpan(0.65f), fitted.length, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            } else {
+                appTitle.text = title
             }
             appTitle.gravity = appLabelGravity
             otherProfileIndicator.isVisible = appModel.user != myUserHandle
