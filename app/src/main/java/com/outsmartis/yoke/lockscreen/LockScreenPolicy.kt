@@ -91,8 +91,18 @@ object LockScreenPolicy {
      * screen-off it answers ([offAt], 0 when absent, e.g. a relaunch from recents) with no screen-on
      * ([screenOnAt]) since. Rejects the double-press-camera race where the screen woke first.
      */
-    fun acceptCreate(interactive: Boolean, offAt: Long, screenOnAt: Long): Boolean =
-        !interactive && offAt > 0L && screenOnAt <= offAt
+    fun acceptCreate(
+        interactive: Boolean, offAt: Long, screenOnAt: Long,
+        afterCall: Boolean = false, keyguardLocked: Boolean = false,
+    ): Boolean =
+        if (afterCall) showAfterCall(interactive, keyguardLocked)
+        else !interactive && offAt > 0L && screenOnAt <= offAt
+
+    /**
+     * A call ended with the display still on and the keyguard (PIN) showing: the system keyguard is
+     * what the user sees, so put ours back over it. With the screen off the usual screen-off path does it.
+     */
+    fun showAfterCall(interactive: Boolean, keyguardLocked: Boolean): Boolean = interactive && keyguardLocked
 
     /** Foreground package is a known show-when-locked app (secure camera, emergency dialer) that must not be covered. */
     fun isProtectedForeground(foreground: String?, protectedPackages: Set<String>): Boolean =

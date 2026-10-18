@@ -38,9 +38,8 @@ class LockScreenService : Service() {
     }
     private var registered = false
 
-    // A call ending: the system keyguard shows afterwards, so put ours back when the screen is off
-    // (API 31+ only; older APIs have no permission-free call signal). A call that ends with the screen
-    // on is left to the system keyguard: the lock screen never covers an interactive display.
+    // A call ending: the system keyguard shows afterwards, so put ours back, whether the screen is off or
+    // still on with the keyguard up (API 31+ only; older APIs have no permission-free call signal).
     private val main = Handler(Looper.getMainLooper())
     private var modeListener: Any? = null
     private var wasInCall = false
@@ -88,8 +87,8 @@ class LockScreenService : Service() {
         val l = AudioManager.OnModeChangedListener { mode ->
             val inCall = LockScreenPolicy.inCall(mode)
             if (wasInCall && !inCall) {
-                // Let the call UI close first; onScreenOff re-checks everything (screen off, still locked)
-                main.postDelayed({ LockScreenController.onScreenOff(this) }, CALL_END_DELAY_MS)
+                // Let the call UI close first; onCallEnded re-checks everything (still locked, screen off or on)
+                main.postDelayed({ LockScreenController.onCallEnded(this) }, CALL_END_DELAY_MS)
             }
             wasInCall = inCall
         }

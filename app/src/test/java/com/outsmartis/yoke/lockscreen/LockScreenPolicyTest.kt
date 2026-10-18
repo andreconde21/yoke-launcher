@@ -87,6 +87,19 @@ class LockScreenPolicyTest {
     @Test fun startWithoutAnOffStampIsRefused() =
         assertFalse(LockScreenPolicy.acceptCreate(interactive = false, offAt = 0L, screenOnAt = 0L))
 
+    @Test fun callEndedWithScreenOnAndKeyguardUpBringsOursBack() {
+        assertTrue(LockScreenPolicy.showAfterCall(interactive = true, keyguardLocked = true))
+        assertTrue(LockScreenPolicy.acceptCreate(true, 0L, 0L, afterCall = true, keyguardLocked = true))
+    }
+
+    @Test fun callEndedWithNoKeyguardLeavesTheScreenAlone() {
+        assertFalse(LockScreenPolicy.showAfterCall(interactive = true, keyguardLocked = false))
+        assertFalse(LockScreenPolicy.acceptCreate(true, 0L, 0L, afterCall = true, keyguardLocked = false))
+    }
+
+    @Test fun afterCallStartIsNotAnExcuseWithTheScreenOff() =
+        assertFalse(LockScreenPolicy.showAfterCall(interactive = false, keyguardLocked = true))
+
     @Test fun protectedForegroundMatchesOnlyListedPackages() {
         val protectedPkgs = setOf("com.cam", "com.dialer")
         assertTrue(LockScreenPolicy.isProtectedForeground("com.cam", protectedPkgs))
