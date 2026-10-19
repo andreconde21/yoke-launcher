@@ -28,7 +28,7 @@ class HomeHold {
 
     /**
      * Yoke's own HOME jump came back to Yoke (it is the default home), so the activity pauses and resumes once
-     * around it. That resume is not the end of the jump that follows; it is skipped. Dropped at the next stop.
+     * around it. Those resumes are not the end of the jump that follows, so they are ignored until the next stop (or the grace period).
      */
     fun onOwnHomeDelivered() {
         if (active) ownHomeDelivered = true
@@ -59,11 +59,9 @@ class HomeHold {
      * set, but not for longer than [HomeReturn.HOLD_GRACE_MS].
      */
     fun onResume(now: Long) {
-        if (ownHomeDelivered) {
-            ownHomeDelivered = false
-            return
-        }
-        if (stopped || paused || now - since > HomeReturn.HOLD_GRACE_MS) clear()
+        if (now - since > HomeReturn.HOLD_GRACE_MS) return clear()
+        if (ownHomeDelivered) return // setup of the jump that follows, not its end
+        if (stopped || paused) clear()
     }
 
     /**

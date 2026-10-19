@@ -88,4 +88,14 @@ class HomeHoldTest {
         h.onStop()
         assertTrue(h.swallowsHome(true, false))
     }
+
+    @Test fun manyResumesAroundTheOwnHomeJumpAreIgnoredButNotForever() {
+        val h = HomeHold()
+        h.start(settingsJump, 0)
+        h.onOwnHomeDelivered()
+        h.onPause(); h.onResume(30); h.onPause(); h.onResume(60)
+        assertTrue(h.active)
+        h.onResume(HomeReturn.HOLD_GRACE_MS + 1) // no stop followed: not stuck
+        assertFalse(h.active)
+    }
 }
