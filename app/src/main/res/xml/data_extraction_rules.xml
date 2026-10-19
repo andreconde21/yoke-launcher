@@ -5,6 +5,8 @@
 -->
 <data-extraction-rules>
     <cloud-backup>
+        <!-- WallpaperManager ids belong to this phone; a restore must not see them -->
+        <exclude domain="sharedpref" path="yoke.wallpaper.xml"/>
         <!-- TODO: Use <include> and <exclude> to control what is backed up.
         <include .../>
         <exclude .../>

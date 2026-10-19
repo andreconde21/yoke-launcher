@@ -130,11 +130,14 @@ object WallpaperApplier {
         val target = prefs.effectiveTarget
         val system = target != WallpaperTarget.LOCK
         val lock = target != WallpaperTarget.HOME
-        WallpaperLogic.ownsTarget(
-            system, lock,
-            prefs.systemId, if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0,
-            prefs.lockId, if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0,
-        )
+        val currentSystem = if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0
+        val currentLock = if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0
+        // Ids recorded before this build are trusted once, now, so a later outside change is caught
+        val systemId = if (system) WallpaperLogic.adoptId(prefs.systemId, currentSystem, false) else prefs.systemId
+        val lockId = if (lock) WallpaperLogic.adoptId(prefs.lockId, currentLock, true) else prefs.lockId
+        if (systemId != prefs.systemId) prefs.systemId = systemId
+        if (lockId != prefs.lockId) prefs.lockId = lockId
+        WallpaperLogic.ownsTarget(system, lock, systemId, currentSystem, lockId, currentLock)
     } catch (_: Exception) {
         false
     }

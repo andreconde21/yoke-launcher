@@ -95,4 +95,10 @@ class YokeBackupTest {
         rejects("""{"app":"yoke","version":1}""", "no settings")
         assertTrue(YokeBackup.decode("""{"app":"yoke","version":1,"prefs":{}}""").isEmpty())
     }
+
+    @Test
+    fun wallpaperIdsOfThisPhoneAreNotExported() {
+        assertTrue(YokeBackup.isExcluded("yoke.wallpaper", "system_id"))
+        assertTrue(YokeBackup.isExcluded("yoke.wallpaper", "lock_id"))
+    }
 }

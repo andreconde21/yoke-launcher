@@ -36,10 +36,25 @@ object WallpaperLogic {
     }
 
     /**
+     * The id to remember for a wallpaper whose [stored] id is 0 (recorded before ids existed): trust what
+     * is there now, once, right away; [current] unknown (0) or a system id of -1 is not trusted.
+     */
+    fun adoptId(stored: Int, current: Int, allowShared: Boolean): Int = when {
+        stored != 0 -> stored
+        current > 0 -> current
+        current < 0 && allowShared -> current
+        else -> 0
+    }
+
+    /**
      * Do the wallpapers Yoke writes ([writesSystem], [writesLock]) still carry the ids it stored? When
      * one wallpaper serves both screens Android reports lock id -1: the lock then follows the system
      * wallpaper and only the system id decides. A lock-only write has no system id to lean on, so an
      * unknown current lock id there means someone else replaced it.
+     *
+     * Stored ids: 0 is "never recorded" (an install from before ids; [adoptId] settles it at the first
+     * check), -1 is "shared with the system wallpaper" and is NOT legacy: a lock wallpaper that has
+     * since appeared (current > 0) was set by someone else.
      */
     fun ownsTarget(
         writesSystem: Boolean, writesLock: Boolean,
@@ -48,7 +63,7 @@ object WallpaperLogic {
         if (writesSystem && !mayOverwrite(storedSystem, currentSystem)) return false
         if (!writesLock) return true
         return when {
-            currentLock > 0 -> storedLock <= 0 || storedLock == currentLock
+            currentLock > 0 -> storedLock == 0 || storedLock == currentLock
             else -> writesSystem
         }
     }
