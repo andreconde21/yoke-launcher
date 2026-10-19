@@ -11,6 +11,7 @@ import android.graphics.Rect
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.theme.ThemeStore
@@ -30,6 +31,10 @@ object WallpaperApplier {
     fun interface Callback {
         fun done(error: String?)
     }
+
+    private const val TAG = "YokeWallpaper"
+    private const val DOWNLOAD_ATTEMPTS = 2
+    private const val RETRY_DELAY_MS = 800L
 
     private val worker = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -166,19 +171,33 @@ object WallpaperApplier {
     private fun download(context: Context, themeId: String, file: String): File? {
         val dest = cachedFull(context, themeId, file)
         if (dest.isFile && dest.length() > 0) return dest
+        // One quiet retry: the first request of a cold connection (fresh install, idle radio) can fail
+        // where the next one succeeds, and the Wallpaper screen would otherwise fall back to the theme colour.
+        repeat(DOWNLOAD_ATTEMPTS) { attempt ->
+            fetch(themeId, file, dest)?.let { return it }
+            if (attempt < DOWNLOAD_ATTEMPTS - 1) Thread.sleep(RETRY_DELAY_MS)
+        }
+        return null
+    }
+
+    private fun fetch(themeId: String, file: String, dest: File): File? {
         val tmp = File(dest.parentFile, dest.name + ".part")
         return try {
             val conn = URL(WallpaperLogic.backgroundUrl(themeId, file)).openConnection() as HttpURLConnection
             conn.connectTimeout = 15_000
             conn.readTimeout = 30_000
             try {
-                if (conn.responseCode != 200) return null
+                if (conn.responseCode != 200) {
+                    Log.w(TAG, "background $themeId/$file: HTTP ${conn.responseCode}")
+                    return null
+                }
                 conn.inputStream.use { input -> tmp.outputStream().use { input.copyTo(it) } }
             } finally {
                 conn.disconnect()
             }
             if (tmp.renameTo(dest)) dest else null
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.w(TAG, "background $themeId/$file: ${e.javaClass.simpleName} ${e.message}")
             tmp.delete()
             null
         }
