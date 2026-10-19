@@ -142,6 +142,13 @@ class MainActivity : AppCompatActivity() {
     // Set when Yoke starts one of its own activities (picker, permission prompt, settings jump): the screen
     // and its result must survive the stop. Cleared once Yoke is back in front.
     private var inAppHold = false
+        set(value) {
+            field = value
+            if (value) holdAt = android.os.SystemClock.uptimeMillis()
+            else heldStop = false
+        }
+    private var holdAt = 0L
+    private var heldStop = false // Yoke really stopped while the hold was set
     private var resetOnStart = false
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -200,7 +207,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isResumed = true
-        inAppHold = false
+        // A resume without a stop in between (the activity re-delivering an intent while the jump is being
+        // started) must not drop a hold that was only just set
+        if (HomeReturn.clearsHoldOnResume(heldStop, android.os.SystemClock.uptimeMillis() - holdAt)) inAppHold = false
         // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
         com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
         viewModel.isPrivateSpaceToggling = false
@@ -244,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         // Any stop that Yoke did not cause itself (Home, Recents, a notification, screen off) resets to
         // home on return; see HomeReturn. The pop runs in onStart.
         resetOnStart = HomeReturn.resetOnReturn(isChangingConfigurations, viewModel.isPrivateSpaceToggling, inAppHold)
+        heldStop = inAppHold
         super.onStop()
     }
 
@@ -259,6 +269,15 @@ class MainActivity : AppCompatActivity() {
         // Yoke's own jump that resolves back to Yoke (the HOME intent behind "Change default launcher" when Yoke is the
         // default): it is not the Home button, so the page the user is on stays
         if (intent?.getBooleanExtra(HomeReturn.EXTRA_HOLD, false) == true) {
+            super.onNewIntent(intent)
+            return
+        }
+        // Leaving a system Settings/role screen Yoke jumped to (default apps) makes the system itself start HOME, with
+        // no extras: that is Back, not the Home button, so the user lands back on the page they came from. A real Home
+        // press from inside that system screen lands there once too. The hold is also cleared in onResume.
+        if (HomeReturn.homeLeavesHeldScreen(inAppHold, intent?.hasCategory(Intent.CATEGORY_HOME) == true, intent?.hasExtra(EXTRA_RUN_ACTION) == true)) {
+            inAppHold = false
+            resetOnStart = false
             super.onNewIntent(intent)
             return
         }

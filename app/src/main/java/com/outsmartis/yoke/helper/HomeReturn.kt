@@ -34,6 +34,16 @@ object HomeReturn {
     /** Intent extra set by [keepScreen]: this launch is one of Yoke's own helper jumps (Shizuku, Conductore, a store page). */
     const val EXTRA_HOLD = "com.outsmartis.yoke.extra.KEEP_SCREEN"
 
+    /** A hold ends when Yoke resumes after really stopping, or when no stop followed within the grace period. */
+    fun clearsHoldOnResume(stoppedWhileHeld: Boolean, sinceHoldMs: Long): Boolean =
+        stoppedWhileHeld || sinceHoldMs > HOLD_GRACE_MS
+
+    const val HOLD_GRACE_MS = 2000L
+
+    /** A HOME intent that arrives while Yoke's own jump is held is the system returning to Yoke: no pop. */
+    fun homeLeavesHeldScreen(inAppHold: Boolean, isHomeIntent: Boolean, hasRunAction: Boolean): Boolean =
+        inAppHold && isHomeIntent && !hasRunAction
+
     /** Where a pending scroll position can be restored: null while the content is still too short. */
     fun scrollTarget(wanted: Int, contentHeight: Int, viewHeight: Int): Int? {
         if (wanted <= 0) return null
