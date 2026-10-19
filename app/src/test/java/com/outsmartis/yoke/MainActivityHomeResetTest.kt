@@ -53,4 +53,16 @@ class MainActivityHomeResetTest {
         assertTrue(guard >= 0)
         assertTrue(guard < b.indexOf("backToHomeScreen()")) // before the pop
     }
+
+    // A merge between the card branches and the hold work once dropped these silently
+    @Test
+    fun theCardFeaturesAreStillWiredIntoMainActivity() {
+        assertTrue(body("onResume").contains("LockScreenController.sync(this)"))
+        assertTrue(source.contains("WallpaperApplier.migrateIds(this)"))
+        assertTrue(body("onCreate").contains("ThemeFade.reveal(this)"))
+        assertTrue(body("onStart").contains("ThemeFade.recreate(this)"))
+        assertTrue(source.contains("observeConductore(this) { ThemeFade.recreate(this) }"))
+        assertTrue(source.contains("import com.outsmartis.yoke.theme.ThemeFade"))
+        assertTrue(source.contains("if (isChangingConfigurations || !HomeReturn.shouldPop(viewModel.isPrivateSpaceToggling)) return"))
+    }
 }
