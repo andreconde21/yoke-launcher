@@ -102,15 +102,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         val scroll = binding.scrollView
         holdY = SettingsScroll.takeWanted()
         val deadline = android.os.SystemClock.uptimeMillis() + 2000
-        var programmatic = false
         // A listener on the view itself (the tree observer is the window's and would outlive this page)
-        scroll.setOnScrollChangeListener { _, _, y, _, _ ->
-            if (holdY == 0) SettingsScroll.y = y
-            else if (!programmatic) { // the user scrolled: the restore is over
-                holdY = 0
-                SettingsScroll.y = y
-            }
-        }
+        // While the hold lasts, scroll changes are not recorded: the framework's own (clamped) restore and our
+        // re-apply both land here and neither is the user. A touch on the page ends the hold (below).
+        scroll.setOnScrollChangeListener { _, _, y, _, _ -> SettingsScroll.record(holdY > 0, y) }
         if (holdY == 0) return
         // Touching the search field or the scroll view ends the hold, and focus the user gave is never taken
         scroll.setOnTouchListener { _, _ -> holdY = 0; false }
@@ -121,11 +116,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                     dropSearchFocus()
                     val child = scroll.getChildAt(0)
                     val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(holdY, it.height, scroll.height) }
-                    if (target != null && scroll.scrollY != target) {
-                        programmatic = true
-                        scroll.scrollTo(0, target)
-                        programmatic = false
-                    }
+                    if (target != null && scroll.scrollY != target) scroll.scrollTo(0, target)
                     if (android.os.SystemClock.uptimeMillis() > deadline) holdY = 0
                 }
                 if (holdY == 0) {
@@ -1171,6 +1162,11 @@ private val DICTATION_LANGUAGES = listOf(
 /** Settings' scroll position across activity recreates; reset whenever the page is left for real. */
 object SettingsScroll {
     @Volatile var y = 0
+
+    /** Records the position the user left the page at; never while a restore is holding (those scrolls are not the user). */
+    fun record(restoring: Boolean, position: Int) {
+        if (!restoring) y = position
+    }
     private var recreating = false
 
     /** The position to restore into a view created after a recreate, else 0. */

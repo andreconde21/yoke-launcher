@@ -11,7 +11,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -89,8 +88,7 @@ class LockScreenService : Service() {
             val inCall = LockScreenPolicy.inCall(mode)
             if (wasInCall && !inCall) {
                 // Let the call UI close first; onCallEnded re-checks everything (still locked, screen off or on)
-                val endedAt = SystemClock.elapsedRealtime()
-                main.postDelayed({ LockScreenController.onCallEnded(this, endedAt) }, CALL_END_DELAY_MS)
+                main.postDelayed({ LockScreenController.onCallEnded(this) }, CALL_END_DELAY_MS)
             }
             wasInCall = inCall
         }

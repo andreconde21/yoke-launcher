@@ -91,17 +91,17 @@ class LockScreenPolicyTest {
 
     private fun after(
         interactive: Boolean = true, locked: Boolean = true, fg: String? = "com.android.systemui", cls: String? = null,
-        fgAt: Long = 100L, endedAt: Long = 50L,
-    ) = LockScreenPolicy.showAfterCall(interactive, locked, fg, cls, pk, fgAt, endedAt)
+    ) = LockScreenPolicy.showAfterCall(interactive, locked, fg, cls, pk)
 
     @Test fun callEndedOntoTheKeyguardBringsOursBack() = assertTrue(after())
 
-    @Test fun callEndedWithTheDialerStillClosingBringsOursBack() = assertTrue(after(fg = "com.google.android.dialer", fgAt = 100L, endedAt = 50L))
+    @Test fun callEndedWithTheDialerStillClosingBringsOursBack() = assertTrue(after(fg = "com.google.android.dialer"))
 
-    @Test fun aDialerEventOlderThanTheCallEndIsStaleAndNotTrusted() =
-        assertFalse(after(fg = "com.google.android.dialer", fgAt = 40L, endedAt = 50L))
+    @Test fun theDialerEventFromBeforeTheCallEndedIsTheNormalCase() =
+        assertTrue(after(fg = "com.google.android.dialer")) // the keyguard raises no event when the call UI closes
 
-    @Test fun systemUiCountsEvenWithoutANewerEvent() = assertTrue(after(fg = "com.android.systemui", fgAt = 10L, endedAt = 50L))
+    @Test fun anotherAppThatTookTheForegroundAfterTheCallIsNotCovered() =
+        assertFalse(after(fg = "com.google.android.apps.maps"))
 
     @Test fun realBouncerClassNamesAreRecognised() {
         listOf("com.android.keyguard.KeyguardSecurityContainer", "com.android.keyguard.KeyguardPINView",

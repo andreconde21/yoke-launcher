@@ -98,7 +98,7 @@ object LockScreenController {
      * A call just ended. Screen off: the usual screen-off path. Screen on with the keyguard still up (the
      * call UI closes onto the stock lock screen): put the Yoke lock screen back over it.
      */
-    fun onCallEnded(context: Context, endedAt: Long = SystemClock.elapsedRealtime()) {
+    fun onCallEnded(context: Context) {
         val app = context.applicationContext
         if (!interactive(app)) return onScreenOff(app)
         val locked = app.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked ?: false
@@ -106,7 +106,6 @@ object LockScreenController {
         val packages = LockScreenPolicy.AFTER_CALL_PACKAGES + listOfNotNull(dialer)
         if (!LockScreenPolicy.showAfterCall(
                 true, locked, MyAccessibilityService.foregroundPackage, MyAccessibilityService.foregroundClass, packages,
-                MyAccessibilityService.foregroundAt, endedAt,
             )
         ) {
             Log.d(TAG, "not shown after call: keyguard=$locked foreground=${MyAccessibilityService.foregroundPackage}")
