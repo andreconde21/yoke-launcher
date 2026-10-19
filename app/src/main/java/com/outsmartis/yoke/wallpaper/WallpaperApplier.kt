@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Rect
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -31,6 +32,9 @@ object WallpaperApplier {
     fun interface Callback {
         fun done(error: String?)
     }
+
+    /** The error a callback gets when the work was interrupted: nothing failed, nothing was written. */
+    const val CANCELLED = "cancelled"
 
     private const val TAG = "YokeWallpaper"
     private const val DOWNLOAD_ATTEMPTS = 2
@@ -106,7 +110,7 @@ object WallpaperApplier {
                 val before = prefs.choice
                 prefs.choice = before.copy(omarchyTheme = next.themeId, omarchyFile = next.file)
                 applyOmarchy(app, next.themeId, next.file, auto = true) { error ->
-                    if (error != null) {
+                    if (error != null && error != CANCELLED) {
                         prefs.choice = prefs.choice.copy(source = WallpaperSource.THEME_COLOUR)
                         applyThemeColour(app, auto = true)
                     }
@@ -126,23 +130,47 @@ object WallpaperApplier {
     }
 
     /**
-     * Once, at startup: a wallpaper Yoke applied before ids were recorded gets its ids recorded now, while
-     * it is still the one Yoke wrote, instead of at some later theme change.
+     * Once, at startup: a wallpaper Yoke applied before ids were recorded is adopted only if it is verifiably
+     * Yoke's own theme colour ([WallpaperLogic.adoptLegacy]); otherwise that screen is released and the next
+     * explicit apply in the Wallpaper screen reclaims it.
      */
     fun migrateIds(context: Context) {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         if (prefs.idsMigrated) return
-        if (prefs.applied) settleOwnership(app, prefs) // adopts the current ids as a side effect
+        if (prefs.applied) try {
+            val wm = WallpaperManager.getInstance(app)
+            val target = prefs.writeTarget
+            if (target != null) {
+                val expected = prefs.lastSolid?.substringBefore(':')?.toIntOrNull()
+                fun colourOf(flag: Int): Int? =
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) wm.getWallpaperColors(flag)?.primaryColor?.toArgb() else null
+                val systemColour = colourOf(WallpaperManager.FLAG_SYSTEM)
+                val lockColour = colourOf(WallpaperManager.FLAG_LOCK) ?: systemColour // a shared wallpaper has no lock colours
+                val source = prefs.choice.source
+                if (target != WallpaperTarget.LOCK) {
+                    if (WallpaperLogic.adoptLegacy(source, expected, systemColour)) {
+                        prefs.systemId = WallpaperLogic.adoptId(0, wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM), false)
+                    } else prefs.systemReleased = true
+                }
+                if (target != WallpaperTarget.HOME) {
+                    if (WallpaperLogic.adoptLegacy(source, expected, lockColour)) {
+                        prefs.lockId = WallpaperLogic.adoptId(0, wm.getWallpaperId(WallpaperManager.FLAG_LOCK), true)
+                    } else prefs.lockReleased = true
+                }
+                if (prefs.writeTarget == null) prefs.applied = false
+            }
+        } catch (_: Exception) {
+        }
         prefs.idsMigrated = true
     }
 
     /**
-     * Per screen: records ids of a wallpaper from before ids existed ([WallpaperLogic.adoptId]), and releases
-     * a screen that someone else replaced (it is left alone from now on) while the other one stays Yoke's.
+     * Per screen: releases a screen that someone else replaced (or whose id was never recorded: see
+     * [WallpaperLogic.settleOwned]; [migrateIds] is the one place that adopts an older wallpaper) (it is left alone from now on) while the other one stays Yoke's.
      * Returns whether Yoke still manages any screen.
      */
-    fun settleOwnership(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context)): Boolean = try {
+    fun settleOwnership(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context), claimLock: Boolean = false): Boolean = try {
         val wm = WallpaperManager.getInstance(context)
         val target = prefs.writeTarget
         if (target == null) false else {
@@ -150,12 +178,9 @@ object WallpaperApplier {
             val lock = target != WallpaperTarget.HOME
             val currentSystem = if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0
             val currentLock = if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0
-            // Ids recorded before this build are trusted once, now, so a later outside change is caught
-            val systemId = if (system) WallpaperLogic.adoptId(prefs.systemId, currentSystem, false) else prefs.systemId
-            val lockId = if (lock) WallpaperLogic.adoptId(prefs.lockId, currentLock, true) else prefs.lockId
-            if (systemId != prefs.systemId) prefs.systemId = systemId
-            if (lockId != prefs.lockId) prefs.lockId = lockId
-            val owned = WallpaperLogic.ownership(system, lock, systemId, currentSystem, lockId, currentLock)
+            val owned = WallpaperLogic.settleOwned(
+                system, lock, prefs.systemId, currentSystem, prefs.lockId, currentLock, claimLock,
+            )
             if (system && !owned.system) prefs.systemReleased = true
             if (lock && !owned.lock) prefs.lockReleased = true
             prefs.writeTarget != null
@@ -230,8 +255,8 @@ object WallpaperApplier {
         worker.execute {
             val full = download(app, themeId, file)
             if (full == null) {
-                // Interrupted (the executor was shut down): quit quietly, no fallback write
-                if (Thread.currentThread().isInterrupted) return@execute
+                // Interrupted (the executor was shut down): no fallback write, but the caller is told so it can stop waiting
+                if (Thread.currentThread().isInterrupted) return@execute post(callback, CANCELLED)
                 return@execute post(callback, "download")
             }
             val (w, h) = screen(app)

@@ -144,13 +144,13 @@ class WallpaperActivity : AppCompatActivity() {
                     prefs.choice = prefs.choice.copy(omarchyTheme = themeId, omarchyFile = file)
                     toast(R.string.wallpaper_downloading)
                     WallpaperApplier.applyOmarchy(this, themeId, file) { error ->
-                        if (error != null) {
+                        if (error != null && error != WallpaperApplier.CANCELLED) {
                             // Could not fetch it: back to the theme colour rather than a source with nothing set.
                             prefs.choice = prefs.choice.copy(source = WallpaperSource.THEME_COLOUR)
                             WallpaperApplier.applyThemeColour(this)
                         }
                         finished(error)
-                        if (error != null && !isDestroyed) build()
+                        if (error != null && error != WallpaperApplier.CANCELLED && !isDestroyed) build()
                     }
                 }
             }
@@ -221,6 +221,7 @@ class WallpaperActivity : AppCompatActivity() {
 
     private fun finished(error: String?) {
         if (isDestroyed) return
+        if (error == WallpaperApplier.CANCELLED) return build() // interrupted: nothing failed, just stop waiting
         if (error == null) {
             toast(R.string.wallpaper_done)
             build()

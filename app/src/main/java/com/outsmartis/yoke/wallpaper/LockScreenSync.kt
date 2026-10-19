@@ -55,7 +55,10 @@ object LockScreenSync {
         prefs.lockLevel = level
         syncSystem(app, level)
         if (LockScreenLogic.shouldReapply(before, level, prefs.choice.target, prefs.applied)) {
-            if (WallpaperApplier.settleOwnership(app, prefs)) WallpaperApplier.reapply(app, auto = true)
+            // Choosing a level that includes the wallpaper is the user's own act: the lock screen is Yoke's again
+            val claims = LockScreenLogic.claimsLock(level)
+            if (claims) prefs.lockReleased = false
+            if (WallpaperApplier.settleOwnership(app, prefs, claimLock = claims)) WallpaperApplier.reapply(app, auto = true)
             else prefs.applied = false // set outside Yoke since: do not overwrite it
         }
         return LockScreenLogic.needsWallpaper(level, prefs.applied)

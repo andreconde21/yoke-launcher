@@ -54,6 +54,9 @@ object LockScreenLogic {
         return !before.includesWallpaper || after.effectiveTarget(target) != before.effectiveTarget(target)
     }
 
+    /** Picking a level that includes the wallpaper claims the lock screen for Yoke (an explicit user action). */
+    fun claimsLock(level: LockScreenLevel): Boolean = level.includesWallpaper
+
     /** True when [level] wants the wallpaper but there is no Yoke wallpaper applied yet, so nothing re-colours. */
     fun needsWallpaper(level: LockScreenLevel, applied: Boolean) = level.includesWallpaper && !applied
 }

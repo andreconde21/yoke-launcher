@@ -74,6 +74,33 @@ object WallpaperLogic {
         return Ownership(system, lock)
     }
 
+    /**
+     * What an automatic re-apply may treat as Yoke's, per screen: [ownership] plus "never recorded" (id 0)
+     * is NOT trusted any more (only the one-off [adoptLegacy] migration trusts, once). [claimLock] is the
+     * user's own choice of a lock level that includes the wallpaper: the lock screen is Yoke's to write.
+     */
+    fun settleOwned(
+        writesSystem: Boolean, writesLock: Boolean,
+        storedSystem: Int, currentSystem: Int, storedLock: Int, currentLock: Int, claimLock: Boolean = false,
+    ): Ownership {
+        val o = ownership(writesSystem, writesLock, storedSystem, currentSystem, storedLock, currentLock)
+        return Ownership(
+            system = !writesSystem || (storedSystem != 0 && o.system),
+            lock = !writesLock || claimLock || (storedLock != 0 && o.lock),
+        )
+    }
+
+    /**
+     * The one-off upgrade migration: a wallpaper applied before ids were recorded is adopted only when it is
+     * provably Yoke's own solid theme colour (the colour Yoke last wrote, [expected], matches what the
+     * system reports, [actual], within quantisation). An Omarchy or picked image cannot be verified: released.
+     */
+    fun adoptLegacy(source: WallpaperSource, expected: Int?, actual: Int?): Boolean =
+        source == WallpaperSource.THEME_COLOUR && expected != null && actual != null && colourClose(expected, actual)
+
+    fun colourClose(a: Int, b: Int, tolerance: Int = 24): Boolean =
+        listOf(16, 8, 0).all { shift -> Math.abs(((a shr shift) and 0xFF) - ((b shr shift) and 0xFF)) <= tolerance }
+
     /** Both screens Yoke writes are still its own. */
     fun ownsTarget(
         writesSystem: Boolean, writesLock: Boolean,

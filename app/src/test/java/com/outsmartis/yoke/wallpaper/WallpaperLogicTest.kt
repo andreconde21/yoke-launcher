@@ -217,4 +217,28 @@ class WallpaperLogicTest {
         var calls = 0
         assertEquals("ok", WallpaperLogic.retryQuietly(2, 0, sleeper = {}) { if (++calls == 2) "ok" else null })
     }
+
+    @Test
+    fun anIdThatWasNeverRecordedIsNotTrustedByAnAutomaticReapply() {
+        assertTrue(!WallpaperLogic.settleOwned(true, true, 0, 29, -1, -1).system)
+        assertTrue(!WallpaperLogic.settleOwned(true, true, 29, 29, 0, 33).lock)
+        assertTrue(WallpaperLogic.settleOwned(true, true, 29, 29, -1, -1).let { it.system && it.lock })
+    }
+
+    @Test
+    fun choosingALockLevelClaimsTheLockScreenEvenWithAnUnknownId() {
+        assertTrue(WallpaperLogic.settleOwned(true, true, 29, 29, 0, 33, claimLock = true).lock)
+        assertTrue(!WallpaperLogic.settleOwned(true, true, 29, 31, 0, 33, claimLock = true).system) // home is still checked
+    }
+
+    @Test
+    fun onlyAVerifiableThemeColourIsAdoptedOnUpgrade() {
+        val green = 0xFF102030.toInt()
+        assertTrue(WallpaperLogic.adoptLegacy(WallpaperSource.THEME_COLOUR, green, 0xFF112233.toInt()))
+        assertTrue(!WallpaperLogic.adoptLegacy(WallpaperSource.THEME_COLOUR, green, 0xFFFF0000.toInt())) // the user's red one
+        assertTrue(!WallpaperLogic.adoptLegacy(WallpaperSource.THEME_COLOUR, green, null))
+        assertTrue(!WallpaperLogic.adoptLegacy(WallpaperSource.THEME_COLOUR, null, green))
+        assertTrue(!WallpaperLogic.adoptLegacy(WallpaperSource.OMARCHY, green, green))
+        assertTrue(!WallpaperLogic.adoptLegacy(WallpaperSource.IMAGE, green, green))
+    }
 }
