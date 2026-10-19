@@ -146,14 +146,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean(STATE_RESET_ON_START, resetOnStart)
+        // Before API 28 this runs before onStop, so work the answer out here too
+        val stopping = HomeReturn.resetOnReturn(isChangingConfigurations, viewModel.isPrivateSpaceToggling, inAppHold)
+        outState.putBoolean(STATE_RESET_ON_START, resetOnStart || stopping)
     }
 
     @Deprecated("Deprecated in Java")
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
         // startActivity (Activity and Fragment) arrives here with requestCode -1; see HomeReturn.holdsScreen
         val target = intent.component?.packageName ?: intent.`package`
-        if (HomeReturn.holdsScreen(requestCode, intent.action, target, packageName)) inAppHold = true
+        if (HomeReturn.holdsScreen(requestCode, intent.action, target, packageName, intent.getBooleanExtra(HomeReturn.EXTRA_HOLD, false))) {
+            inAppHold = true
+        }
         try {
             super.startActivityForResult(intent, requestCode, options)
         } catch (e: RuntimeException) {

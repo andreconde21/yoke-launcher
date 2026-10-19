@@ -35,6 +35,7 @@ import com.outsmartis.yoke.theme.ThemePrefs
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.theme.SystemPaletteSync
 import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.keepScreen
 import com.outsmartis.yoke.helper.isAccessServiceEnabled
 import com.outsmartis.yoke.helper.isTablet
 import com.outsmartis.yoke.helper.openAppInfo
@@ -261,7 +262,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun openConductore() {
         val launch = requireContext().packageManager.getLaunchIntentForPackage(com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE)
-        if (launch != null) startActivity(launch) else requireContext().showToast(getString(R.string.settings_status_not_installed))
+        if (launch != null) startActivity(launch.keepScreen()) else requireContext().showToast(getString(R.string.settings_status_not_installed))
     }
 
     private fun populateCockpitAgenda() {
