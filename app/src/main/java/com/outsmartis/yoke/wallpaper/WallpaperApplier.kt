@@ -63,11 +63,12 @@ object WallpaperApplier {
     // Theme colour
 
     /** Solid wallpaper in the active theme's background colour; System default gives black or white. */
-    fun applyThemeColour(context: Context, callback: Callback? = null) {
+    fun applyThemeColour(context: Context, auto: Boolean = false, callback: Callback? = null) {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
+        if (!auto) prefs.claimAll()
         val colour = themeColour(app)
-        val target = prefs.effectiveTarget
+        val target = prefs.writeTarget ?: return post(callback, null)
         worker.execute {
             val error = setSolid(app, colour, target)
             if (error == null) {
@@ -94,8 +95,8 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         val choice = prefs.choice
-        if (prefs.applied && !ownsWallpaper(app, prefs)) {
-            // Someone else set the wallpaper since Yoke did: leave it alone and stop managing it.
+        if (prefs.applied && !settleOwnership(app, prefs)) {
+            // Someone else set every wallpaper Yoke manages since it did: leave them alone and stop managing.
             prefs.applied = false
             return
         }
@@ -104,24 +105,24 @@ object WallpaperApplier {
                 // Keep the old image until the new one is set; if it cannot be fetched, use the theme colour.
                 val before = prefs.choice
                 prefs.choice = before.copy(omarchyTheme = next.themeId, omarchyFile = next.file)
-                applyOmarchy(app, next.themeId, next.file) { error ->
+                applyOmarchy(app, next.themeId, next.file, auto = true) { error ->
                     if (error != null) {
                         prefs.choice = prefs.choice.copy(source = WallpaperSource.THEME_COLOUR)
-                        applyThemeColour(app)
+                        applyThemeColour(app, auto = true)
                     }
                 }
                 return
             }
             ThemeBackground.Colour -> {
                 prefs.choice = choice.copy(source = WallpaperSource.THEME_COLOUR)
-                applyThemeColour(app)
+                applyThemeColour(app, auto = true)
                 return
             }
             ThemeBackground.Keep -> Unit
         }
         if (!prefs.applied || choice.source != WallpaperSource.THEME_COLOUR) return
-        if (prefs.lastSolid == "${themeColour(app)}:${prefs.effectiveTarget.name}") return
-        applyThemeColour(app)
+        if (prefs.lastSolid == "${themeColour(app)}:${prefs.writeTarget?.name}") return
+        applyThemeColour(app, auto = true)
     }
 
     /**
@@ -132,24 +133,33 @@ object WallpaperApplier {
         val app = context.applicationContext
         val prefs = WallpaperPrefs(app)
         if (prefs.idsMigrated) return
-        if (prefs.applied) ownsWallpaper(app, prefs) // adopts the current ids as a side effect
+        if (prefs.applied) settleOwnership(app, prefs) // adopts the current ids as a side effect
         prefs.idsMigrated = true
     }
 
-    /** True while the wallpaper(s) Yoke writes are still the ones it set last (see [WallpaperLogic.mayOverwrite]). */
-    fun ownsWallpaper(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context)): Boolean = try {
+    /**
+     * Per screen: records ids of a wallpaper from before ids existed ([WallpaperLogic.adoptId]), and releases
+     * a screen that someone else replaced (it is left alone from now on) while the other one stays Yoke's.
+     * Returns whether Yoke still manages any screen.
+     */
+    fun settleOwnership(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context)): Boolean = try {
         val wm = WallpaperManager.getInstance(context)
-        val target = prefs.effectiveTarget
-        val system = target != WallpaperTarget.LOCK
-        val lock = target != WallpaperTarget.HOME
-        val currentSystem = if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0
-        val currentLock = if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0
-        // Ids recorded before this build are trusted once, now, so a later outside change is caught
-        val systemId = if (system) WallpaperLogic.adoptId(prefs.systemId, currentSystem, false) else prefs.systemId
-        val lockId = if (lock) WallpaperLogic.adoptId(prefs.lockId, currentLock, true) else prefs.lockId
-        if (systemId != prefs.systemId) prefs.systemId = systemId
-        if (lockId != prefs.lockId) prefs.lockId = lockId
-        WallpaperLogic.ownsTarget(system, lock, systemId, currentSystem, lockId, currentLock)
+        val target = prefs.writeTarget
+        if (target == null) false else {
+            val system = target != WallpaperTarget.LOCK
+            val lock = target != WallpaperTarget.HOME
+            val currentSystem = if (system) wm.getWallpaperId(WallpaperManager.FLAG_SYSTEM) else 0
+            val currentLock = if (lock) wm.getWallpaperId(WallpaperManager.FLAG_LOCK) else 0
+            // Ids recorded before this build are trusted once, now, so a later outside change is caught
+            val systemId = if (system) WallpaperLogic.adoptId(prefs.systemId, currentSystem, false) else prefs.systemId
+            val lockId = if (lock) WallpaperLogic.adoptId(prefs.lockId, currentLock, true) else prefs.lockId
+            if (systemId != prefs.systemId) prefs.systemId = systemId
+            if (lockId != prefs.lockId) prefs.lockId = lockId
+            val owned = WallpaperLogic.ownership(system, lock, systemId, currentSystem, lockId, currentLock)
+            if (system && !owned.system) prefs.systemReleased = true
+            if (lock && !owned.lock) prefs.lockReleased = true
+            prefs.writeTarget != null
+        }
     } catch (_: Exception) {
         false
     }
@@ -188,11 +198,7 @@ object WallpaperApplier {
         if (dest.isFile && dest.length() > 0) return dest
         // One quiet retry: the first request of a cold connection (fresh install, idle radio) can fail
         // where the next one succeeds, and the Wallpaper screen would otherwise fall back to the theme colour.
-        repeat(DOWNLOAD_ATTEMPTS) { attempt ->
-            fetch(themeId, file, dest)?.let { return it }
-            if (attempt < DOWNLOAD_ATTEMPTS - 1) Thread.sleep(RETRY_DELAY_MS)
-        }
-        return null
+        return WallpaperLogic.retryQuietly(DOWNLOAD_ATTEMPTS, RETRY_DELAY_MS) { fetch(themeId, file, dest) }
     }
 
     private fun fetch(themeId: String, file: String, dest: File): File? {
@@ -218,11 +224,16 @@ object WallpaperApplier {
         }
     }
 
-    fun applyOmarchy(context: Context, themeId: String, file: String, callback: Callback? = null) {
+    fun applyOmarchy(context: Context, themeId: String, file: String, auto: Boolean = false, callback: Callback? = null) {
         val app = context.applicationContext
+        if (!auto) WallpaperPrefs(app).claimAll()
         worker.execute {
             val full = download(app, themeId, file)
-            if (full == null) return@execute post(callback, "download")
+            if (full == null) {
+                // Interrupted (the executor was shut down): quit quietly, no fallback write
+                if (Thread.currentThread().isInterrupted) return@execute
+                return@execute post(callback, "download")
+            }
             val (w, h) = screen(app)
             val bmp = decodeCropped(full, w, h)
             if (bmp == null) return@execute post(callback, "decode")
@@ -256,8 +267,9 @@ object WallpaperApplier {
             } catch (_: Exception) {
             }
             val prefs = WallpaperPrefs(app)
+            prefs.claimAll()
             prefs.choice = prefs.choice.copy(source = WallpaperSource.IMAGE)
-            val error = setBitmap(app, bmp, prefs.effectiveTarget)
+            val error = prefs.writeTarget?.let { setBitmap(app, bmp, it) }
             bmp.recycle()
             if (error == null) prefs.applied = true
             post(callback, error)
@@ -265,14 +277,15 @@ object WallpaperApplier {
     }
 
     /** Applies the saved choice again (used when the target changes). */
-    fun reapply(context: Context, callback: Callback? = null) {
+    fun reapply(context: Context, auto: Boolean = false, callback: Callback? = null) {
         val app = context.applicationContext
+        if (!auto) WallpaperPrefs(app).claimAll()
         val c = WallpaperPrefs(app).choice
         when (c.source) {
-            WallpaperSource.THEME_COLOUR -> applyThemeColour(app, callback)
+            WallpaperSource.THEME_COLOUR -> applyThemeColour(app, auto, callback)
             WallpaperSource.OMARCHY ->
                 if (c.omarchyTheme.isEmpty() || c.omarchyFile.isEmpty()) post(callback, null)
-                else applyOmarchy(app, c.omarchyTheme, c.omarchyFile, callback)
+                else applyOmarchy(app, c.omarchyTheme, c.omarchyFile, auto, callback)
             WallpaperSource.IMAGE -> worker.execute {
                 val (w, h) = screen(app)
                 val bmp = decodeCropped(ownImage(app), w, h)
@@ -285,7 +298,7 @@ object WallpaperApplier {
     private fun setAndRemember(context: Context, bmp: Bitmap): String? {
         val prefs = WallpaperPrefs(context)
         val error = try {
-            setBitmap(context, bmp, prefs.effectiveTarget)
+            prefs.writeTarget?.let { setBitmap(context, bmp, it) }
         } finally {
             bmp.recycle()
         }

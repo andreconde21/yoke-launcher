@@ -171,4 +171,50 @@ class WallpaperLogicTest {
         assertEquals(29, WallpaperLogic.adoptId(29, 31, true)) // recorded ids are never replaced
         assertEquals(-1, WallpaperLogic.adoptId(-1, 33, true))
     }
+
+    @Test
+    fun onlyTheLockReplacedKeepsTheHomeScreenManaged() {
+        val o = WallpaperLogic.ownership(true, true, 29, 29, -1, 33) // BOTH was shared, a lock-only one came from outside
+        assertTrue(o.system)
+        assertTrue(!o.lock)
+        assertEquals(WallpaperTarget.HOME, WallpaperLogic.screensToWrite(WallpaperTarget.BOTH, false, true))
+    }
+
+    @Test
+    fun onlyTheHomeReplacedKeepsTheLockScreenManaged() {
+        // another app set the home wallpaper only: the lock screen keeps the formerly shared image (id 29)
+        val o = WallpaperLogic.ownership(true, true, 29, 31, -1, 29)
+        assertTrue(!o.system)
+        assertTrue(o.lock)
+        assertEquals(WallpaperTarget.LOCK, WallpaperLogic.screensToWrite(WallpaperTarget.BOTH, true, false))
+    }
+
+    @Test
+    fun bothReplacedLeavesNothingToWrite() {
+        assertTrue(!WallpaperLogic.ownership(true, true, 29, 31, -1, -1).lock)
+        assertEquals(null, WallpaperLogic.screensToWrite(WallpaperTarget.BOTH, true, true))
+        assertEquals(null, WallpaperLogic.screensToWrite(WallpaperTarget.HOME, true, false))
+    }
+
+    @Test
+    fun releasedScreensNeverWidenTheTarget() {
+        assertEquals(WallpaperTarget.BOTH, WallpaperLogic.screensToWrite(WallpaperTarget.BOTH, false, false))
+        assertEquals(WallpaperTarget.HOME, WallpaperLogic.screensToWrite(WallpaperTarget.HOME, false, true))
+        assertEquals(WallpaperTarget.LOCK, WallpaperLogic.screensToWrite(WallpaperTarget.LOCK, true, false))
+    }
+
+    @Test
+    fun anInterruptedRetryEndsQuietlyAndKeepsTheFlag() {
+        var calls = 0
+        val r = WallpaperLogic.retryQuietly(2, 800, sleeper = { throw InterruptedException() }) { calls++; null }
+        assertEquals(null, r)
+        assertEquals(1, calls)
+        assertTrue(Thread.interrupted()) // the flag was restored; clear it for other tests
+    }
+
+    @Test
+    fun aRetrySucceedsOnTheSecondTry() {
+        var calls = 0
+        assertEquals("ok", WallpaperLogic.retryQuietly(2, 0, sleeper = {}) { if (++calls == 2) "ok" else null })
+    }
 }
