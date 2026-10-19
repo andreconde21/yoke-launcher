@@ -80,4 +80,11 @@ class LockScreenLevelTest {
         assertFalse(LockScreenLogic.needsWallpaper(wp, applied = true))
         assertFalse(LockScreenLogic.needsWallpaper(off, applied = false))
     }
+
+    @Test
+    fun onlyLevelsThatIncludeTheWallpaperClaimTheLock() {
+        assertTrue(LockScreenLogic.claimsLock(LockScreenLevel.WALLPAPER))
+        assertTrue(LockScreenLogic.claimsLock(LockScreenLevel.YOKE))
+        assertTrue(!LockScreenLogic.claimsLock(LockScreenLevel.OFF))
+    }
 }
