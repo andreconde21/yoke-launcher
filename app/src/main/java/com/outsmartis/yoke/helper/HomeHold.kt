@@ -42,6 +42,11 @@ class HomeHold {
         stopped = false
     }
 
+    /** A hold that no stop followed within the grace period (the jump resolved straight back to Yoke) is dropped. */
+    fun expire(now: Long) {
+        if (active && !stopped && now - since > HomeReturn.HOLD_GRACE_MS) clear()
+    }
+
     fun onPause() {
         if (active) paused = true
     }

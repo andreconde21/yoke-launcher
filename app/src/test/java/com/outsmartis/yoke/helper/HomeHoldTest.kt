@@ -98,4 +98,23 @@ class HomeHoldTest {
         h.onResume(HomeReturn.HOLD_GRACE_MS + 1) // no stop followed: not stuck
         assertFalse(h.active)
     }
+
+    @Test fun aChooserThatResolvedStraightBackToYokeDoesNotKeepTheHoldForever() {
+        val h = HomeHold()
+        h.start(settingsJump, 0)
+        h.onOwnHomeDelivered()
+        h.expire(HomeReturn.HOLD_GRACE_MS - 1) // too early
+        assertTrue(h.active)
+        h.expire(HomeReturn.HOLD_GRACE_MS + 1) // no stop followed
+        assertFalse(h.active)
+        assertFalse(h.swallowsHome(true, false))
+    }
+
+    @Test fun expiryNeverDropsAHoldThatDidStop() {
+        val h = HomeHold()
+        h.start(settingsJump, 0)
+        h.onOwnHomeDelivered(); h.onPause(); h.onStop()
+        h.expire(HomeReturn.HOLD_GRACE_MS * 5)
+        assertTrue(h.active) // still inside the system screen
+    }
 }

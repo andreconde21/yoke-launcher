@@ -268,6 +268,8 @@ class MainActivity : AppCompatActivity() {
         // default): it is not the Home button, so the page the user is on stays
         if (intent?.getBooleanExtra(HomeReturn.EXTRA_HOLD, false) == true) {
             hold.onOwnHomeDelivered()
+            // No stop followed (the chooser resolved straight back to Yoke): the hold must not outlive its jump
+            window.decorView.postDelayed({ hold.expire(now()) }, HomeReturn.HOLD_GRACE_MS + 500)
             super.onNewIntent(intent)
             return
         }
