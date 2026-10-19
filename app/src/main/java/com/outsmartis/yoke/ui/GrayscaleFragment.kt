@@ -21,6 +21,7 @@ import com.outsmartis.yoke.databinding.FragmentGrayscaleBinding
 import com.outsmartis.yoke.grayscale.GrayscaleController
 import com.outsmartis.yoke.grayscale.GrayscalePrefs
 import com.outsmartis.yoke.grayscale.ShizukuGrant
+import com.outsmartis.yoke.helper.keepScreen
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.copyToClipboard
 import com.outsmartis.yoke.helper.createDialog
@@ -162,7 +163,7 @@ class GrayscaleFragment : BaseFragment() {
                 button.setText(R.string.grayscale_shizuku_open)
                 button.setOnClickListener {
                     val launch = ctx.packageManager.getLaunchIntentForPackage(ShizukuGrant.SHIZUKU_PACKAGE)
-                    if (launch != null) startActivity(launch)
+                    if (launch != null) startActivity(launch.keepScreen())
                 }
             }
             ShizukuGrant.State.NeedsPermission, ShizukuGrant.State.Ready -> {
@@ -176,10 +177,10 @@ class GrayscaleFragment : BaseFragment() {
 
     private fun openShizukuListing() {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuGrant.SHIZUKU_PACKAGE}")))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuGrant.SHIZUKU_PACKAGE}")).keepScreen())
         } catch (e: ActivityNotFoundException) {
             try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")).keepScreen())
             } catch (_: ActivityNotFoundException) {
             }
         }

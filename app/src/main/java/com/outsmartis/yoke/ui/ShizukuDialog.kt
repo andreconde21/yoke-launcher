@@ -3,6 +3,7 @@ package com.outsmartis.yoke.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.outsmartis.yoke.helper.keepScreen
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.createDialog
@@ -30,7 +31,7 @@ object ShizukuDialog {
             when (state) {
                 ShizukuAccess.State.NotInstalled -> openListing(context)
                 ShizukuAccess.State.NotRunning ->
-                    context.packageManager.getLaunchIntentForPackage(ShizukuAccess.PACKAGE)?.let { context.startActivity(it) }
+                    context.packageManager.getLaunchIntentForPackage(ShizukuAccess.PACKAGE)?.let { context.startActivity(it.keepScreen()) }
                 ShizukuAccess.State.NeedsPermission -> ShizukuAccess.requestPermission { onChanged() }
                 ShizukuAccess.State.Ready -> Unit
             }
@@ -41,9 +42,9 @@ object ShizukuDialog {
 
     private fun openListing(context: Context) {
         try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuAccess.PACKAGE}")))
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuAccess.PACKAGE}")).keepScreen())
         } catch (e: Exception) {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")).keepScreen())
         }
     }
 }

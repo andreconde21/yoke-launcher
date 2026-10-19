@@ -23,10 +23,16 @@ object HomeReturn {
      * Fragment.startActivity both arrive at startActivityForResult with request code -1, so the code alone
      * says "result wanted" only from 0 up. Yoke's own screens (explicit component or package) and the
      * system Settings jumps (Accessibility, Assistant, default home, app info, notification access) keep
-     * the screen too. Anything else (another app, a URI, a link) never does: coming back lands on home.
+     * the screen too, and so does a launch that opted in with [keepScreen] (the helper apps and store pages
+     * Yoke sends the user to from its own Settings). Anything else (another app, a URI, a link) never does: coming back lands on home.
      */
-    fun holdsScreen(requestCode: Int, action: String?, targetPackage: String?, ownPackage: String): Boolean =
-        requestCode >= 0 || targetPackage == ownPackage || action?.startsWith("android.settings.") == true
+    fun holdsScreen(
+        requestCode: Int, action: String?, targetPackage: String?, ownPackage: String, explicitHold: Boolean = false,
+    ): Boolean =
+        requestCode >= 0 || explicitHold || targetPackage == ownPackage || action?.startsWith("android.settings.") == true
+
+    /** Intent extra set by [keepScreen]: this launch is one of Yoke's own helper jumps (Shizuku, Conductore, a store page). */
+    const val EXTRA_HOLD = "com.outsmartis.yoke.extra.KEEP_SCREEN"
 
     /** Where a pending scroll position can be restored: null while the content is still too short. */
     fun scrollTarget(wanted: Int, contentHeight: Int, viewHeight: Int): Int? {

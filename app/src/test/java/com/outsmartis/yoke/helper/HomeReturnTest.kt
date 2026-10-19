@@ -47,6 +47,14 @@ class HomeReturnTest {
     }
 
     @Test
+    fun anExplicitOptInHoldsAHelperJump() {
+        // Shizuku, Conductore, a store page opened from Yoke's own Settings
+        assertTrue(HomeReturn.holdsScreen(-1, "android.intent.action.MAIN", "moe.shizuku.privileged.api", own, explicitHold = true))
+        assertTrue(HomeReturn.holdsScreen(-1, "android.intent.action.VIEW", null, own, explicitHold = true))
+        assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.VIEW", null, own, explicitHold = false))
+    }
+
+    @Test
     fun externalAppsAndUrisNeverHold() {
         assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.MAIN", "com.google.android.apps.maps", own))
         assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.VIEW", null, own))
