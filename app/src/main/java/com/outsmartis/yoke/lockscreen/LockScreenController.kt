@@ -124,8 +124,10 @@ object LockScreenController {
             Log.d(TAG, "not shown after call: another app is in front")
             return
         }
-        if (windows == LockScreenPolicy.WindowVerdict.WAIT && recheck) {
-            Handler(Looper.getMainLooper()).postDelayed({ onCallEnded(app, recheck = false) }, RECHECK_DELAY_MS)
+        if (windows == LockScreenPolicy.WindowVerdict.WAIT) {
+            // Still the dialer after the recheck too: the user is in it, not on the keyguard
+            if (recheck) Handler(Looper.getMainLooper()).postDelayed({ onCallEnded(app, recheck = false) }, RECHECK_DELAY_MS)
+            else Log.d(TAG, "not shown after call: the dialer is still in front")
             return
         }
         val decision = decide(app, ignoreScreenOn = true)
