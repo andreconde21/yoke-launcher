@@ -61,6 +61,7 @@ class MyAccessibilityService : AccessibilityService() {
             val foreground = focusedAppPackage() ?: event.packageName?.toString()
             foregroundPackage = foreground
             foregroundClass = event.className?.toString()
+            foregroundAt = android.os.SystemClock.elapsedRealtime()
             GrayscaleController.evaluate(applicationContext, foreground)
             com.outsmartis.yoke.limits.LimitGate.onForeground(applicationContext, foreground)
             return
@@ -120,6 +121,11 @@ class MyAccessibilityService : AccessibilityService() {
         /** Package last seen in front (null when unknown); the Yoke lock screen won't cover the camera or emergency dialer. */
         @Volatile
         var foregroundPackage: String? = null
+            private set
+
+        /** elapsedRealtime of that window-state change. */
+        @Volatile
+        var foregroundAt: Long = 0L
             private set
 
         /** Window class of the last window-state change (best effort: tells the PIN bouncer from the keyguard). */

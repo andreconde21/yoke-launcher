@@ -105,17 +105,39 @@ object LockScreenPolicy {
      * foreground counts as another app, and a PIN bouncer that is already up is left alone.
      * With the screen off the usual screen-off path does the job.
      *
+     * The dialer package only counts when its window event is newer than the call's end ([callEndedAt],
+     * [foregroundAt], both elapsedRealtime): before that it is the in-call screen of the call that just
+     * ended, and whatever it covered (Maps, say) may be what is showing now with no event to say so.
+     * SystemUI counts when it is the last thing seen.
+     *
      * @param foreground package last seen in front, @param foregroundClass its window class
-     * @param keyguardPackages SystemUI and the dialer that just ended the call
+     * @param keyguardPackages SystemUI and the dialer(s)
      */
     fun showAfterCall(
         interactive: Boolean, keyguardLocked: Boolean,
         foreground: String?, foregroundClass: String?, keyguardPackages: Set<String>,
-    ): Boolean = interactive && keyguardLocked &&
-        foreground != null && foreground in keyguardPackages && !bouncerShowing(foregroundClass)
+        foregroundAt: Long, callEndedAt: Long,
+    ): Boolean {
+        if (!interactive || !keyguardLocked || foreground == null || foreground !in keyguardPackages) return false
+        if (bouncerShowing(foregroundClass)) return false
+        return foreground == SYSTEM_UI || foregroundAt >= callEndedAt
+    }
 
-    /** Best effort: SystemUI names the PIN / password / pattern window after the bouncer. */
-    fun bouncerShowing(windowClass: String?): Boolean = windowClass?.contains("bouncer", ignoreCase = true) == true
+    const val SYSTEM_UI = "com.android.systemui"
+
+    /**
+     * Best effort, from what SystemUI's window-state events are known to carry: the AOSP bouncer view is
+     * `KeyguardSecurityContainer` / `KeyguardHostView` with `KeyguardPINView`, `KeyguardPasswordView`,
+     * `KeyguardPatternView`; newer releases name it `BouncerView` / `bouncer` in the class. Not confirmed
+     * on every device; a miss only means a one-second window in which the lock screen may start over
+     * a bouncer the user just opened (the activity then leaves on its own: it stops with the screen on).
+     */
+    fun bouncerShowing(windowClass: String?): Boolean {
+        val c = windowClass ?: return false
+        return BOUNCER_MARKERS.any { c.contains(it, ignoreCase = true) }
+    }
+
+    private val BOUNCER_MARKERS = listOf("bouncer", "KeyguardSecurity", "KeyguardHostView", "KeyguardPIN", "KeyguardPassword", "KeyguardPattern")
 
     /** Fallback list when the default dialer cannot be asked; SystemUI draws the keyguard. */
     val AFTER_CALL_PACKAGES = setOf(
