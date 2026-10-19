@@ -76,4 +76,16 @@ class HomeHoldTest {
         h.onPause(); h.onStop()
         assertFalse(h.swallowsHome(true, hasRunAction = true))
     }
+
+    @Test fun theResumeAroundYokesOwnHomeJumpDoesNotEndTheFollowingHold() {
+        val h = HomeHold()
+        h.start(settingsJump, 0)       // the HOME chooser jump, delivered back to Yoke
+        h.onOwnHomeDelivered()
+        h.start(settingsJump, 10)      // the default-apps screen
+        h.onPause()
+        h.onResume(20)                 // the re-resume around the delivered HOME intent
+        assertTrue(h.active)
+        h.onStop()
+        assertTrue(h.swallowsHome(true, false))
+    }
 }

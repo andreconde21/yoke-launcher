@@ -267,6 +267,7 @@ class MainActivity : AppCompatActivity() {
         // Yoke's own jump that resolves back to Yoke (the HOME intent behind "Change default launcher" when Yoke is the
         // default): it is not the Home button, so the page the user is on stays
         if (intent?.getBooleanExtra(HomeReturn.EXTRA_HOLD, false) == true) {
+            hold.onOwnHomeDelivered()
             super.onNewIntent(intent)
             return
         }

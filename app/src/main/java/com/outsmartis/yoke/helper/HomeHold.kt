@@ -15,6 +15,7 @@ class HomeHold {
     private var paused = false
     private var stopped = false
     private var since = 0L
+    private var ownHomeDelivered = false
 
     /** [system]: a system Settings, default-launcher chooser or role jump (see [HomeReturn.isSystemJump]). */
     fun start(system: Boolean, now: Long) {
@@ -25,7 +26,16 @@ class HomeHold {
         since = now
     }
 
+    /**
+     * Yoke's own HOME jump came back to Yoke (it is the default home), so the activity pauses and resumes once
+     * around it. That resume is not the end of the jump that follows; it is skipped. Dropped at the next stop.
+     */
+    fun onOwnHomeDelivered() {
+        if (active) ownHomeDelivered = true
+    }
+
     fun clear() {
+        ownHomeDelivered = false
         active = false
         systemJump = false
         paused = false
@@ -38,6 +48,7 @@ class HomeHold {
 
     /** Returns whether the stop was caused by the held jump (the caller then does not reset on return). */
     fun onStop(): Boolean {
+        ownHomeDelivered = false
         if (active) stopped = true
         return active
     }
@@ -48,6 +59,10 @@ class HomeHold {
      * set, but not for longer than [HomeReturn.HOLD_GRACE_MS].
      */
     fun onResume(now: Long) {
+        if (ownHomeDelivered) {
+            ownHomeDelivered = false
+            return
+        }
         if (stopped || paused || now - since > HomeReturn.HOLD_GRACE_MS) clear()
     }
 
