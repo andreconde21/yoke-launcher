@@ -122,6 +122,18 @@ object LockScreenPolicy {
 
     const val SYSTEM_UI = "com.android.systemui"
 
+    enum class AfterCallStep { SHOW, RECHECK, REFUSE }
+
+    /**
+     * What to do with a window verdict: the dialer alone still in front is looked at once more later, and
+     * if it is still there at that second look the user is in it, not on the keyguard: refuse.
+     */
+    fun afterCallStep(verdict: WindowVerdict, firstLook: Boolean): AfterCallStep = when (verdict) {
+        WindowVerdict.REFUSE -> AfterCallStep.REFUSE
+        WindowVerdict.WAIT -> if (firstLook) AfterCallStep.RECHECK else AfterCallStep.REFUSE
+        WindowVerdict.SHOW, WindowVerdict.UNKNOWN -> AfterCallStep.SHOW
+    }
+
     /** What the live window list says about the call-end moment. */
     enum class WindowVerdict { SHOW, WAIT, REFUSE, UNKNOWN }
 

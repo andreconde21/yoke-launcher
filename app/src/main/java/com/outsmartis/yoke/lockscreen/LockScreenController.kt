@@ -120,15 +120,16 @@ object LockScreenController {
         val windows = LockScreenPolicy.afterCallWindows(
             MyAccessibilityService.instance?.visibleAppPackages(), packages, app.packageName,
         )
-        if (windows == LockScreenPolicy.WindowVerdict.REFUSE) {
-            Log.d(TAG, "not shown after call: another app is in front")
-            return
-        }
-        if (windows == LockScreenPolicy.WindowVerdict.WAIT) {
-            // Still the dialer after the recheck too: the user is in it, not on the keyguard
-            if (recheck) Handler(Looper.getMainLooper()).postDelayed({ onCallEnded(app, recheck = false) }, RECHECK_DELAY_MS)
-            else Log.d(TAG, "not shown after call: the dialer is still in front")
-            return
+        when (LockScreenPolicy.afterCallStep(windows, firstLook = recheck)) {
+            LockScreenPolicy.AfterCallStep.REFUSE -> {
+                Log.d(TAG, "not shown after call: another app, or the dialer itself, is in front ($windows)")
+                return
+            }
+            LockScreenPolicy.AfterCallStep.RECHECK -> {
+                Handler(Looper.getMainLooper()).postDelayed({ onCallEnded(app, recheck = false) }, RECHECK_DELAY_MS)
+                return
+            }
+            LockScreenPolicy.AfterCallStep.SHOW -> Unit
         }
         val decision = decide(app, ignoreScreenOn = true)
         if (decision != LockScreenPolicy.Decision.SHOW) {
