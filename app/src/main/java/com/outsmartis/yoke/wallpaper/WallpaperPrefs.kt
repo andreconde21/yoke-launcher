@@ -41,6 +41,22 @@ class WallpaperPrefs(context: Context) {
         get() = prefs.getBoolean("ids_migrated", false)
         set(value) = prefs.edit().putBoolean("ids_migrated", value).apply()
 
+    /**
+     * A screen another app replaced while Yoke managed both: Yoke leaves it alone from then on and keeps
+     * managing the other one. Cleared by an explicit apply in the Wallpaper screen.
+     */
+    var systemReleased: Boolean
+        get() = prefs.getBoolean("system_released", false)
+        set(value) = prefs.edit().putBoolean("system_released", value).apply()
+
+    var lockReleased: Boolean
+        get() = prefs.getBoolean("lock_released", false)
+        set(value) = prefs.edit().putBoolean("lock_released", value).apply()
+
+    fun claimAll() {
+        prefs.edit().putBoolean("system_released", false).putBoolean("lock_released", false).apply()
+    }
+
     // YOK-036
     /** The "Lock screen" setting; the wallpaper target is widened to include the lock screen above Off. */
     var lockLevel: LockScreenLevel
@@ -54,6 +70,9 @@ class WallpaperPrefs(context: Context) {
 
     /** The saved target with the Lock screen level applied: what is really written to WallpaperManager. */
     val effectiveTarget: WallpaperTarget get() = lockLevel.effectiveTarget(choice.target)
+
+    /** [effectiveTarget] without the screens that were released; null when Yoke manages none. */
+    val writeTarget: WallpaperTarget? get() = WallpaperLogic.screensToWrite(effectiveTarget, systemReleased, lockReleased)
 
     /** The choice when the home screen should show the system wallpaper (an image was applied), else null. */
     val imageChoice: WallpaperChoice? get() = choice.takeIf { applied && it.showsImage }

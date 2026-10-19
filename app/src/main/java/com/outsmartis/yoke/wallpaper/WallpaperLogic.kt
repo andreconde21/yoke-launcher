@@ -46,26 +46,70 @@ object WallpaperLogic {
         else -> 0
     }
 
+    /** Which of the two screens still carry what Yoke wrote; a screen Yoke does not write counts as owned. */
+    data class Ownership(val system: Boolean, val lock: Boolean)
+
     /**
-     * Do the wallpapers Yoke writes ([writesSystem], [writesLock]) still carry the ids it stored? When
-     * one wallpaper serves both screens Android reports lock id -1: the lock then follows the system
-     * wallpaper and only the system id decides. A lock-only write has no system id to lean on, so an
-     * unknown current lock id there means someone else replaced it.
+     * Per screen: does the wallpaper Yoke writes there ([writesSystem], [writesLock]) still carry the id it
+     * stored? When one wallpaper serves both screens Android reports lock id -1: the lock then follows
+     * the system wallpaper, so it is Yoke's exactly while the system one is. A lock-only write has no
+     * system id to lean on, so an unknown current lock id there means someone else replaced it.
      *
-     * Stored ids: 0 is "never recorded" (an install from before ids; [adoptId] settles it at the first
-     * check), -1 is "shared with the system wallpaper" and is NOT legacy: a lock wallpaper that has
-     * since appeared (current > 0) was set by someone else.
+     * Stored ids: 0 is "never recorded" (an install from before ids; [adoptId] settles it), -1 is
+     * "shared with the system wallpaper" and is NOT legacy: a lock wallpaper that has since appeared
+     * (current > 0) is Yoke's only when it is the very wallpaper that was shared (the home screen was
+     * replaced by another app, the lock kept the old image); otherwise someone else set it.
      */
+    fun ownership(
+        writesSystem: Boolean, writesLock: Boolean,
+        storedSystem: Int, currentSystem: Int, storedLock: Int, currentLock: Int,
+    ): Ownership {
+        val system = !writesSystem || mayOverwrite(storedSystem, currentSystem)
+        val lock = when {
+            !writesLock -> true
+            currentLock > 0 -> storedLock == 0 || storedLock == currentLock ||
+                (storedLock < 0 && storedSystem > 0 && currentLock == storedSystem)
+            else -> writesSystem && system // follows the system wallpaper
+        }
+        return Ownership(system, lock)
+    }
+
+    /** Both screens Yoke writes are still its own. */
     fun ownsTarget(
         writesSystem: Boolean, writesLock: Boolean,
         storedSystem: Int, currentSystem: Int, storedLock: Int, currentLock: Int,
-    ): Boolean {
-        if (writesSystem && !mayOverwrite(storedSystem, currentSystem)) return false
-        if (!writesLock) return true
+    ): Boolean = ownership(writesSystem, writesLock, storedSystem, currentSystem, storedLock, currentLock)
+        .let { it.system && it.lock }
+
+    /** The screens Yoke may still write: [target] minus a screen that was replaced by someone else; null for none. */
+    fun screensToWrite(target: WallpaperTarget, systemReleased: Boolean, lockReleased: Boolean): WallpaperTarget? {
+        val system = target != WallpaperTarget.LOCK && !systemReleased
+        val lock = target != WallpaperTarget.HOME && !lockReleased
         return when {
-            currentLock > 0 -> storedLock == 0 || storedLock == currentLock
-            else -> writesSystem
+            system && lock -> WallpaperTarget.BOTH
+            system -> WallpaperTarget.HOME
+            lock -> WallpaperTarget.LOCK
+            else -> null
         }
+    }
+
+    /**
+     * Runs [block] up to [attempts] times, waiting [delayMs] between failures (null means failed). An
+     * interrupt (the executor being shut down) ends it quietly with null and keeps the interrupt flag set.
+     */
+    fun <T : Any> retryQuietly(attempts: Int, delayMs: Long, sleeper: (Long) -> Unit = { Thread.sleep(it) }, block: () -> T?): T? {
+        repeat(attempts) { attempt ->
+            block()?.let { return it }
+            if (attempt < attempts - 1) {
+                try {
+                    sleeper(delayMs)
+                } catch (_: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    return null
+                }
+            }
+        }
+        return null
     }
 
     /**
