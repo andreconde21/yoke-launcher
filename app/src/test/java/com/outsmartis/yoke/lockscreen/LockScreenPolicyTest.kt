@@ -206,4 +206,25 @@ class LockScreenPolicyTest {
         assertTrue(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_IN_COMMUNICATION))
         assertFalse(LockScreenPolicy.finishForCall(LockScreenPolicy.MODE_NORMAL))
     }
+
+    private val call = setOf("com.google.android.dialer", "com.android.incallui")
+    private fun windows(vararg p: String?) =
+        LockScreenPolicy.afterCallWindows(if (p.isEmpty() || p[0] == "?") null else p.filterNotNull(), call, "com.outsmartis.yoke")
+
+    @Test fun anUnreadableWindowListFallsBackToTheLastEventRule() =
+        assertEquals(LockScreenPolicy.WindowVerdict.UNKNOWN, windows("?"))
+
+    @Test fun mapsOverTheKeyguardIsNeverCovered() =
+        assertEquals(LockScreenPolicy.WindowVerdict.REFUSE, windows("com.google.android.apps.maps"))
+
+    @Test fun mapsBehindALingeringCallEndedScreenIsStillRefused() =
+        assertEquals(LockScreenPolicy.WindowVerdict.REFUSE, windows("com.google.android.dialer", "com.google.android.apps.maps"))
+
+    @Test fun theDialerAloneStillOnTopWaitsForARecheck() =
+        assertEquals(LockScreenPolicy.WindowVerdict.WAIT, windows("com.google.android.dialer"))
+
+    @Test fun theStockKeyguardAfterHangUpShowsOurs() {
+        assertEquals(LockScreenPolicy.WindowVerdict.SHOW, windows("com.android.systemui"))
+        assertEquals(LockScreenPolicy.WindowVerdict.SHOW, LockScreenPolicy.afterCallWindows(emptyList(), call, "com.outsmartis.yoke"))
+    }
 }
