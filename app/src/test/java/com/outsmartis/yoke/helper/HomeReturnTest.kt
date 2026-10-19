@@ -87,4 +87,13 @@ class SettingsScrollTest {
         SettingsScroll.onViewDestroyed(changingConfigurations = false)
         assertEquals(0, SettingsScroll.takeWanted())
     }
+
+    @Test
+    fun theFrameworksClampedRestoreDoesNotOverwriteTheSavedPosition() {
+        SettingsScroll.y = 900
+        SettingsScroll.record(restoring = true, position = 120) // clamped while the rows fill in
+        assertEquals(900, SettingsScroll.y)
+        SettingsScroll.record(restoring = false, position = 700) // the user, afterwards
+        assertEquals(700, SettingsScroll.y)
+    }
 }

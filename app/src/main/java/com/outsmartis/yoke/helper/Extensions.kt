@@ -95,7 +95,7 @@ fun Context.resetDefaultLauncher() {
         )
         val selector = Intent(Intent.ACTION_MAIN)
         selector.addCategory(Intent.CATEGORY_HOME)
-        startActivity(selector)
+        startActivity(selector.keepScreen()) // the chooser it opens is Yoke's own jump: Back returns to Settings
         packageManager.setComponentEnabledSetting(
             componentName,
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
