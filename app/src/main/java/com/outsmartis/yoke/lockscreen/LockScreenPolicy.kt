@@ -100,15 +100,16 @@ object LockScreenPolicy {
 
     /**
      * A call ended with the display still on and the keyguard showing: the user is looking at the system
-     * keyguard (or the call UI closing), so put ours back over it. Only then: another app in front of the
-     * keyguard (navigation, ride-hail, anything that shows when locked) is never covered, an unknown
-     * foreground counts as another app, and a PIN bouncer that is already up is left alone.
-     * With the screen off the usual screen-off path does the job.
+     * keyguard (or the call UI closing), so put ours back over it. The last foreground window seen must be
+     * SystemUI or the dialer: the keyguard raises no event of its own when the call UI closes, so the dialer
+     * event from before the call ended is the normal case. Another app in front (navigation, ride-hail,
+     * anything that shows when locked) produced a later event, so it is never covered; an unknown
+     * foreground counts as another app. With the screen off the usual screen-off path does the job.
      *
-     * The dialer package only counts when its window event is newer than the call's end ([callEndedAt],
-     * [foregroundAt], both elapsedRealtime): before that it is the in-call screen of the call that just
-     * ended, and whatever it covered (Maps, say) may be what is showing now with no event to say so.
-     * SystemUI counts when it is the last thing seen.
+     * Known limit: the PIN bouncer is a state of SystemUI's NotificationShade window, not a window of its
+     * own, so it cannot be told apart; a bouncer the user opened within CALL_END_DELAY_MS of the call ending
+     * may be covered (the lock screen then leaves on its own as soon as anything else comes in front). The
+     * class markers in [bouncerShowing] only catch builds that do name the window.
      *
      * @param foreground package last seen in front, @param foregroundClass its window class
      * @param keyguardPackages SystemUI and the dialer(s)
@@ -116,12 +117,8 @@ object LockScreenPolicy {
     fun showAfterCall(
         interactive: Boolean, keyguardLocked: Boolean,
         foreground: String?, foregroundClass: String?, keyguardPackages: Set<String>,
-        foregroundAt: Long, callEndedAt: Long,
-    ): Boolean {
-        if (!interactive || !keyguardLocked || foreground == null || foreground !in keyguardPackages) return false
-        if (bouncerShowing(foregroundClass)) return false
-        return foreground == SYSTEM_UI || foregroundAt >= callEndedAt
-    }
+    ): Boolean = interactive && keyguardLocked && foreground != null && foreground in keyguardPackages &&
+        !bouncerShowing(foregroundClass)
 
     const val SYSTEM_UI = "com.android.systemui"
 
