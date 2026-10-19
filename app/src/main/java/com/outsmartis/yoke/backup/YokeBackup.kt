@@ -48,7 +48,7 @@ object YokeBackup {
         "yoke.theme" to setOf("conductore_last_known", "system_colours_took_over", "system_colours_previous"),
         "com.outsmartis.yoke.weather" to setOf("READING", "USE_CURRENT"), // cache; the location permission is per device
         // "applied" says this phone's wallpaper is one Yoke wrote; a restore must not claim that for a new phone
-        "yoke.wallpaper" to setOf("applied", "system_id", "lock_id"), // ids of this phone's wallpapers
+        "yoke.wallpaper" to setOf("applied", "system_id", "lock_id", "ids_migrated"), // ids of this phone's wallpapers
         "yoke.cockpit" to setOf("vault_uri", "agenda_line", "agenda_at"),
         "yoke.backup" to setOf("last_vault_backup", "last_vault_hash"),
         "yoke.limits" to setOf("day", "opens", "pass_pkg", "pass_at"), // today's counts and visit belong to this phone

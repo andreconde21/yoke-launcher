@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = Prefs(this)
+        com.outsmartis.yoke.wallpaper.WallpaperApplier.migrateIds(this)
         if (isEinkDisplay()) prefs.appTheme = AppCompatDelegate.MODE_NIGHT_NO
         AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, prefs.appTheme))
         themeSignature = ThemeStore.signature(this)
