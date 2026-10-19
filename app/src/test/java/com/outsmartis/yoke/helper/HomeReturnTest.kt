@@ -28,21 +28,29 @@ class HomeReturnTest {
         assertFalse(HomeReturn.resetOnReturn(false, false, true))
     }
 
+    private val own = "com.outsmartis.yoke"
+
     @Test
-    fun yokesOwnPickersPromptsAndSettingsJumpsHoldTheScreen() {
-        val own = "com.outsmartis.yoke"
-        assertTrue(HomeReturn.holdsScreen(true, null, null, own)) // anything that wants a result
-        assertTrue(HomeReturn.holdsScreen(false, "android.intent.action.OPEN_DOCUMENT_TREE", null, own))
-        assertTrue(HomeReturn.holdsScreen(false, "android.provider.action.PICK_IMAGES", null, own))
-        assertTrue(HomeReturn.holdsScreen(false, "android.settings.ACCESSIBILITY_SETTINGS", null, own))
-        assertTrue(HomeReturn.holdsScreen(false, null, own, own))
+    fun resultLaunchesHoldButPlainStartActivityDoesNot() {
+        // Activity.startActivity and Fragment.startActivity both reach the override with request code -1
+        assertTrue(HomeReturn.holdsScreen(0, null, null, own)) // ActivityResultLauncher codes start at 0
+        assertTrue(HomeReturn.holdsScreen(65537, "android.intent.action.OPEN_DOCUMENT_TREE", null, own))
+        assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.VIEW", null, own)) // a link or URI
     }
 
     @Test
-    fun openingAnotherAppDoesNotHoldTheScreen() {
-        val own = "com.outsmartis.yoke"
-        assertFalse(HomeReturn.holdsScreen(false, "android.intent.action.MAIN", "com.google.android.apps.maps", own))
-        assertFalse(HomeReturn.holdsScreen(false, "android.intent.action.VIEW", null, own))
+    fun yokesOwnScreensAndSettingsJumpsHoldTheScreen() {
+        assertTrue(HomeReturn.holdsScreen(-1, null, own, own))
+        assertTrue(HomeReturn.holdsScreen(-1, "android.settings.ACCESSIBILITY_SETTINGS", null, own))
+        assertTrue(HomeReturn.holdsScreen(-1, "android.settings.APPLICATION_DETAILS_SETTINGS", null, own))
+        assertTrue(HomeReturn.holdsScreen(-1, "android.settings.MANAGE_DEFAULT_APPS_SETTINGS", null, own))
+    }
+
+    @Test
+    fun externalAppsAndUrisNeverHold() {
+        assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.MAIN", "com.google.android.apps.maps", own))
+        assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.VIEW", null, own))
+        assertFalse(HomeReturn.holdsScreen(-1, "android.intent.action.SEND", "com.whatsapp", own))
     }
 
     @Test

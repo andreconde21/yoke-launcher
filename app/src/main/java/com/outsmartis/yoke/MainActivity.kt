@@ -50,6 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         /** A GestureAction type to run once home is up (the assistant's long-press, see AssistActivity). */
+        private const val STATE_RESET_ON_START = "reset_on_start"
         const val EXTRA_RUN_ACTION = "com.outsmartis.yoke.extra.RUN_ACTION"
     }
 
@@ -85,6 +86,7 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, prefs.appTheme))
         themeSignature = ThemeStore.signature(this)
         super.onCreate(savedInstanceState)
+        resetOnStart = savedInstanceState?.getBoolean(STATE_RESET_ON_START, false) ?: false
         if (prefs.boldFont) theme.applyStyle(R.style.BoldFontOverlay, true)
         if (isEinkDisplay() || isSystemAnimationsDisabled()) theme.applyStyle(R.style.NoAnimationOverlay, true)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -144,21 +146,22 @@ class MainActivity : AppCompatActivity() {
     private var inAppHold = false
     private var resetOnStart = false
 
-    private fun holdFor(intent: Intent?, wantsResult: Boolean) {
-        if (intent == null) return
-        val target = intent.component?.packageName ?: intent.`package`
-        if (HomeReturn.holdsScreen(wantsResult, intent.action, target, packageName)) inAppHold = true
-    }
-
-    override fun startActivity(intent: Intent?, options: Bundle?) {
-        holdFor(intent, false)
-        super.startActivity(intent, options)
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_RESET_ON_START, resetOnStart)
     }
 
     @Deprecated("Deprecated in Java")
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
-        holdFor(intent, true)
-        super.startActivityForResult(intent, requestCode, options)
+        // startActivity (Activity and Fragment) arrives here with requestCode -1; see HomeReturn.holdsScreen
+        val target = intent.component?.packageName ?: intent.`package`
+        if (HomeReturn.holdsScreen(requestCode, intent.action, target, packageName)) inAppHold = true
+        try {
+            super.startActivityForResult(intent, requestCode, options)
+        } catch (e: RuntimeException) {
+            inAppHold = false // nothing started, nothing will return
+            throw e
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -167,7 +170,12 @@ class MainActivity : AppCompatActivity() {
         flagsMask: Int, flagsValues: Int, extraFlags: Int, options: Bundle?,
     ) {
         inAppHold = true
-        super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues, extraFlags, options)
+        try {
+            super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues, extraFlags, options)
+        } catch (e: RuntimeException) {
+            inAppHold = false
+            throw e
+        }
     }
 
     override fun onStart() {

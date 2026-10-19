@@ -18,20 +18,15 @@ object HomeReturn {
 
     fun shouldPop(privateSpaceToggling: Boolean): Boolean = !privateSpaceToggling
 
-    private val HOLDING_ACTIONS = setOf(
-        "android.intent.action.OPEN_DOCUMENT", "android.intent.action.OPEN_DOCUMENT_TREE",
-        "android.intent.action.CREATE_DOCUMENT", "android.intent.action.GET_CONTENT", "android.intent.action.PICK",
-        "android.provider.action.PICK_IMAGES", "android.intent.action.CHOOSER",
-    )
-
     /**
-     * Does a launch by Yoke itself keep the current screen? Anything that wants a result does; so do Yoke's
-     * own screens, the system settings and the document / photo pickers. Opening another app does not:
-     * coming back from it lands on home.
+     * Does a launch by Yoke itself keep the current screen? Activity.startActivity and
+     * Fragment.startActivity both arrive at startActivityForResult with request code -1, so the code alone
+     * says "result wanted" only from 0 up. Yoke's own screens (explicit component or package) and the
+     * system Settings jumps (Accessibility, Assistant, default home, app info, notification access) keep
+     * the screen too. Anything else (another app, a URI, a link) never does: coming back lands on home.
      */
-    fun holdsScreen(wantsResult: Boolean, action: String?, targetPackage: String?, ownPackage: String): Boolean =
-        wantsResult || targetPackage == ownPackage || action in HOLDING_ACTIONS ||
-            action?.startsWith("android.settings.") == true
+    fun holdsScreen(requestCode: Int, action: String?, targetPackage: String?, ownPackage: String): Boolean =
+        requestCode >= 0 || targetPackage == ownPackage || action?.startsWith("android.settings.") == true
 
     /** Where a pending scroll position can be restored: null while the content is still too short. */
     fun scrollTarget(wanted: Int, contentHeight: Int, viewHeight: Int): Int? {

@@ -38,4 +38,11 @@ class MainActivityHomeResetTest {
         val callers = Regex("backToHomeScreen\\(\\)").findAll(source).count() - 1 // minus the definition
         assertEquals(2, callers)
     }
+
+    @Test
+    fun theOverrideDecidesFromTheRequestCodeNotFromWantsResult() {
+        val b = body("startActivityForResult")
+        assertTrue(b.contains("HomeReturn.holdsScreen(requestCode"))
+        assertTrue(!source.contains("override fun startActivity(")) // would hold every launch via -1
+    }
 }
