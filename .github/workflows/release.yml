@@ -29,7 +29,8 @@ jobs:
           echo "$YOKE_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/yoke.jks"
           export YOKE_KEYSTORE="$RUNNER_TEMP/yoke.jks"
           export YOKE_VERSION_NAME="${GITHUB_REF_NAME#v}"
-          export YOKE_VERSION_CODE="$GITHUB_RUN_NUMBER"
+          # +100 keeps releases above locally built test APKs (0.5.0-test.1 was 30).
+          export YOKE_VERSION_CODE="$((GITHUB_RUN_NUMBER + 100))"
           ./gradlew --no-daemon testReleaseUnitTest assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "yoke-${YOKE_VERSION_NAME}.apk"
           cp app/build/outputs/apk/release/app-release.apk yoke.apk
