@@ -136,6 +136,12 @@ object WallpaperApplier {
      */
     fun migrateIds(context: Context) {
         val app = context.applicationContext
+        if (WallpaperPrefs(app).idsMigrated) return
+        // getWallpaperColors is a binder call: keep it off the main thread, ahead of any apply on the same worker
+        worker.execute { migrateIdsNow(app) }
+    }
+
+    private fun migrateIdsNow(app: Context) {
         val prefs = WallpaperPrefs(app)
         if (prefs.idsMigrated) return
         if (prefs.applied) try {
