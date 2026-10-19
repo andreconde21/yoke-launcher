@@ -60,6 +60,7 @@ class MyAccessibilityService : AccessibilityService() {
             // window decides, so floating panels and pop-ups from other packages don't flip the screen.
             val foreground = focusedAppPackage() ?: event.packageName?.toString()
             foregroundPackage = foreground
+            foregroundClass = event.className?.toString()
             GrayscaleController.evaluate(applicationContext, foreground)
             com.outsmartis.yoke.limits.LimitGate.onForeground(applicationContext, foreground)
             return
@@ -119,6 +120,11 @@ class MyAccessibilityService : AccessibilityService() {
         /** Package last seen in front (null when unknown); the Yoke lock screen won't cover the camera or emergency dialer. */
         @Volatile
         var foregroundPackage: String? = null
+            private set
+
+        /** Window class of the last window-state change (best effort: tells the PIN bouncer from the keyguard). */
+        @Volatile
+        var foregroundClass: String? = null
             private set
     }
 }

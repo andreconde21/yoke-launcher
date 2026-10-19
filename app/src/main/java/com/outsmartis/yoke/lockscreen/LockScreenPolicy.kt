@@ -95,14 +95,33 @@ object LockScreenPolicy {
         interactive: Boolean, offAt: Long, screenOnAt: Long,
         afterCall: Boolean = false, keyguardLocked: Boolean = false,
     ): Boolean =
-        if (afterCall) showAfterCall(interactive, keyguardLocked)
+        if (afterCall) interactive && keyguardLocked // showAfterCall already judged the foreground
         else !interactive && offAt > 0L && screenOnAt <= offAt
 
     /**
-     * A call ended with the display still on and the keyguard (PIN) showing: the system keyguard is
-     * what the user sees, so put ours back over it. With the screen off the usual screen-off path does it.
+     * A call ended with the display still on and the keyguard showing: the user is looking at the system
+     * keyguard (or the call UI closing), so put ours back over it. Only then: another app in front of the
+     * keyguard (navigation, ride-hail, anything that shows when locked) is never covered, an unknown
+     * foreground counts as another app, and a PIN bouncer that is already up is left alone.
+     * With the screen off the usual screen-off path does the job.
+     *
+     * @param foreground package last seen in front, @param foregroundClass its window class
+     * @param keyguardPackages SystemUI and the dialer that just ended the call
      */
-    fun showAfterCall(interactive: Boolean, keyguardLocked: Boolean): Boolean = interactive && keyguardLocked
+    fun showAfterCall(
+        interactive: Boolean, keyguardLocked: Boolean,
+        foreground: String?, foregroundClass: String?, keyguardPackages: Set<String>,
+    ): Boolean = interactive && keyguardLocked &&
+        foreground != null && foreground in keyguardPackages && !bouncerShowing(foregroundClass)
+
+    /** Best effort: SystemUI names the PIN / password / pattern window after the bouncer. */
+    fun bouncerShowing(windowClass: String?): Boolean = windowClass?.contains("bouncer", ignoreCase = true) == true
+
+    /** Fallback list when the default dialer cannot be asked; SystemUI draws the keyguard. */
+    val AFTER_CALL_PACKAGES = setOf(
+        "com.android.systemui", "com.google.android.dialer", "com.android.dialer", "com.samsung.android.incallui",
+        "com.android.incallui", "com.android.server.telecom",
+    )
 
     /** Foreground package is a known show-when-locked app (secure camera, emergency dialer) that must not be covered. */
     fun isProtectedForeground(foreground: String?, protectedPackages: Set<String>): Boolean =
