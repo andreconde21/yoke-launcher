@@ -96,6 +96,18 @@ class MyAccessibilityService : AccessibilityService() {
         null
     }
 
+    /**
+     * Packages of the visible application windows right now, or null when they cannot all be told (no window
+     * list, or a window whose root is not readable): callers fall back to the last foreground event.
+     */
+    fun visibleAppPackages(): List<String>? = try {
+        val apps = windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+        val names = apps.map { it.root?.packageName?.toString() }
+        if (names.any { it == null }) null else names.filterNotNull().distinct()
+    } catch (e: Exception) {
+        null
+    }
+
     override fun onInterrupt() {
 
     }

@@ -122,6 +122,22 @@ object LockScreenPolicy {
 
     const val SYSTEM_UI = "com.android.systemui"
 
+    /** What the live window list says about the call-end moment. */
+    enum class WindowVerdict { SHOW, WAIT, REFUSE, UNKNOWN }
+
+    /**
+     * Judges the visible application windows at the moment the call UI should be gone. [packages] is null when
+     * the window list cannot be read ([WindowVerdict.UNKNOWN]: use the last-event rule). Any package outside
+     * [callPackages] (dialer, in-call UI), SystemUI and Yoke itself is another app in front and is never
+     * covered. The dialer alone still showing is [WindowVerdict.WAIT]: its "call ended" screen may linger.
+     */
+    fun afterCallWindows(packages: List<String>?, callPackages: Set<String>, ownPackage: String): WindowVerdict {
+        if (packages == null) return WindowVerdict.UNKNOWN
+        val ours = callPackages + SYSTEM_UI + ownPackage
+        if (packages.any { it !in ours }) return WindowVerdict.REFUSE
+        return if (packages.any { it in callPackages && it != SYSTEM_UI }) WindowVerdict.WAIT else WindowVerdict.SHOW
+    }
+
     /**
      * Best effort, from what SystemUI's window-state events are known to carry: the AOSP bouncer view is
      * `KeyguardSecurityContainer` / `KeyguardHostView` with `KeyguardPINView`, `KeyguardPasswordView`,

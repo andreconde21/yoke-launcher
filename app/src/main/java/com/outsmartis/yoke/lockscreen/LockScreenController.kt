@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.os.UserManager
@@ -34,6 +36,9 @@ import com.outsmartis.yoke.helper.MyAccessibilityService
 object LockScreenController {
 
     const val TAG = "YokeLock"
+
+    /** A dialer still in front at call end gets one more look this much later. */
+    private const val RECHECK_DELAY_MS = 1500L
     const val CHANNEL_SERVICE = "yoke_lock_service"
     const val NOTIFY_SERVICE = 3701
 
@@ -98,7 +103,7 @@ object LockScreenController {
      * A call just ended. Screen off: the usual screen-off path. Screen on with the keyguard still up (the
      * call UI closes onto the stock lock screen): put the Yoke lock screen back over it.
      */
-    fun onCallEnded(context: Context) {
+    fun onCallEnded(context: Context, recheck: Boolean = true) {
         val app = context.applicationContext
         if (!interactive(app)) return onScreenOff(app)
         val locked = app.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked ?: false
@@ -109,6 +114,18 @@ object LockScreenController {
             )
         ) {
             Log.d(TAG, "not shown after call: keyguard=$locked foreground=${MyAccessibilityService.foregroundPackage}")
+            return
+        }
+        // The last event can still be the dialer's while another app (Maps over the keyguard) is in front
+        val windows = LockScreenPolicy.afterCallWindows(
+            MyAccessibilityService.instance?.visibleAppPackages(), packages, app.packageName,
+        )
+        if (windows == LockScreenPolicy.WindowVerdict.REFUSE) {
+            Log.d(TAG, "not shown after call: another app is in front")
+            return
+        }
+        if (windows == LockScreenPolicy.WindowVerdict.WAIT && recheck) {
+            Handler(Looper.getMainLooper()).postDelayed({ onCallEnded(app, recheck = false) }, RECHECK_DELAY_MS)
             return
         }
         val decision = decide(app, ignoreScreenOn = true)
