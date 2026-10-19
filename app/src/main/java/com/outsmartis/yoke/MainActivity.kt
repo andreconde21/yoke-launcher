@@ -139,8 +139,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Set when Yoke starts one of its own activities (picker, permission prompt, settings jump): the screen
+    // and its result must survive the stop. Cleared once Yoke is back in front.
+    private var inAppHold = false
+    private var resetOnStart = false
+
+    private fun holdFor(intent: Intent?, wantsResult: Boolean) {
+        if (intent == null) return
+        val target = intent.component?.packageName ?: intent.`package`
+        if (HomeReturn.holdsScreen(wantsResult, intent.action, target, packageName)) inAppHold = true
+    }
+
+    override fun startActivity(intent: Intent?, options: Bundle?) {
+        holdFor(intent, false)
+        super.startActivity(intent, options)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        holdFor(intent, true)
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun startIntentSenderForResult(
+        intent: android.content.IntentSender, requestCode: Int, fillInIntent: Intent?,
+        flagsMask: Int, flagsValues: Int, extraFlags: Int, options: Bundle?,
+    ) {
+        inAppHold = true
+        super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues, extraFlags, options)
+    }
+
     override fun onStart() {
         super.onStart()
+        if (resetOnStart) {
+            resetOnStart = false
+            backToHomeScreen()
+        }
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
@@ -157,6 +192,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isResumed = true
+        inAppHold = false
         // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
         com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
         // YOK-037: (re)start the lock screen service from the foreground, where Android allows it
@@ -199,11 +235,9 @@ class MainActivity : AppCompatActivity() {
         themeObserver = null
         isResumed = false
         com.outsmartis.yoke.backup.VaultBackup.maybeBackup(this)
-        // Only a stop with the screen off pops to home: Yoke's own pickers, permission prompts and settings
-        // jumps stop this activity too, and popping then destroyed the screen waiting for the result
-        // (backup export wrote an empty file). See HomeReturn.
-        val interactive = getSystemService(android.os.PowerManager::class.java)?.isInteractive ?: true
-        if (HomeReturn.popOnStop(interactive)) backToHomeScreen()
+        // Any stop that Yoke did not cause itself (Home, Recents, a notification, screen off) resets to
+        // home on return; see HomeReturn. The pop runs in onStart.
+        resetOnStart = HomeReturn.resetOnReturn(isChangingConfigurations, viewModel.isPrivateSpaceToggling, inAppHold)
         super.onStop()
     }
 
@@ -216,6 +250,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
+        inAppHold = false // Home was pressed from wherever Yoke had sent the user
+        resetOnStart = false
         val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
         backToHomeScreen()
         if (intent?.hasExtra(EXTRA_RUN_ACTION) == true) {

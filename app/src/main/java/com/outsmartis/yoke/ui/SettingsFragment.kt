@@ -95,29 +95,52 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
      * is recorded only after that.
      */
     private var holdY = 0
+    private var layoutListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
 
     private fun trackScroll() {
         val scroll = binding.scrollView
         holdY = SettingsScroll.takeWanted()
         val deadline = android.os.SystemClock.uptimeMillis() + 2000
-        scroll.viewTreeObserver.addOnScrollChangedListener { if (holdY == 0) SettingsScroll.y = scroll.scrollY }
+        var programmatic = false
+        // A listener on the view itself (the tree observer is the window's and would outlive this page)
+        scroll.setOnScrollChangeListener { _, _, y, _, _ ->
+            if (holdY == 0) SettingsScroll.y = y
+            else if (!programmatic) { // the user scrolled: the restore is over
+                holdY = 0
+                SettingsScroll.y = y
+            }
+        }
         if (holdY == 0) return
+        // Touching the search field or the scroll view ends the hold, and focus the user gave is never taken
         scroll.setOnTouchListener { _, _ -> holdY = 0; false }
-        scroll.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+        binding.settingsSearch.setOnTouchListener { _, _ -> holdY = 0; false }
+        val listener = object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 if (holdY > 0) {
                     dropSearchFocus()
                     val child = scroll.getChildAt(0)
                     val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(holdY, it.height, scroll.height) }
-                    if (target != null && scroll.scrollY != target) scroll.scrollTo(0, target)
+                    if (target != null && scroll.scrollY != target) {
+                        programmatic = true
+                        scroll.scrollTo(0, target)
+                        programmatic = false
+                    }
                     if (android.os.SystemClock.uptimeMillis() > deadline) holdY = 0
                 }
                 if (holdY == 0) {
                     SettingsScroll.y = scroll.scrollY
-                    if (scroll.viewTreeObserver.isAlive) scroll.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    stopTracking()
                 }
             }
-        })
+        }
+        layoutListener = listener
+        scroll.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    private fun stopTracking() {
+        val l = layoutListener ?: return
+        layoutListener = null
+        _binding?.scrollView?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnGlobalLayoutListener(l)
     }
 
     /** Takes focus off the search field without handing it straight back (it is focusable in touch mode). */
@@ -1131,6 +1154,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         dialog = null
         applyTextSizeScale()
         weatherSettings = null
+        stopTracking()
         SettingsScroll.onViewDestroyed(activity?.isChangingConfigurations == true)
         super.onDestroyView()
         _binding = null

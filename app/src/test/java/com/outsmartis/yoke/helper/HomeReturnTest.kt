@@ -17,9 +17,32 @@ class HomeReturnTest {
     }
 
     @Test
-    fun onlyAStopWithTheScreenOffPopsToHome() {
-        assertTrue(HomeReturn.popOnStop(false))
-        assertFalse(HomeReturn.popOnStop(true))
+    fun anyStopYokeDidNotCauseResetsToHomeOnReturn() {
+        assertTrue(HomeReturn.resetOnReturn(false, false, false)) // Home, Recents, a notification, screen off
+    }
+
+    @Test
+    fun recreatePrivateSpaceAndYokesOwnLaunchesKeepTheScreen() {
+        assertFalse(HomeReturn.resetOnReturn(true, false, false))
+        assertFalse(HomeReturn.resetOnReturn(false, true, false))
+        assertFalse(HomeReturn.resetOnReturn(false, false, true))
+    }
+
+    @Test
+    fun yokesOwnPickersPromptsAndSettingsJumpsHoldTheScreen() {
+        val own = "com.outsmartis.yoke"
+        assertTrue(HomeReturn.holdsScreen(true, null, null, own)) // anything that wants a result
+        assertTrue(HomeReturn.holdsScreen(false, "android.intent.action.OPEN_DOCUMENT_TREE", null, own))
+        assertTrue(HomeReturn.holdsScreen(false, "android.provider.action.PICK_IMAGES", null, own))
+        assertTrue(HomeReturn.holdsScreen(false, "android.settings.ACCESSIBILITY_SETTINGS", null, own))
+        assertTrue(HomeReturn.holdsScreen(false, null, own, own))
+    }
+
+    @Test
+    fun openingAnotherAppDoesNotHoldTheScreen() {
+        val own = "com.outsmartis.yoke"
+        assertFalse(HomeReturn.holdsScreen(false, "android.intent.action.MAIN", "com.google.android.apps.maps", own))
+        assertFalse(HomeReturn.holdsScreen(false, "android.intent.action.VIEW", null, own))
     }
 
     @Test
