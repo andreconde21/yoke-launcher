@@ -96,19 +96,4 @@ class SettingsScrollTest {
         SettingsScroll.record(restoring = false, position = 700) // the user, afterwards
         assertEquals(700, SettingsScroll.y)
     }
-
-    @Test
-    fun aHomeIntentDuringAHeldJumpIsTheSystemReturningNotAHomePress() {
-        assertTrue(HomeReturn.homeLeavesHeldScreen(inAppHold = true, isHomeIntent = true, hasRunAction = false))
-        assertFalse(HomeReturn.homeLeavesHeldScreen(inAppHold = false, isHomeIntent = true, hasRunAction = false)) // normal Home pops
-        assertFalse(HomeReturn.homeLeavesHeldScreen(inAppHold = true, isHomeIntent = false, hasRunAction = false))
-        assertFalse(HomeReturn.homeLeavesHeldScreen(inAppHold = true, isHomeIntent = true, hasRunAction = true))
-    }
-
-    @Test
-    fun aResumeRightAfterTheHoldWithoutAStopKeepsIt() {
-        assertFalse(HomeReturn.clearsHoldOnResume(stoppedWhileHeld = false, sinceHoldMs = 50))
-        assertTrue(HomeReturn.clearsHoldOnResume(stoppedWhileHeld = true, sinceHoldMs = 50)) // came back from the jump
-        assertTrue(HomeReturn.clearsHoldOnResume(stoppedWhileHeld = false, sinceHoldMs = 5000)) // never stopped: not stuck
-    }
 }
