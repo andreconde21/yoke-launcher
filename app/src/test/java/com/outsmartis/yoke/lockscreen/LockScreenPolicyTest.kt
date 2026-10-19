@@ -89,12 +89,25 @@ class LockScreenPolicyTest {
 
     private val pk = LockScreenPolicy.AFTER_CALL_PACKAGES
 
-    private fun after(interactive: Boolean = true, locked: Boolean = true, fg: String? = "com.android.systemui", cls: String? = null) =
-        LockScreenPolicy.showAfterCall(interactive, locked, fg, cls, pk)
+    private fun after(
+        interactive: Boolean = true, locked: Boolean = true, fg: String? = "com.android.systemui", cls: String? = null,
+        fgAt: Long = 100L, endedAt: Long = 50L,
+    ) = LockScreenPolicy.showAfterCall(interactive, locked, fg, cls, pk, fgAt, endedAt)
 
     @Test fun callEndedOntoTheKeyguardBringsOursBack() = assertTrue(after())
 
-    @Test fun callEndedWithTheDialerStillClosingBringsOursBack() = assertTrue(after(fg = "com.google.android.dialer"))
+    @Test fun callEndedWithTheDialerStillClosingBringsOursBack() = assertTrue(after(fg = "com.google.android.dialer", fgAt = 100L, endedAt = 50L))
+
+    @Test fun aDialerEventOlderThanTheCallEndIsStaleAndNotTrusted() =
+        assertFalse(after(fg = "com.google.android.dialer", fgAt = 40L, endedAt = 50L))
+
+    @Test fun systemUiCountsEvenWithoutANewerEvent() = assertTrue(after(fg = "com.android.systemui", fgAt = 10L, endedAt = 50L))
+
+    @Test fun realBouncerClassNamesAreRecognised() {
+        listOf("com.android.keyguard.KeyguardSecurityContainer", "com.android.keyguard.KeyguardPINView",
+            "com.android.keyguard.KeyguardPasswordView", "com.android.keyguard.KeyguardPatternView",
+            "com.android.keyguard.KeyguardHostView").forEach { assertTrue(it, LockScreenPolicy.bouncerShowing(it)) }
+    }
 
     @Test fun callEndedWithNoKeyguardLeavesTheScreenAlone() = assertFalse(after(locked = false))
 
