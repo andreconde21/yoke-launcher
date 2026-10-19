@@ -87,18 +87,37 @@ class LockScreenPolicyTest {
     @Test fun startWithoutAnOffStampIsRefused() =
         assertFalse(LockScreenPolicy.acceptCreate(interactive = false, offAt = 0L, screenOnAt = 0L))
 
-    @Test fun callEndedWithScreenOnAndKeyguardUpBringsOursBack() {
-        assertTrue(LockScreenPolicy.showAfterCall(interactive = true, keyguardLocked = true))
-        assertTrue(LockScreenPolicy.acceptCreate(true, 0L, 0L, afterCall = true, keyguardLocked = true))
+    private val pk = LockScreenPolicy.AFTER_CALL_PACKAGES
+
+    private fun after(interactive: Boolean = true, locked: Boolean = true, fg: String? = "com.android.systemui", cls: String? = null) =
+        LockScreenPolicy.showAfterCall(interactive, locked, fg, cls, pk)
+
+    @Test fun callEndedOntoTheKeyguardBringsOursBack() = assertTrue(after())
+
+    @Test fun callEndedWithTheDialerStillClosingBringsOursBack() = assertTrue(after(fg = "com.google.android.dialer"))
+
+    @Test fun callEndedWithNoKeyguardLeavesTheScreenAlone() = assertFalse(after(locked = false))
+
+    @Test fun afterCallIsNeverForAScreenThatIsOff() = assertFalse(after(interactive = false))
+
+    @Test fun anotherAppInFrontOfTheKeyguardIsNeverCovered() {
+        assertFalse(after(fg = "com.google.android.apps.maps"))
+        assertFalse(after(fg = "com.ubercab"))
     }
 
-    @Test fun callEndedWithNoKeyguardLeavesTheScreenAlone() {
-        assertFalse(LockScreenPolicy.showAfterCall(interactive = true, keyguardLocked = false))
+    @Test fun unknownForegroundCountsAsAnotherApp() = assertFalse(after(fg = null))
+
+    @Test fun anAlreadyShowingBouncerIsLeftAlone() {
+        assertFalse(after(cls = "com.android.systemui.bouncer.ui.BouncerView"))
+        assertTrue(LockScreenPolicy.bouncerShowing("KeyguardBouncer"))
+        assertFalse(LockScreenPolicy.bouncerShowing("android.widget.FrameLayout"))
+        assertFalse(LockScreenPolicy.bouncerShowing(null))
+    }
+
+    @Test fun afterCallStartIsAcceptedOnlyOnALockedLiveScreen() {
+        assertTrue(LockScreenPolicy.acceptCreate(true, 0L, 0L, afterCall = true, keyguardLocked = true))
         assertFalse(LockScreenPolicy.acceptCreate(true, 0L, 0L, afterCall = true, keyguardLocked = false))
     }
-
-    @Test fun afterCallStartIsNotAnExcuseWithTheScreenOff() =
-        assertFalse(LockScreenPolicy.showAfterCall(interactive = false, keyguardLocked = true))
 
     @Test fun protectedForegroundMatchesOnlyListedPackages() {
         val protectedPkgs = setOf("com.cam", "com.dialer")

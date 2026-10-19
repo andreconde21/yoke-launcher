@@ -102,7 +102,15 @@ object LockScreenController {
         val app = context.applicationContext
         if (!interactive(app)) return onScreenOff(app)
         val locked = app.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked ?: false
-        if (!LockScreenPolicy.showAfterCall(true, locked)) return
+        val dialer = app.getSystemService(android.telecom.TelecomManager::class.java)?.defaultDialerPackage
+        val packages = LockScreenPolicy.AFTER_CALL_PACKAGES + listOfNotNull(dialer)
+        if (!LockScreenPolicy.showAfterCall(
+                true, locked, MyAccessibilityService.foregroundPackage, MyAccessibilityService.foregroundClass, packages,
+            )
+        ) {
+            Log.d(TAG, "not shown after call: keyguard=$locked foreground=${MyAccessibilityService.foregroundPackage}")
+            return
+        }
         val decision = decide(app, ignoreScreenOn = true)
         if (decision != LockScreenPolicy.Decision.SHOW) {
             Log.d(TAG, "not shown after call: $decision")
