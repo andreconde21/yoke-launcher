@@ -36,6 +36,11 @@ class WallpaperPrefs(context: Context) {
         get() = prefs.getInt("lock_id", 0)
         set(value) = prefs.edit().putInt("lock_id", value).apply()
 
+    /** True once ids were recorded for a wallpaper Yoke applied before ids existed ([WallpaperApplier.migrateIds]). */
+    var idsMigrated: Boolean
+        get() = prefs.getBoolean("ids_migrated", false)
+        set(value) = prefs.edit().putBoolean("ids_migrated", value).apply()
+
     // YOK-036
     /** The "Lock screen" setting; the wallpaper target is widened to include the lock screen above Off. */
     var lockLevel: LockScreenLevel

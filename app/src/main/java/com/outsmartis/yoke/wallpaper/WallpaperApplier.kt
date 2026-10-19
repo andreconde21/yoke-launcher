@@ -124,6 +124,18 @@ object WallpaperApplier {
         applyThemeColour(app)
     }
 
+    /**
+     * Once, at startup: a wallpaper Yoke applied before ids were recorded gets its ids recorded now, while
+     * it is still the one Yoke wrote, instead of at some later theme change.
+     */
+    fun migrateIds(context: Context) {
+        val app = context.applicationContext
+        val prefs = WallpaperPrefs(app)
+        if (prefs.idsMigrated) return
+        if (prefs.applied) ownsWallpaper(app, prefs) // adopts the current ids as a side effect
+        prefs.idsMigrated = true
+    }
+
     /** True while the wallpaper(s) Yoke writes are still the ones it set last (see [WallpaperLogic.mayOverwrite]). */
     fun ownsWallpaper(context: Context, prefs: WallpaperPrefs = WallpaperPrefs(context)): Boolean = try {
         val wm = WallpaperManager.getInstance(context)
