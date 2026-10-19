@@ -227,4 +227,18 @@ class LockScreenPolicyTest {
         assertEquals(LockScreenPolicy.WindowVerdict.SHOW, windows("com.android.systemui"))
         assertEquals(LockScreenPolicy.WindowVerdict.SHOW, LockScreenPolicy.afterCallWindows(emptyList(), call, "com.outsmartis.yoke"))
     }
+
+    @Test fun aDialerStillInFrontIsRecheckedOnceThenRefused() {
+        val wait = LockScreenPolicy.WindowVerdict.WAIT
+        assertEquals(LockScreenPolicy.AfterCallStep.RECHECK, LockScreenPolicy.afterCallStep(wait, firstLook = true))
+        assertEquals(LockScreenPolicy.AfterCallStep.REFUSE, LockScreenPolicy.afterCallStep(wait, firstLook = false))
+    }
+
+    @Test fun theOtherVerdictsDoNotDependOnWhichLookItIs() {
+        for (first in listOf(true, false)) {
+            assertEquals(LockScreenPolicy.AfterCallStep.REFUSE, LockScreenPolicy.afterCallStep(LockScreenPolicy.WindowVerdict.REFUSE, first))
+            assertEquals(LockScreenPolicy.AfterCallStep.SHOW, LockScreenPolicy.afterCallStep(LockScreenPolicy.WindowVerdict.SHOW, first))
+            assertEquals(LockScreenPolicy.AfterCallStep.SHOW, LockScreenPolicy.afterCallStep(LockScreenPolicy.WindowVerdict.UNKNOWN, first))
+        }
+    }
 }
