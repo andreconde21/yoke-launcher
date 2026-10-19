@@ -154,4 +154,21 @@ class WallpaperLogicTest {
         assertTrue(!WallpaperLogic.ownsTarget(true, true, 29, 29, 30, 33))
         assertTrue(!WallpaperLogic.ownsTarget(false, true, 0, 0, 30, -1))
     }
+
+    @Test
+    fun sharedLockWallpaperThenALockOnlyOneFromAnotherAppIsNotOwned() {
+        assertTrue(!WallpaperLogic.ownsTarget(true, true, 29, 29, -1, 33))
+        assertTrue(!WallpaperLogic.ownsTarget(false, true, 0, 0, -1, 33))
+    }
+
+    @Test
+    fun neverRecordedLockIdIsTrustedOnlyViaAdoption() {
+        assertTrue(WallpaperLogic.ownsTarget(true, true, 29, 29, 0, 33))
+        assertEquals(33, WallpaperLogic.adoptId(0, 33, true))
+        assertEquals(-1, WallpaperLogic.adoptId(0, -1, true))
+        assertEquals(0, WallpaperLogic.adoptId(0, -1, false))
+        assertEquals(0, WallpaperLogic.adoptId(0, 0, true))
+        assertEquals(29, WallpaperLogic.adoptId(29, 31, true)) // recorded ids are never replaced
+        assertEquals(-1, WallpaperLogic.adoptId(-1, 33, true))
+    }
 }
