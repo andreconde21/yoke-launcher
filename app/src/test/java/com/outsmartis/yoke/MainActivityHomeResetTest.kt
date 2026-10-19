@@ -45,4 +45,12 @@ class MainActivityHomeResetTest {
         assertTrue(b.contains("HomeReturn.holdsScreen(requestCode"))
         assertTrue(!source.contains("override fun startActivity(")) // would hold every launch via -1
     }
+
+    @Test
+    fun aHomeIntentCarryingTheHoldExtraIsYokesOwnJumpAndDoesNotPop() {
+        val b = body("onNewIntent")
+        val guard = b.indexOf("HomeReturn.EXTRA_HOLD")
+        assertTrue(guard >= 0)
+        assertTrue(guard < b.indexOf("backToHomeScreen()")) // before the pop
+    }
 }

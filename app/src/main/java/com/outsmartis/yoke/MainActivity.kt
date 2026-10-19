@@ -256,6 +256,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
+        // Yoke's own jump that resolves back to Yoke (the HOME intent behind "Change default launcher" when Yoke is the
+        // default): it is not the Home button, so the page the user is on stays
+        if (intent?.getBooleanExtra(HomeReturn.EXTRA_HOLD, false) == true) {
+            super.onNewIntent(intent)
+            return
+        }
         inAppHold = false // Home was pressed from wherever Yoke had sent the user
         resetOnStart = false
         val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
