@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Yoke guide</title>
-  <meta name="description" content="How to set up Yoke: Omarchy themes and following your PC, smart grayscale, limited apps, voice quick-add, the long-press power assistant, Shizuku and backups.">
+  <meta name="description" content="How to set up Yoke: home styles, the glance card and Ask bar, the lock screen, Omarchy themes and following your PC, smart grayscale, limited apps, voice quick-add, the long-press power assistant, Shizuku and backups.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div class="wrap">
@@ -32,10 +32,12 @@
       <nav class="toc" aria-label="On this page">
         <a href="#start">Getting started</a>
         <a href="#settings">Where settings live</a>
+        <a href="#home">Home screen</a>
         <a href="#themes">Themes and your Omarchy PC</a>
         <a href="#grayscale">Smart grayscale</a>
         <a href="#limits">Limited apps</a>
         <a href="#cockpit">Cockpit tasks and voice</a>
+        <a href="#lock">Lock screen</a>
         <a href="#assistant">Long-press power</a>
         <a href="#hold">Hold an app</a>
         <a href="#palette">Command palette</a>
@@ -60,18 +62,45 @@
         <h2>Where settings live</h2>
         <p>Settings are grouped in six sections, and the search box at the top finds any row by name.</p>
         <dl class="defs">
-          <dt>Home screen</dt><dd>Number of home apps, date and time, weather, Cockpit agenda line, dictation language, notifications on home, now playing, screen time, alignment.</dd>
-          <dt>Look</dt><dd>Theme, wallpaper, system colours follow theme, font, bold font, text size, icon row, Android status bar.</dd>
+          <dt>Home screen</dt><dd>Number of home apps, app style, glance card, bottom bar and the agent for Ask, date and time, weather, Cockpit agenda line, dictation language, notifications on home, now playing, screen time, alignment.</dd>
+          <dt>Look</dt><dd>Theme, wallpaper, lock screen, system colours follow theme, font, bold font, text size, icon row, Android status bar.</dd>
           <dt>Behaviour</dt><dd>Gestures, double tap to lock, keyboard and auto-launch, search sources, web links, long-press power.</dd>
           <dt>Focus</dt><dd>Smart grayscale, limited apps.</dd>
           <dt>Connections</dt><dd>Obsidian vault, Conductore, secure settings permission, accessibility, Shizuku (optional).</dd>
           <dt>Data</dt><dd>Backup and restore.</dd>
         </dl>
+        <figure class="shots">
+          <img src="shots/settings.png" alt="Yoke settings with the search box and the Home screen section" width="1080" height="2400" loading="lazy">
+          <figcaption>Settings</figcaption>
+        </figure>
+      </section>
+
+      <section id="home">
+        <h2>Home screen</h2>
+        <p>Home is a clock, the date and your apps. Everything else below is optional and lives in Settings, Home screen.</p>
+
+        <h3>App style</h3>
+        <p><em>App style</em> shows home apps as <em>Text</em> (the default), <em>Icon + text</em> or <em>Icon only</em>. Icons are tinted to the theme, and an app without a monochrome icon gets a letter tile. Tap an empty slot to pick its app.</p>
+
+        <h3>Glance card</h3>
+        <p>A small card under the clock with your next event and the weather. <em>Glance events from</em> picks the source: your phone's <em>Calendar</em>, your <em>Cockpit</em> board, or <em>None</em> for weather only. Declined and cancelled events are left out; tap the card to open the event. If you don't use Cockpit, Calendar works on its own, and turning the card off brings back the plain weather line.</p>
+
+        <h3>Open, type or ask</h3>
+        <p><em>Bottom bar: open, type or ask</em> adds a search bar at the bottom of home. Type an app's name to open it, anything else to search, or tap the microphone to dictate. When nothing on the phone matches, the palette offers <em>Ask</em>: Yoke hands your words to the agent chosen in <em>Agent for Ask</em>, the phone's assistant (Gemini, for example) or Conductore. Yoke runs no AI of its own; it only passes the text on.</p>
+        <figure class="shots">
+          <img src="shots/home.png" alt="Yoke home with icons and names, the glance card and the bottom bar" width="1080" height="2400" loading="lazy">
+          <img src="shots/home-text.png" alt="Yoke home in the plain text style" width="1080" height="2400" loading="lazy">
+          <figcaption>Icon + text with the glance card and bottom bar, and the plain text style</figcaption>
+        </figure>
       </section>
 
       <section id="themes">
         <h2>Themes and your Omarchy PC</h2>
-        <p>Yoke ships every <a href="https://omarchy.org">Omarchy</a> theme, from Tokyo Night and Catppuccin to Rosé Pine and the light ones. A theme colours home, the drawer, the palette and every sheet. Pinch on home (or Settings, Look, Theme) opens the picker with a live preview.</p>
+        <p>Yoke ships every <a href="https://omarchy.org">Omarchy</a> theme, from Tokyo Night and Catppuccin to Rosé Pine and the light ones. A theme colours home, the drawer, the palette and every sheet. Pinch on home (or Settings, Look, Theme) opens the picker with a live preview. Changing theme fades from the old colours to the new ones instead of flashing.</p>
+        <figure class="shots">
+          <img src="shots/themes.png" alt="The theme picker listing Omarchy themes" width="1080" height="2400" loading="lazy">
+          <figcaption>The theme picker</figcaption>
+        </figure>
 
         <h3>Follow my Omarchy PC</h3>
         <p>If you use <strong>Conductore</strong> with an Omarchy PC, the phone can wear the same theme as your desktop and change when it changes.</p>
@@ -88,7 +117,11 @@
         <p>Android's own colours (Quick Settings, the Settings app, Material You apps, the keyboard) can take the Yoke theme's accent. Turn it on in Settings, Look. It needs the secure settings permission described under <a href="#shizuku">Shizuku</a>. Turning it off, or picking System default, gives your previous colours back. Some phones, Samsung's One UI among them, may ignore it.</p>
 
         <h3>Font</h3>
-        <p>Settings, Look, Font: the system font or JetBrains Mono, Omarchy's font (bundled under the SIL Open Font License).</p>
+        <p>Settings, Look, Font: the system font, JetBrains Mono (Omarchy's font), Inter, IBM Plex Sans, IBM Plex Mono, Space Grotesk, Geist or Geist Mono. All are bundled under the SIL Open Font License, so nothing is downloaded.</p>
+        <figure class="shots">
+          <img src="shots/fonts.png" alt="The font picker" width="1080" height="2400" loading="lazy">
+          <figcaption>Fonts</figcaption>
+        </figure>
       </section>
 
       <section id="grayscale">
@@ -114,6 +147,10 @@
           <li><strong>Quick Settings tile:</strong> add <em>Grayscale</em> to Quick Settings to switch it from anywhere.</li>
           <li><strong>In the car:</strong> <em>Colour while CarMirror is on the car screen</em> keeps the phone in colour while CarMirror mirrors it to the car.</li>
         </ul>
+        <figure class="shots">
+          <img src="shots/grayscale.png" alt="The smart grayscale screen" width="1080" height="2400" loading="lazy">
+          <figcaption>Smart grayscale</figcaption>
+        </figure>
       </section>
 
       <section id="limits">
@@ -124,6 +161,11 @@
           <li><strong>The pause screen</strong> shows the app, how many times you've opened it today and a countdown. <em>Not now</em> takes you home; <em>Open</em> appears when the countdown ends.</li>
           <li><strong>The curve:</strong> 3, 5, 8, 13, 21, 34 seconds, then 60 seconds for every further open. It resets every day at 04:00. Open counts never leave the phone.</li>
         </ul>
+
+        <figure class="shots">
+          <img src="shots/pause.png" alt="The pause screen before a limited app opens" width="1080" height="2400" loading="lazy">
+          <figcaption>The pause screen</figcaption>
+        </figure>
 
         <h3>How strict it is</h3>
         <p>Yoke uses the strongest level your phone allows. The levels add up, and nothing needs Shizuku unless you want the last one.</p>
@@ -155,6 +197,22 @@
         <p>The detected date shows on its chip before you save, and <em>No date</em> clears it. A bare number is never read as a date, so "the 1st draft" stays a title. The recognition language follows the phone, or pick Português or English in Settings, Home screen, dictation language.</p>
       </section>
 
+      <section id="lock">
+        <h2>Lock screen</h2>
+        <p>Settings, Look, <em>Lock screen</em> sets how far Yoke goes. Each level includes the one before it.</p>
+        <dl class="defs">
+          <dt>Off</dt><dd>Yoke leaves the lock screen alone.</dd>
+          <dt>Wallpaper</dt><dd>The lock screen gets the same wallpaper as home and follows every theme change. It only starts once you have applied a Yoke wallpaper: Yoke never replaces your own wallpaper by itself.</dd>
+          <dt>Wallpaper + system</dt><dd>Also gives the system lock screen the theme's colours (Android 12 and newer, needs the secure settings permission from <a href="#shizuku">Shizuku</a>).</dd>
+          <dt>Yoke lock screen</dt><dd>When the screen wakes you see Yoke's own screen: clock, date, weather and music controls in your theme. Swipe up to unlock. The normal lock screen still asks for your PIN or fingerprint, and still shows after a restart and on the always-on display.</dd>
+        </dl>
+        <p>The Yoke lock screen needs Yoke's accessibility service to open over the system one; Yoke explains this before sending you to the setting. Incoming calls always come to the front and can be answered without unlocking, as usual.</p>
+        <figure class="shots">
+          <img src="shots/lock.png" alt="The Yoke lock screen with clock, date and weather" width="1080" height="2400" loading="lazy">
+          <figcaption>The Yoke lock screen</figcaption>
+        </figure>
+      </section>
+
       <section id="assistant">
         <h2>Long-press power</h2>
         <p>Yoke can be Android's digital assistant, so long-pressing power opens a Yoke action over whatever app you're in. It's off by default and Yoke doesn't appear as an assistant until you turn it on.</p>
@@ -164,6 +222,10 @@
           <li><strong>Samsung:</strong> the side key opens Bixby by default. In Settings, Advanced features, Side button, choose <em>Digital assistant</em> for press and hold.</li>
         </ol>
         <p>To go back, pick Google or Bixby again in the same system screen, or turn the setting off in Yoke.</p>
+        <figure class="shots">
+          <img src="shots/assistant-quickadd.png" alt="The Cockpit quick-add sheet opened over home" width="1080" height="2400" loading="lazy">
+          <figcaption>Quick-add</figcaption>
+        </figure>
       </section>
 
       <section id="hold">
@@ -182,6 +244,11 @@
             <tr><th><code>/</code></th><td>Jump straight into an app shortcut</td></tr>
           </tbody>
         </table>
+        <p>When nothing matches, the palette offers to search the web and to <em>Ask</em> the agent you chose (see <a href="#home">Open, type or ask</a>).</p>
+        <figure class="shots">
+          <img src="shots/palette.png" alt="The palette offering a web search and Ask for &quot;plan my day&quot;" width="1080" height="2400" loading="lazy">
+          <figcaption>The palette</figcaption>
+        </figure>
       </section>
 
       <section id="gestures">
