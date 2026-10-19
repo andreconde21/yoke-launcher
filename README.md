@@ -29,8 +29,18 @@ Copyright (c) David Heinemeier Hansson), regenerated with
 Conductore uses. "Follow my Omarchy PC" reads the theme Conductore last synced from the
 followed PC (`/pc_theme` on its launcher-details provider , permission `com.outsmartis.permission.READ_LAUNCHER_DETAILS`) and updates live.
 
-The optional JetBrains Mono font is bundled under the SIL Open Font License
-1.1 (`app/src/main/res/raw/jetbrains_mono_ofl.txt`).
+Settings, Look, Font offers the system font (the default and the fallback) and these bundled
+fonts, regular and bold only, all under the SIL Open Font License 1.1. Each name is shown in its
+own font in the picker. The licences are in `app/src/main/res/raw/`:
+
+| Font | Licence file |
+| --- | --- |
+| JetBrains Mono | `jetbrains_mono_ofl.txt` |
+| Inter | `inter_ofl.txt` |
+| IBM Plex Sans | `ibm_plex_sans_ofl.txt` |
+| IBM Plex Mono | `ibm_plex_mono_ofl.txt` |
+| Space Grotesk | `space_grotesk_ofl.txt` |
+| Geist and Geist Mono | `geist_ofl.txt` |
 
 ## Weather
 

@@ -55,6 +55,8 @@ sealed class AppModel : Comparable<AppModel> {
         val run: () -> Unit = {},
         /** Small text after the label, e.g. "card · in-progress". */
         val detail: String? = null,
+        /** The user's query inside [appLabel]; when set, only this part is shortened on a narrow row. */
+        val query: String? = null,
     ) : AppModel() {
         override val key: CollationKey? = null
         override val appPackage: String = ""

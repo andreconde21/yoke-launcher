@@ -16,9 +16,10 @@ class ThemePrefs(context: Context) {
         get() = prefs.getString("conductore_last_known", null)
         set(value) = prefs.edit().putString("conductore_last_known", value).apply()
 
-    var jetBrainsMono: Boolean
-        get() = prefs.getBoolean("font_jetbrains_mono", false)
-        set(value) = prefs.edit().putBoolean("font_jetbrains_mono", value).apply()
+    /** The chosen font. Before the picker this was the on/off key `font_jetbrains_mono`, still honoured. */
+    var font: FontChoice // YOK-034
+        get() = FontChoice.resolve(prefs.getString("font_id", null), prefs.getBoolean("font_jetbrains_mono", false))
+        set(value) = prefs.edit().putString("font_id", value.id).apply()
 
     /** Android's system colours follow the theme (see SystemPaletteSync). */
     var systemColours: Boolean

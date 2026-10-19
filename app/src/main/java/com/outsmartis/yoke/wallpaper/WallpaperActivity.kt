@@ -23,6 +23,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.showStatusBar
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.theme.YokeTheme
@@ -68,6 +70,7 @@ class WallpaperActivity : AppCompatActivity() {
             setBackgroundColor(theme?.background ?: getColorFromAttr(R.attr.primaryColorInverseTrans90))
         }
         setContentView(scroll)
+        if (Prefs(this).showStatusBar) window.showStatusBar() else window.hideStatusBar()
         ThemeApplier.applyWindow(this)
         build()
     }
@@ -98,7 +101,7 @@ class WallpaperActivity : AppCompatActivity() {
         content.addView(header(R.string.wallpaper_target))
         content.addView(chips(
             listOf(R.string.wallpaper_target_home, R.string.wallpaper_target_lock, R.string.wallpaper_target_both),
-            WallpaperTarget.entries.indexOf(choice.target),
+            WallpaperTarget.entries.indexOf(prefs.effectiveTarget),
         ) { i ->
             prefs.choice = prefs.choice.copy(target = WallpaperTarget.entries[i])
             if (prefs.applied) {
@@ -107,6 +110,9 @@ class WallpaperActivity : AppCompatActivity() {
             }
             build()
         })
+        if (prefs.lockLevel.effectiveTarget(WallpaperTarget.HOME) != WallpaperTarget.HOME && choice.target == WallpaperTarget.HOME) {
+            content.addView(text(getString(R.string.wallpaper_target_widened), 12f, secondary).apply { setPadding(dp(8), dp(6), dp(8), 0) })
+        }
 
         content.addView(header(R.string.wallpaper_dim))
         content.addView(chips(
@@ -130,9 +136,25 @@ class WallpaperActivity : AppCompatActivity() {
                 toast(R.string.wallpaper_applying)
                 WallpaperApplier.reapply(this) { finished(it) }
             }
-            WallpaperSource.OMARCHY -> Unit
+            WallpaperSource.OMARCHY -> {
+                // Choosing the source is an explicit action: show the current theme's first background now.
+                val themeId = ThemeStore.current(this)?.id
+                val file = themeId?.let { WallpaperLogic.backgroundsFor(it).firstOrNull() }
+                if (themeId != null && file != null) {
+                    prefs.choice = prefs.choice.copy(omarchyTheme = themeId, omarchyFile = file)
+                    toast(R.string.wallpaper_downloading)
+                    WallpaperApplier.applyOmarchy(this, themeId, file) { error ->
+                        if (error != null && error != WallpaperApplier.CANCELLED) {
+                            // Could not fetch it: back to the theme colour rather than a source with nothing set.
+                            prefs.choice = prefs.choice.copy(source = WallpaperSource.THEME_COLOUR)
+                            WallpaperApplier.applyThemeColour(this)
+                        }
+                        finished(error)
+                        if (error != null && error != WallpaperApplier.CANCELLED && !isDestroyed) build()
+                    }
+                }
+            }
         }
-        // Not "applied" as an image until a picture is chosen; the grid / button below does that
         build()
     }
 
@@ -199,6 +221,7 @@ class WallpaperActivity : AppCompatActivity() {
 
     private fun finished(error: String?) {
         if (isDestroyed) return
+        if (error == WallpaperApplier.CANCELLED) return build() // interrupted: nothing failed, just stop waiting
         if (error == null) {
             toast(R.string.wallpaper_done)
             build()

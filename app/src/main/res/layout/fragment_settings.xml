@@ -292,6 +292,80 @@
                             android:padding="8dp"
                             android:text="@string/off" />
                     </FrameLayout>
+                    <!-- YOK-032: glance card settings -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/glance_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/glanceToggle"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/off" />
+                    </FrameLayout>
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/glance_source_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/glanceSource"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/glance_source_none" />
+                    </FrameLayout>
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/glance_weather_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/glanceWeatherToggle"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/on" />
+                    </FrameLayout>
+
                     <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -418,6 +492,31 @@
                             android:padding="8dp"
                             android:text="@string/left" />
                     </FrameLayout>
+                    <!-- YOK-031 -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/home_app_style_row"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/homeAppStyle"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/home_app_style_text" />
+                    </FrameLayout>
                 </LinearLayout>
             </LinearLayout>
 
@@ -512,6 +611,31 @@
 
                         <TextView
                             android:id="@+id/systemColoursRow"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:padding="8dp"
+                            android:text="@string/off" />
+                    </FrameLayout>
+                    <!-- YOK-036 -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:paddingVertical="8dp"
+                            android:text="@string/lock_screen_row"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/lockScreenRow"
                             style="@style/TextSmallBold"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -833,7 +957,6 @@
                             android:padding="8dp"
                             android:text="@string/edit_links" />
                     </FrameLayout>
-                </LinearLayout>
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -862,6 +985,65 @@
                             android:padding="8dp"
                             android:text="@string/off" />
                     </LinearLayout>
+                    <!-- YOK-030 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="24dp"
+                            android:layout_weight="1"
+                            android:lines="1"
+                            android:paddingVertical="8dp"
+                            android:text="@string/ask_bar_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/askBarRow"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:lines="1"
+                            android:padding="8dp"
+                            android:text="@string/off" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/TextSmall"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="24dp"
+                            android:layout_weight="1"
+                            android:lines="1"
+                            android:paddingVertical="8dp"
+                            android:text="@string/ask_agent_setting"
+                            android:textColor="?attr/primaryColor" />
+
+                        <TextView
+                            android:id="@+id/askAgentRow"
+                            style="@style/TextSmallBold"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="end|bottom"
+                            android:layout_marginEnd="4dp"
+                            android:lines="1"
+                            android:padding="8dp"
+                            android:text="@string/ask_agent_assistant" />
+                    </LinearLayout>
+                    <!-- /YOK-030 -->
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout

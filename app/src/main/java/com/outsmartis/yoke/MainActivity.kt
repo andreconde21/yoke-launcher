@@ -22,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.findNavController
+import com.outsmartis.yoke.helper.HomeReturn
 import com.outsmartis.yoke.data.Constants
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.databinding.ActivityMainBinding
@@ -39,6 +40,7 @@ import com.outsmartis.yoke.helper.resetLauncherViaFakeActivity
 import com.outsmartis.yoke.helper.showLauncherSelector
 import com.outsmartis.yoke.helper.showMessageDialog
 import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemeStore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -48,6 +50,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         /** A GestureAction type to run once home is up (the assistant's long-press, see AssistActivity). */
+        private const val STATE_RESET_ON_START = "reset_on_start"
         const val EXTRA_RUN_ACTION = "com.outsmartis.yoke.extra.RUN_ACTION"
     }
 
@@ -79,15 +82,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = Prefs(this)
+        com.outsmartis.yoke.wallpaper.WallpaperApplier.migrateIds(this)
         if (isEinkDisplay()) prefs.appTheme = AppCompatDelegate.MODE_NIGHT_NO
         AppCompatDelegate.setDefaultNightMode(ThemeStore.nightMode(this, prefs.appTheme))
         themeSignature = ThemeStore.signature(this)
         super.onCreate(savedInstanceState)
+        resetOnStart = savedInstanceState?.getBoolean(STATE_RESET_ON_START, false) ?: false
         if (prefs.boldFont) theme.applyStyle(R.style.BoldFontOverlay, true)
         if (isEinkDisplay() || isSystemAnimationsDisabled()) theme.applyStyle(R.style.NoAnimationOverlay, true)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         ThemeApplier.applyWindow(this)
+        ThemeFade.reveal(this)
 
         navController = this.findNavController(R.id.nav_host_fragment)
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
@@ -136,24 +142,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Set when Yoke starts one of its own activities (picker, permission prompt, settings jump): the screen
+    // and its result must survive the stop. Cleared once Yoke is back in front.
+    private val hold = com.outsmartis.yoke.helper.HomeHold()
+    private val inAppHold get() = hold.active
+    private fun now() = android.os.SystemClock.uptimeMillis()
+    private var resetOnStart = false
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Before API 28 this runs before onStop, so work the answer out here too
+        val stopping = HomeReturn.resetOnReturn(isChangingConfigurations, viewModel.isPrivateSpaceToggling, inAppHold)
+        outState.putBoolean(STATE_RESET_ON_START, resetOnStart || stopping)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        // startActivity (Activity and Fragment) arrives here with requestCode -1; see HomeReturn.holdsScreen
+        val target = intent.component?.packageName ?: intent.`package`
+        if (HomeReturn.holdsScreen(requestCode, intent.action, target, packageName, intent.getBooleanExtra(HomeReturn.EXTRA_HOLD, false))) {
+            hold.start(HomeReturn.isSystemJump(intent.action, intent.hasCategory(Intent.CATEGORY_HOME)), now())
+        }
+        try {
+            super.startActivityForResult(intent, requestCode, options)
+        } catch (e: RuntimeException) {
+            hold.clear() // nothing started, nothing will return
+            throw e
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun startIntentSenderForResult(
+        intent: android.content.IntentSender, requestCode: Int, fillInIntent: Intent?,
+        flagsMask: Int, flagsValues: Int, extraFlags: Int, options: Bundle?,
+    ) {
+        hold.start(system = false, now = now())
+        try {
+            super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues, extraFlags, options)
+        } catch (e: RuntimeException) {
+            hold.clear()
+            throw e
+        }
+    }
+
     override fun onStart() {
         super.onStart()
+        if (resetOnStart) {
+            resetOnStart = false
+            backToHomeScreen()
+        }
         // The picker or a "next theme" gesture may have changed the theme while we were stopped.
         if (ThemeStore.signature(this) != themeSignature) {
             ThemeStore.onThemeChanged(this)
-            recreate()
+            // Back from the picker: fade from the old home to the new look, so there is no bare window
+            // (black frame) between the two; cases the fade cannot cover recreate directly.
+            ThemeFade.recreate(this)
             return
         }
         themeObserver?.unregister()
-        themeObserver = ThemeStore.observeConductore(this) { recreate() }
+        themeObserver = ThemeStore.observeConductore(this) { ThemeFade.recreate(this) }
         restartLauncherOrCheckTheme()
     }
 
     override fun onResume() {
         super.onResume()
         isResumed = true
+        hold.onResume(now())
         // Back on Yoke's home: a visit to a limited app is over (hard-paused apps pause again).
         com.outsmartis.yoke.limits.LimitGate.onHomeShown(this)
+        // YOK-037: (re)start the lock screen service from the foreground, where Android allows it
+        com.outsmartis.yoke.lockscreen.LockScreenController.sync(this)
         viewModel.isPrivateSpaceToggling = false
         viewModel.getAppList()
     }
@@ -187,18 +245,21 @@ class MainActivity : AppCompatActivity() {
         launcherApps.registerCallback(launcherAppsCallback!!)
     }
 
+    override fun onPause() {
+        hold.onPause()
+        super.onPause()
+    }
+
     override fun onStop() {
         themeObserver?.unregister()
         themeObserver = null
         isResumed = false
         com.outsmartis.yoke.backup.VaultBackup.maybeBackup(this)
-        backToHomeScreen()
+        // Any stop that Yoke did not cause itself (Home, Recents, a notification, screen off) resets to
+        // home on return; see HomeReturn. The pop runs in onStart.
+        resetOnStart = HomeReturn.resetOnReturn(isChangingConfigurations, viewModel.isPrivateSpaceToggling, inAppHold)
+        hold.onStop()
         super.onStop()
-    }
-
-    override fun onUserLeaveHint() {
-        backToHomeScreen()
-        super.onUserLeaveHint()
     }
 
     /** Runs [EXTRA_RUN_ACTION] once the home screen has been laid out. */
@@ -210,6 +271,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onNewIntent(intent: Intent?) {
+        // Yoke's own jump that resolves back to Yoke (the HOME intent behind "Change default launcher" when Yoke is the
+        // default): it is not the Home button, so the page the user is on stays
+        if (intent?.getBooleanExtra(HomeReturn.EXTRA_HOLD, false) == true) {
+            hold.onOwnHomeDelivered()
+            // No stop followed (the chooser resolved straight back to Yoke): the hold must not outlive its jump
+            window.decorView.postDelayed({ hold.expire(now()) }, HomeReturn.HOLD_GRACE_MS + 500)
+            super.onNewIntent(intent)
+            return
+        }
+        // Leaving a system Settings/role screen Yoke jumped to (default apps) makes the system itself start HOME, with
+        // no extras: that is Back, not the Home button, so the user lands back on the page they came from. A real Home
+        // press from inside that system screen lands there once too. The hold is also cleared in onResume.
+        if (hold.swallowsHome(intent?.hasCategory(Intent.CATEGORY_HOME) == true, intent?.hasExtra(EXTRA_RUN_ACTION) == true)) {
+            hold.clear()
+            resetOnStart = false
+            super.onNewIntent(intent)
+            return
+        }
+        hold.clear() // Home was pressed from wherever Yoke had sent the user
+        resetOnStart = false
         val alreadyHome = navController.currentDestination?.id == R.id.mainFragment
         backToHomeScreen()
         if (intent?.hasExtra(EXTRA_RUN_ACTION) == true) {
@@ -299,7 +380,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun backToHomeScreen() {
-        if (viewModel.isPrivateSpaceToggling) return
+        // A recreate (theme, font, system colours changing) must not drop the current screen either.
+        if (isChangingConfigurations || !HomeReturn.shouldPop(viewModel.isPrivateSpaceToggling)) return
         messageDialog?.dismiss()
         if (navController.currentDestination?.id != R.id.mainFragment)
             navController.popBackStack(R.id.mainFragment, false)
@@ -351,6 +433,7 @@ class MainActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        hold.clear() // the jump that asked for a result is over
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             Constants.REQUEST_CODE_ENABLE_ADMIN -> {

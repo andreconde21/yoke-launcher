@@ -24,6 +24,56 @@ class WallpaperPrefs(context: Context) {
         get() = prefs.getString("last_solid", null)
         set(value) = prefs.edit().putString("last_solid", value).apply()
 
+    /**
+     * WallpaperManager ids of the wallpapers Yoke last wrote (0 = none recorded). A different id later
+     * means something else set the wallpaper, and Yoke must not overwrite it by itself.
+     */
+    var systemId: Int
+        get() = prefs.getInt("system_id", 0)
+        set(value) = prefs.edit().putInt("system_id", value).apply()
+
+    var lockId: Int
+        get() = prefs.getInt("lock_id", 0)
+        set(value) = prefs.edit().putInt("lock_id", value).apply()
+
+    /** True once ids were recorded for a wallpaper Yoke applied before ids existed ([WallpaperApplier.migrateIds]). */
+    var idsMigrated: Boolean
+        get() = prefs.getBoolean("ids_migrated", false)
+        set(value) = prefs.edit().putBoolean("ids_migrated", value).apply()
+
+    /**
+     * A screen another app replaced while Yoke managed both: Yoke leaves it alone from then on and keeps
+     * managing the other one. Cleared by an explicit apply in the Wallpaper screen.
+     */
+    var systemReleased: Boolean
+        get() = prefs.getBoolean("system_released", false)
+        set(value) = prefs.edit().putBoolean("system_released", value).apply()
+
+    var lockReleased: Boolean
+        get() = prefs.getBoolean("lock_released", false)
+        set(value) = prefs.edit().putBoolean("lock_released", value).apply()
+
+    fun claimAll() {
+        prefs.edit().putBoolean("system_released", false).putBoolean("lock_released", false).apply()
+    }
+
+    // YOK-036
+    /** The "Lock screen" setting; the wallpaper target is widened to include the lock screen above Off. */
+    var lockLevel: LockScreenLevel
+        get() = LockScreenLevel.decode(prefs.getString("lock_level", null))
+        set(value) = prefs.edit().putString("lock_level", value.name).apply()
+
+    /** True when the System level (not the user) switched "System colours follow theme" on. Backed up together with the theme's systemColours flag it explains, so a restore stays consistent. */
+    var lockForcedColours: Boolean
+        get() = prefs.getBoolean("lock_forced_colours", false)
+        set(value) = prefs.edit().putBoolean("lock_forced_colours", value).apply()
+
+    /** The saved target with the Lock screen level applied: what is really written to WallpaperManager. */
+    val effectiveTarget: WallpaperTarget get() = lockLevel.effectiveTarget(choice.target)
+
+    /** [effectiveTarget] without the screens that were released; null when Yoke manages none. */
+    val writeTarget: WallpaperTarget? get() = WallpaperLogic.screensToWrite(effectiveTarget, systemReleased, lockReleased)
+
     /** The choice when the home screen should show the system wallpaper (an image was applied), else null. */
     val imageChoice: WallpaperChoice? get() = choice.takeIf { applied && it.showsImage }
 

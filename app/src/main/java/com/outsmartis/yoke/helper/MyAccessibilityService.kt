@@ -59,6 +59,9 @@ class MyAccessibilityService : AccessibilityService() {
             // Smart grayscale: which app is in front. Only the package name is read. The focused app
             // window decides, so floating panels and pop-ups from other packages don't flip the screen.
             val foreground = focusedAppPackage() ?: event.packageName?.toString()
+            foregroundPackage = foreground
+            foregroundClass = event.className?.toString()
+            foregroundAt = android.os.SystemClock.elapsedRealtime()
             GrayscaleController.evaluate(applicationContext, foreground)
             com.outsmartis.yoke.limits.LimitGate.onForeground(applicationContext, foreground)
             return
@@ -93,6 +96,18 @@ class MyAccessibilityService : AccessibilityService() {
         null
     }
 
+    /**
+     * Packages of the visible application windows right now, or null when they cannot all be told (no window
+     * list, or a window whose root is not readable): callers fall back to the last foreground event.
+     */
+    fun visibleAppPackages(): List<String>? = try {
+        val apps = windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+        val names = apps.map { it.root?.packageName?.toString() }
+        if (names.any { it == null }) null else names.filterNotNull().distinct()
+    } catch (e: Exception) {
+        null
+    }
+
     override fun onInterrupt() {
 
     }
@@ -113,6 +128,21 @@ class MyAccessibilityService : AccessibilityService() {
         /** The connected service, used by gesture actions that need a global action (lock, recents). */
         @Volatile
         var instance: MyAccessibilityService? = null
+            private set
+
+        /** Package last seen in front (null when unknown); the Yoke lock screen won't cover the camera or emergency dialer. */
+        @Volatile
+        var foregroundPackage: String? = null
+            private set
+
+        /** elapsedRealtime of that window-state change. */
+        @Volatile
+        var foregroundAt: Long = 0L
+            private set
+
+        /** Window class of the last window-state change (best effort: tells the PIN bouncer from the keyguard). */
+        @Volatile
+        var foregroundClass: String? = null
             private set
     }
 }

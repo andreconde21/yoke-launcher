@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.showStatusBar
 import com.outsmartis.yoke.helper.showToast
 import com.outsmartis.yoke.theme.ThemeApplier
 import com.outsmartis.yoke.theme.ThemeStore
@@ -47,6 +49,7 @@ class PauseActivity : AppCompatActivity() {
         val opensSoFar = prefs.opensToday(pkg)
         remaining = LimitPolicy.delaySeconds(opensSoFar)
         setContentView(buildView(opensSoFar + 1))
+        if (Prefs(this).showStatusBar) window.showStatusBar() else window.hideStatusBar()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = notNow()
         })
@@ -77,8 +80,9 @@ class PauseActivity : AppCompatActivity() {
         root.addView(countdown)
         root.addView(text(getString(R.string.limits_breathe), 16f, secondary))
         val buttons = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            // Stacked, each centred; "Open" keeps its space (invisible) so "Not now" never shifts.
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             setPadding(0, (32 * d).toInt(), 0, 0)
         }
         val notNow = text(getString(R.string.limits_not_now), 20f, fg).apply {

@@ -104,4 +104,10 @@ class ExtraSearchTest {
             ObsidianLinks.open("My Vault", "Cards/fix bike & co.md"),
         )
     }
+
+    @Test fun combinedNeverRepeatsOneTarget() {
+        val privacy = SearchHit(SearchKind.SETTING, "Privacy", "settings", "android.settings.PRIVACY_SETTINGS", listOf("permission manager"))
+        val rows = SearchRanking.combine("ma", mapOf(SearchKind.SETTING to listOf(privacy, privacy.copy())))
+        assertEquals(1, rows.size)
+    }
 }

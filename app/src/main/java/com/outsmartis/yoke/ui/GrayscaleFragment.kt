@@ -21,6 +21,7 @@ import com.outsmartis.yoke.databinding.FragmentGrayscaleBinding
 import com.outsmartis.yoke.grayscale.GrayscaleController
 import com.outsmartis.yoke.grayscale.GrayscalePrefs
 import com.outsmartis.yoke.grayscale.ShizukuGrant
+import com.outsmartis.yoke.helper.keepScreen
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.copyToClipboard
 import com.outsmartis.yoke.helper.createDialog
@@ -38,7 +39,6 @@ class GrayscaleFragment : BaseFragment() {
     private var _binding: FragmentGrayscaleBinding? = null
     private val binding get() = _binding!!
 
-    private class AppEntry(val label: String, val packageName: String)
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentGrayscaleBinding.inflate(inflater, container, false)
@@ -94,7 +94,7 @@ class GrayscaleFragment : BaseFragment() {
             if (isAccessServiceEnabled(ctx)) R.string.grayscale_status_service_ok else R.string.grayscale_status_service_off
         )
         binding.grayscaleExceptions.text =
-            "${getString(R.string.grayscale_exceptions)}: ${getString(R.string.grayscale_exceptions_count, prefs.exceptions.size)}"
+            "${getString(R.string.grayscale_exceptions)}: ${resources.getQuantityString(R.plurals.grayscale_exceptions_count, visibleExceptionCount(), visibleExceptionCount())}"
         renderRecent()
         val inCar = prefs.carMirrorUntil > System.currentTimeMillis()
         binding.grayscaleCarColour.text = "${getString(R.string.grayscale_car_colour)}: ${getString(if (prefs.carColour) R.string.on else R.string.off)}" +
@@ -103,6 +103,15 @@ class GrayscaleFragment : BaseFragment() {
         binding.grayscalePause.text = if (pausedUntil > System.currentTimeMillis()) {
             getString(R.string.grayscale_resume, DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(pausedUntil)))
         } else getString(R.string.grayscale_pause)
+    }
+
+    /**
+     * Exceptions the user can see and untick: in the list or in the recent apps. The saved set
+     * also holds packages that are not installed (the unused debug/release twin of Yoke), which
+     * would otherwise count as colour apps with nothing ticked.
+     */
+    private fun visibleExceptionCount(): Int {
+        return visibleGrayscaleExceptionCount(requireContext(), prefs)
     }
 
     /**
@@ -154,7 +163,7 @@ class GrayscaleFragment : BaseFragment() {
                 button.setText(R.string.grayscale_shizuku_open)
                 button.setOnClickListener {
                     val launch = ctx.packageManager.getLaunchIntentForPackage(ShizukuGrant.SHIZUKU_PACKAGE)
-                    if (launch != null) startActivity(launch)
+                    if (launch != null) startActivity(launch.keepScreen())
                 }
             }
             ShizukuGrant.State.NeedsPermission, ShizukuGrant.State.Ready -> {
@@ -168,10 +177,10 @@ class GrayscaleFragment : BaseFragment() {
 
     private fun openShizukuListing() {
         try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuGrant.SHIZUKU_PACKAGE}")))
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${ShizukuGrant.SHIZUKU_PACKAGE}")).keepScreen())
         } catch (e: ActivityNotFoundException) {
             try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")).keepScreen())
             } catch (_: ActivityNotFoundException) {
             }
         }
@@ -204,22 +213,16 @@ class GrayscaleFragment : BaseFragment() {
         )
     }
 
-    private fun showDialog(newDialog: YokeDialog) {
+    private fun showDialog(newDialog: YokeDialog, autoShowKeyboard: Boolean = true) {
         dialog?.dismiss()
         dialog = newDialog
+        newDialog.autoShowKeyboard = autoShowKeyboard
         newDialog.showRespectingStatusBar()
     }
 
     // Exceptions: every launchable app, alphabetical, tap to tick
 
-    private fun launchableApps(): List<AppEntry> {
-        val pm = requireContext().packageManager
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        return pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-            .map { AppEntry(it.loadLabel(pm).toString(), it.activityInfo.packageName) }
-            .distinctBy { it.packageName }
-            .sortedBy { it.label.lowercase() }
-    }
+    private fun launchableApps(): List<GrayscaleAppEntry> = grayscaleExceptionCandidates(requireContext(), prefs)
 
     private fun showExceptions() {
         val ctx = requireContext()
@@ -263,10 +266,12 @@ class GrayscaleFragment : BaseFragment() {
                     override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
                 })
                 fill("")
+                // The keyboard stays closed until the user taps the search field (autoShowKeyboard = false).
                 root.addView(search)
                 root.addView(scroll)
                 root
-            }
+            },
+            autoShowKeyboard = false
         )
     }
 
@@ -278,3 +283,33 @@ class GrayscaleFragment : BaseFragment() {
         _binding = null
     }
 }
+
+/**
+ * The apps the Exceptions dialog lists: every launchable app, Yoke itself, and the recently seen
+ * apps (helpers without a launcher icon), alphabetical. The row count uses the same list so the
+ * number always matches the ticks.
+ */
+internal fun grayscaleExceptionCandidates(ctx: android.content.Context, prefs: GrayscalePrefs): List<GrayscaleAppEntry> {
+    val pm = ctx.packageManager
+    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+    val apps = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
+        .map { GrayscaleAppEntry(it.loadLabel(pm).toString(), it.activityInfo.packageName) }
+        .distinctBy { it.packageName }
+    val known = apps.map { it.packageName }.toSet()
+    val extra = (prefs.recent + ctx.packageName).distinct().filter { it !in known }.mapNotNull { pkg ->
+        try {
+            GrayscaleAppEntry(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString(), pkg)
+        } catch (e: PackageManager.NameNotFoundException) {
+            null
+        }
+    }
+    return (apps + extra).sortedBy { it.label.lowercase() }
+}
+
+/** Saved exceptions that are ticked in the dialog; packages not installed (Yoke's debug/release twin) are left out. */
+internal fun visibleGrayscaleExceptionCount(ctx: android.content.Context, prefs: GrayscalePrefs): Int {
+    val shown = grayscaleExceptionCandidates(ctx, prefs).map { it.packageName }.toSet()
+    return prefs.exceptions.count { it in shown }
+}
+
+internal class GrayscaleAppEntry(val label: String, val packageName: String)

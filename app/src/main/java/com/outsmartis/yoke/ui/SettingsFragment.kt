@@ -4,6 +4,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -13,9 +14,13 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.os.bundleOf
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -29,12 +34,15 @@ import com.outsmartis.yoke.databinding.FragmentSettingsBinding
 import com.outsmartis.yoke.helper.appUsagePermissionGranted
 import com.outsmartis.yoke.helper.asTextField
 import com.outsmartis.yoke.helper.createDialog
+import com.outsmartis.yoke.theme.FontChoice
 import com.outsmartis.yoke.theme.ThemeApplier
+import com.outsmartis.yoke.theme.ThemeFade
 import com.outsmartis.yoke.theme.ThemePickerActivity
 import com.outsmartis.yoke.theme.ThemePrefs
 import com.outsmartis.yoke.theme.ThemeStore
 import com.outsmartis.yoke.theme.SystemPaletteSync
 import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.keepScreen
 import com.outsmartis.yoke.helper.isAccessServiceEnabled
 import com.outsmartis.yoke.helper.isTablet
 import com.outsmartis.yoke.helper.openAppInfo
@@ -44,6 +52,8 @@ import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.showPopupMenu
 import com.outsmartis.yoke.helper.showStatusBar
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.iconrow.HomeAppStyle // YOK-031
+import com.outsmartis.yoke.iconrow.IconRowPrefs // YOK-031
 import com.outsmartis.yoke.listener.DeviceAdmin
 
 class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListener {
@@ -61,13 +71,82 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         weatherSettings?.onPermissionResult(granted)
     }
 
+    // YOK-032: READ_CALENDAR is asked only when the glance card's events are switched to "Calendar"
+    private val calendarPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (_binding == null) return@registerForActivityResult
+        if (granted) {
+            setGlanceSource(com.outsmartis.yoke.glance.GlanceSource.CALENDAR)
+        } else {
+            requireContext().showToast(getString(R.string.glance_calendar_denied))
+            populateGlance()
+        }
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
         return binding.root
     }
 
+    /**
+     * The scroll position survives a recreate (a theme change), even two in a row. [SettingsScroll] holds
+     * it in the process. The restore is applied on every layout for a short while, not once: the
+     * framework's own restore is clamped while the rows are still filling in, and a search field that
+     * was focused before the recreate takes focus back and scrolls itself into view (top of the page),
+     * so it is made to let go. The window ends at the first touch or after two seconds; user scrolling
+     * is recorded only after that.
+     */
+    private var holdY = 0
+    private var layoutListener: android.view.ViewTreeObserver.OnGlobalLayoutListener? = null
+
+    private fun trackScroll() {
+        val scroll = binding.scrollView
+        holdY = SettingsScroll.takeWanted()
+        val deadline = android.os.SystemClock.uptimeMillis() + 2000
+        // A listener on the view itself (the tree observer is the window's and would outlive this page)
+        // While the hold lasts, scroll changes are not recorded: the framework's own (clamped) restore and our
+        // re-apply both land here and neither is the user. A touch on the page ends the hold (below).
+        scroll.setOnScrollChangeListener { _, _, y, _, _ -> SettingsScroll.record(holdY > 0, y) }
+        if (holdY == 0) return
+        // Touching the search field or the scroll view ends the hold, and focus the user gave is never taken
+        scroll.setOnTouchListener { _, _ -> holdY = 0; false }
+        binding.settingsSearch.setOnTouchListener { _, _ -> holdY = 0; false }
+        val listener = object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (holdY > 0) {
+                    dropSearchFocus()
+                    val child = scroll.getChildAt(0)
+                    val target = child?.let { com.outsmartis.yoke.helper.HomeReturn.scrollTarget(holdY, it.height, scroll.height) }
+                    if (target != null && scroll.scrollY != target) scroll.scrollTo(0, target)
+                    if (android.os.SystemClock.uptimeMillis() > deadline) holdY = 0
+                }
+                if (holdY == 0) {
+                    SettingsScroll.y = scroll.scrollY
+                    stopTracking()
+                }
+            }
+        }
+        layoutListener = listener
+        scroll.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    private fun stopTracking() {
+        val l = layoutListener ?: return
+        layoutListener = null
+        _binding?.scrollView?.viewTreeObserver?.takeIf { it.isAlive }?.removeOnGlobalLayoutListener(l)
+    }
+
+    /** Takes focus off the search field without handing it straight back (it is focusable in touch mode). */
+    private fun dropSearchFocus() {
+        val search = _binding?.settingsSearch ?: return
+        if (!search.hasFocus()) return
+        search.isFocusableInTouchMode = false
+        search.clearFocus()
+        search.post { search.isFocusableInTouchMode = true }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        trackScroll()
         prefs = Prefs(requireContext())
         viewModel = activity?.run {
             ViewModelProvider(this)[MainViewModel::class.java]
@@ -91,6 +170,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         populateBoldFont()
         populateFont()
         populateAlignment()
+        populateHomeAppStyle() // YOK-031
         populateStatusBar()
         populateDateTime()
         weatherSettings = WeatherSettings(
@@ -106,6 +186,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             }
             populateCockpitAgenda()
         }
+        initGlance() // YOK-032
         initClickListeners()
         initObservers()
         SettingsOrganizer(requireContext(), listOf(
@@ -125,7 +206,13 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
         com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).apply { vaultUri = uri.toString(); agendaAt = 0L }
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
         if (_binding != null) populateConnections()
+    }
+
+    // YOK-037: the lock screen service's notification needs it (Android 13+)
+    private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        if (_binding != null) checkLockScreenLaunch()
     }
 
     /** The values shown at the end of rows that open their own screen. */
@@ -141,13 +228,14 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.webLinks.text = prefs.links.size.toString()
         com.outsmartis.yoke.assist.Assistant.reconcile(ctx)
         binding.assistantRow.text = AssistantDialog.summary(ctx)
+        populateAskBar()
         val grayscale = com.outsmartis.yoke.grayscale.GrayscalePrefs(ctx)
-        val exceptions = (grayscale.exceptions - com.outsmartis.yoke.grayscale.GrayscalePrefs.DEFAULT_EXCEPTIONS).size
-        binding.grayscaleRow.text = if (grayscale.featureOn) getString(R.string.settings_on_exceptions, exceptions) else getString(R.string.off)
+        val exceptions = visibleGrayscaleExceptionCount(ctx, grayscale)
+        binding.grayscaleRow.text = if (grayscale.featureOn) resources.getQuantityString(R.plurals.settings_on_exceptions, exceptions, exceptions) else getString(R.string.off)
         val notes = com.outsmartis.yoke.notifications.NotificationPrefs(ctx)
         binding.notesRow.text = if (notes.enabled) getString(R.string.settings_on_apps, notes.allowed.size) else getString(R.string.off)
         val limited = com.outsmartis.yoke.limits.LimitPrefs(ctx).limited.size
-        binding.limitsRow.text = if (limited == 0) getString(R.string.off) else getString(R.string.limits_count, limited)
+        binding.limitsRow.text = if (limited == 0) getString(R.string.off) else resources.getQuantityString(R.plurals.limits_count, limited, limited)
         binding.backupRow.text = getString(
             if (com.outsmartis.yoke.backup.VaultBackup.keepCopy(ctx)) R.string.settings_backup_auto else R.string.settings_backup_manual
         )
@@ -194,7 +282,69 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun openConductore() {
         val launch = requireContext().packageManager.getLaunchIntentForPackage(com.outsmartis.yoke.details.DetailsSheet.CONDUCTORE_PACKAGE)
-        if (launch != null) startActivity(launch) else requireContext().showToast(getString(R.string.settings_status_not_installed))
+        if (launch != null) startActivity(launch.keepScreen()) else requireContext().showToast(getString(R.string.settings_status_not_installed))
+    }
+
+    // YOK-032: the glance card rows
+    private fun initGlance() {
+        populateGlance()
+        binding.glanceToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.enabled = !glance.enabled
+            populateGlance()
+        }
+        binding.glanceSource.setOnClickListener { chooseGlanceSource() }
+        binding.glanceWeatherToggle.setOnClickListener {
+            val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+            glance.showWeather = !glance.showWeather
+            populateGlance()
+        }
+    }
+
+    /** One list with every source, so a denied calendar never blocks Cockpit; picking Calendar also re-asks when access is missing. */
+    private fun chooseGlanceSource() {
+        val sources = com.outsmartis.yoke.glance.GlanceSource.entries
+        val labels = arrayOf(R.string.glance_source_none, R.string.glance_source_calendar, R.string.glance_source_cockpit)
+            .map { getString(it) }.toTypedArray()
+        val current = com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle(R.string.glance_source_setting)
+            .setSingleChoiceItems(labels, sources.indexOf(current)) { dialog, which ->
+                dialog.dismiss()
+                val picked = sources[which]
+                when {
+                    picked == com.outsmartis.yoke.glance.GlanceSource.CALENDAR &&
+                        !com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext()) ->
+                        calendarPermission.launch(com.outsmartis.yoke.glance.GlanceRepository.PERMISSION)
+                    picked == com.outsmartis.yoke.glance.GlanceSource.COCKPIT &&
+                        com.outsmartis.yoke.cockpit.CockpitPrefs(requireContext()).vaultUri == null -> {
+                        setGlanceSource(picked)
+                        requireContext().showToast(getString(R.string.cockpit_agenda_needs_vault))
+                    }
+                    else -> setGlanceSource(picked)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun setGlanceSource(source: com.outsmartis.yoke.glance.GlanceSource) {
+        com.outsmartis.yoke.glance.GlancePrefs(requireContext()).source = source
+        com.outsmartis.yoke.glance.GlanceRepository.clear()
+        populateGlance()
+    }
+
+    private fun populateGlance() {
+        val glance = com.outsmartis.yoke.glance.GlancePrefs(requireContext())
+        binding.glanceToggle.text = getString(if (glance.enabled) R.string.on else R.string.off)
+        binding.glanceSource.setText(when (glance.source) {
+            com.outsmartis.yoke.glance.GlanceSource.NONE -> R.string.glance_source_none
+            com.outsmartis.yoke.glance.GlanceSource.CALENDAR ->
+                if (com.outsmartis.yoke.glance.GlanceRepository.hasCalendarPermission(requireContext())) R.string.glance_source_calendar
+                else R.string.glance_source_calendar_no_access
+            com.outsmartis.yoke.glance.GlanceSource.COCKPIT -> R.string.glance_source_cockpit
+        })
+        binding.glanceWeatherToggle.text = getString(if (glance.showWeather) R.string.on else R.string.off)
     }
 
     private fun populateCockpitAgenda() {
@@ -202,6 +352,32 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.cockpitAgendaToggle.text = getString(if (cockpit.agendaEnabled) R.string.on else R.string.off)
         val language = DICTATION_LANGUAGES.firstOrNull { it.first == cockpit.dictationLanguage } ?: DICTATION_LANGUAGES[0]
         binding.dictationLanguage.setText(language.second)
+    }
+
+    // YOK-030: the home bar and who its "Ask …" row goes to.
+    private fun populateAskBar() {
+        val ctx = requireContext()
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(ctx)
+        binding.askBarRow.setText(if (ask.enabled) R.string.on else R.string.off)
+        val agent = ask.agent
+        val installed = com.outsmartis.yoke.askbar.AskAgents.conductoreInstalled(ctx)
+        binding.askAgentRow.text =
+            if (agent == com.outsmartis.yoke.askbar.AskAgent.CONDUCTORE && !installed) getString(R.string.ask_agent_conductore_missing)
+            else com.outsmartis.yoke.askbar.AskAgents.label(ctx, agent)
+    }
+
+    private fun toggleAskBar() {
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(requireContext())
+        ask.enabled = !ask.enabled
+        populateAskBar()
+    }
+
+    /** Phone assistant → Conductore (only when installed) → None → Phone assistant. */
+    private fun cycleAskAgent() {
+        val ctx = requireContext()
+        val ask = com.outsmartis.yoke.askbar.AskBarPrefs(ctx)
+        ask.agent = com.outsmartis.yoke.askbar.AskBarLogic.next(ask.agent, com.outsmartis.yoke.askbar.AskAgents.conductoreInstalled(ctx))
+        populateAskBar()
     }
 
     /** Phone → Português → English → Phone. */
@@ -226,14 +402,16 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.webLinks -> LinkDialogs.showList(requireContext(), prefs)
             R.id.homeAppsNum -> showHomeAppsNumMenu(view)
             R.id.alignment -> showAlignmentMenu(view)
+            R.id.homeAppStyle -> showHomeAppStyleMenu(view) // YOK-031
             R.id.statusBar -> toggleStatusBar()
             R.id.dateTime -> showDateTimeMenu(view)
             R.id.appThemeText -> ThemePickerActivity.open(requireContext())
             R.id.wallpaperRow -> com.outsmartis.yoke.wallpaper.WallpaperActivity.open(requireContext())
             R.id.systemColoursRow -> showSystemColoursDialog()
+            R.id.lockScreenRow -> showLockScreenDialog() // YOK-036
             R.id.textSizeValue -> showTextSizeDialog()
             R.id.boldFont -> toggleBoldFont()
-            R.id.fontText -> toggleFont()
+            R.id.fontText -> showFontDialog()
 
             R.id.iconRowRow -> findNavController().navigate(R.id.action_settingsFragment_to_iconRowFragment)
             R.id.gesturesRow -> findNavController().navigate(R.id.action_settingsFragment_to_gesturesFragment)
@@ -247,6 +425,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 dialog = AssistantDialog.show(requireContext()) { if (_binding != null) populateSummaries() }
             }
             R.id.dictationLanguage -> cycleDictationLanguage()
+            R.id.askBarRow -> toggleAskBar()
+            R.id.askAgentRow -> cycleAskAgent()
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
             R.id.conductoreRow -> openConductore()
@@ -293,6 +473,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.nowPlayingRow.setOnClickListener(this)
         binding.assistantRow.setOnClickListener(this)
         binding.dictationLanguage.setOnClickListener(this)
+        binding.askBarRow.setOnClickListener(this)
+        binding.askAgentRow.setOnClickListener(this)
         populateNowPlaying()
         binding.notesRow.setOnClickListener(this)
         binding.searchRow.setOnClickListener(this)
@@ -306,8 +488,10 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.appThemeText.setOnClickListener(this)
         binding.wallpaperRow.setOnClickListener(this)
         binding.systemColoursRow.setOnClickListener(this)
+        binding.lockScreenRow.setOnClickListener(this) // YOK-036
         binding.textSizeValue.setOnClickListener(this)
         binding.boldFont.setOnClickListener(this)
+        binding.homeAppStyle.setOnClickListener(this) // YOK-031
         binding.fontText.setOnClickListener(this)
 
         binding.alignment.setOnLongClickListener(this)
@@ -342,6 +526,28 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 R.id.dateTimeOff -> toggleDateTime(Constants.DateTime.OFF)
                 R.id.dateOnly -> toggleDateTime(Constants.DateTime.DATE_ONLY)
             }
+        }
+    }
+
+    // YOK-031
+    private fun homeAppStyleLabel(style: HomeAppStyle) = when (style) {
+        HomeAppStyle.TEXT -> R.string.home_app_style_text
+        HomeAppStyle.ICON_TEXT -> R.string.home_app_style_icon_text
+        HomeAppStyle.ICON -> R.string.home_app_style_icon
+    }
+
+    private fun populateHomeAppStyle() {
+        binding.homeAppStyle.setText(homeAppStyleLabel(IconRowPrefs(requireContext()).homeAppStyle))
+    }
+
+    private fun showHomeAppStyleMenu(anchor: View) {
+        anchor.showPopupMenu(
+            configure = { menu ->
+                HomeAppStyle.entries.forEachIndexed { i, style -> menu.add(Menu.NONE, i, i, homeAppStyleLabel(style)) }
+            }
+        ) { item ->
+            IconRowPrefs(requireContext()).homeAppStyle = HomeAppStyle.entries[item.itemId]
+            populateHomeAppStyle()
         }
     }
 
@@ -536,7 +742,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         pendingTextSizeScale = -1f
         val activity = activity ?: return
         if (activity.isChangingConfigurations.not())
-            activity.recreate()
+            ThemeFade.recreate(activity)
     }
 
     private fun toggleKeyboardText() {
@@ -558,12 +764,101 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
 
     private fun setAppTheme(theme: Int) {
         if (AppCompatDelegate.getDefaultNightMode() == theme) return
-        requireActivity().recreate()
+        ThemeFade.recreate(requireActivity())
     }
 
     private fun populateWallpaper() {
         binding.wallpaperRow.text = com.outsmartis.yoke.wallpaper.WallpaperActivity.summary(requireContext())
         populateSystemColours()
+        populateLockScreen()
+    }
+
+    // YOK-036
+    private fun lockScreenLabel(level: com.outsmartis.yoke.wallpaper.LockScreenLevel) = when (level) {
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.OFF -> R.string.lock_screen_off
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER -> R.string.lock_screen_wallpaper
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER_SYSTEM -> R.string.lock_screen_wallpaper_system
+        com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE -> R.string.lock_screen_yoke
+    }
+
+    private fun populateLockScreen() {
+        val ctx = requireContext()
+        val status = com.outsmartis.yoke.wallpaper.LockScreenSync.status(ctx)
+        val level = com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx)
+        val text: CharSequence = when {
+            status == com.outsmartis.yoke.wallpaper.LockScreenSync.Status.NeedsPermission ->
+                getString(
+                    if (com.outsmartis.yoke.theme.SystemPaletteSync.supported()) R.string.system_colours_needs_permission
+                    else R.string.lock_screen_system_unsupported
+                )
+            level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE && !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
+                getString(R.string.lock_screen_yoke_needs_accessibility)
+            else -> {
+                // Always the level's own name; the hint (no wallpaper applied yet) is secondary text.
+                val name = getString(lockScreenLabel(level))
+                if (com.outsmartis.yoke.wallpaper.LockScreenLogic.needsWallpaper(level, com.outsmartis.yoke.wallpaper.WallpaperPrefs(ctx).applied)) {
+                    val hint = getString(R.string.lock_screen_not_applied)
+                    android.text.SpannableString("$name\n$hint").apply {
+                        setSpan(
+                            android.text.style.RelativeSizeSpan(0.8f), name.length + 1, length,
+                            android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                        )
+                    }
+                } else name
+            }
+        }
+        binding.lockScreenRow.text = text
+    }
+
+    /** One choice of four; levels that cannot work yet say why instead of doing nothing. */
+    private fun showLockScreenDialog() {
+        val ctx = requireContext()
+        val sync = com.outsmartis.yoke.wallpaper.LockScreenSync
+        val levels = com.outsmartis.yoke.wallpaper.LockScreenLevel.entries
+        val labels = levels.map { level ->
+            val label = getString(lockScreenLabel(level))
+            when {
+                level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE &&
+                    !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen() ->
+                    "$label (${getString(R.string.lock_screen_yoke_needs_accessibility)})"
+                sync.available(ctx, level) -> label
+                !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> "$label (${getString(R.string.lock_screen_system_unsupported)})"
+                else -> "$label (${getString(R.string.system_colours_needs_permission)})"
+            }
+        }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.lock_screen_title)
+            .setSingleChoiceItems(labels, levels.indexOf(sync.level(ctx))) { dialog, which ->
+                val level = levels[which]
+                if (level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE &&
+                    !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen()
+                ) {
+                    // Level stays as it is until the service is on (applied in onResume)
+                    askAccessibilityForLockScreen(ctx)
+                } else if (sync.available(ctx, level)) {
+                    val needsWallpaper = sync.setLevel(ctx, level)
+                    if (_binding != null) populateLockScreen()
+                    if (level == com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE) askLockScreenYokeAccess()
+                    if (needsWallpaper) {
+                        androidx.appcompat.app.AlertDialog.Builder(ctx)
+                            .setTitle(R.string.lock_screen_title)
+                            .setMessage(R.string.lock_screen_needs_wallpaper)
+                            .setPositiveButton(R.string.lock_screen_open_wallpaper) { _, _ ->
+                                com.outsmartis.yoke.wallpaper.WallpaperActivity.open(ctx)
+                            }
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
+                } else {
+                    val reason = when {
+                        !com.outsmartis.yoke.theme.SystemPaletteSync.supported() -> R.string.lock_screen_system_unsupported
+                        else -> R.string.lock_screen_system_needs_permission
+                    }
+                    Toast.makeText(ctx, reason, Toast.LENGTH_LONG).show()
+                }
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun populateSystemColours() {
@@ -593,6 +888,14 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 action = action,
                 message = R.string.system_colours_message,
                 onAction = {
+                    com.outsmartis.yoke.wallpaper.LockScreenSync.userChangedColours(ctx) // YOK-036
+                    // The Lock screen level "Wallpaper + system" owns this switch: turning colours off drops it to
+                    // "Wallpaper" instead of being switched back on at the next resume.
+                    if (on && com.outsmartis.yoke.wallpaper.LockScreenSync.level(ctx).includesSystem) {
+                        com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel(
+                            ctx, com.outsmartis.yoke.wallpaper.LockScreenLevel.WALLPAPER,
+                        )
+                    }
                     when {
                         on -> SystemPaletteSync.setEnabled(ctx, false)
                         hasPermission -> SystemPaletteSync.setEnabled(ctx, true)
@@ -613,9 +916,11 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         if (_binding != null) {
             // Catches a permission granted since (Smart grayscale's screen, or adb).
             SystemPaletteSync.sync(requireContext())
+            com.outsmartis.yoke.wallpaper.LockScreenSync.sync(requireContext()) // YOK-036
             populateWallpaper()
             populateSummaries()
             populateConnections()
+            applyPendingYokeLevel()
         }
     }
 
@@ -639,20 +944,46 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun toggleBoldFont() {
         prefs.boldFont = !prefs.boldFont
         populateBoldFont()
-        requireActivity().recreate()
+        ThemeFade.recreate(requireActivity())
     }
 
-    private fun toggleFont() {
-        val themePrefs = ThemePrefs(requireContext())
-        themePrefs.jetBrainsMono = !themePrefs.jetBrainsMono
-        populateFont()
-        requireActivity().recreate()
+    // YOK-034: a list of fonts, each name drawn in its own font
+    private fun showFontDialog() {
+        val ctx = requireContext()
+        val themePrefs = ThemePrefs(ctx)
+        val current = themePrefs.font
+        val rows = ArrayList<Pair<TextView, FontChoice>>()
+        val picker = ctx.createDialog(R.string.font_picker_title, R.string.okay) { container ->
+            val list = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            FontChoice.entries.forEach { choice ->
+                val row = TextView(ctx, null, 0, R.style.TextSmall).apply {
+                    text = if (choice == current) "\u2022 " + ctx.getString(choice.label) else ctx.getString(choice.label)
+                    textSize = 18f
+                    setPadding(0, (12 * resources.displayMetrics.density).toInt(), 0, (12 * resources.displayMetrics.density).toInt())
+                    setOnClickListener {
+                        this@SettingsFragment.dialog?.dismiss()
+                        if (choice != themePrefs.font) {
+                            themePrefs.font = choice
+                            populateFont()
+                            ThemeFade.recreate(requireActivity())
+                        }
+                    }
+                }
+                rows += row to choice
+                list.addView(row)
+            }
+            ScrollView(ctx).apply { addView(list) }
+        }
+        // The dialog's theming sets every text to the current font; draw each row in its own after that
+        rows.forEach { (row, choice) ->
+            if (choice == FontChoice.SYSTEM) row.typeface = Typeface.DEFAULT
+            else ResourcesCompat.getFont(ctx, choice.regular)?.let { row.typeface = it }
+        }
+        showDialog(picker)
     }
 
     private fun populateFont() {
-        binding.fontText.text = getString(
-            if (ThemePrefs(requireContext()).jetBrainsMono) R.string.font_jetbrains_mono else R.string.font_system
-        )
+        binding.fontText.text = getString(ThemePrefs(requireContext()).font.label)
     }
 
     private fun populateBoldFont() {
@@ -677,6 +1008,48 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             ctx.showToast(getString(R.string.now_playing_needs_access))
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
+    }
+
+    // The Yoke level waits for the accessibility service: explain, then open settings; onResume applies it.
+    // Kept in prefs so a recreate or kill while the user is in accessibility settings doesn't lose it.
+
+    private fun askAccessibilityForLockScreen(ctx: Context) {
+        androidx.appcompat.app.AlertDialog.Builder(ctx)
+            .setTitle(R.string.lock_screen_title)
+            .setMessage(R.string.lock_screen_yoke_why_accessibility)
+            .setPositiveButton(R.string.lock_screen_yoke_open_settings) { _, _ ->
+                prefs.pendingYokeLevel = true
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun applyPendingYokeLevel() {
+        if (!prefs.pendingYokeLevel || !com.outsmartis.yoke.lockscreen.LockScreenController.launchPathOpen()) return
+        prefs.pendingYokeLevel = false
+        com.outsmartis.yoke.wallpaper.LockScreenSync.setLevel(requireContext(), com.outsmartis.yoke.wallpaper.LockScreenLevel.YOKE)
+        populateLockScreen()
+        askLockScreenYokeAccess()
+    }
+
+    // YOK-037: the Yoke level needs the service's notification (Android 13+) and the accessibility service
+    private fun askLockScreenYokeAccess() {
+        val ctx = requireContext()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else checkLockScreenLaunch()
+    }
+
+    // The only launch path is the accessibility service: without it nothing can open over the lock screen
+    private fun checkLockScreenLaunch() {
+        val ctx = requireContext()
+        val lock = com.outsmartis.yoke.lockscreen.LockScreenController
+        if (!lock.isEnabled(ctx) || lock.launchPathOpen()) return
+        ctx.showToast(getString(R.string.lock_screen_yoke_needs_launch), Toast.LENGTH_LONG)
+        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
     }
 
     private fun populateScreenTimeOnOff() {
@@ -773,6 +1146,8 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         dialog = null
         applyTextSizeScale()
         weatherSettings = null
+        stopTracking()
+        SettingsScroll.onViewDestroyed(activity?.isChangingConfigurations == true)
         super.onDestroyView()
         _binding = null
     }
@@ -783,3 +1158,22 @@ private val DICTATION_LANGUAGES = listOf(
     "pt-PT" to R.string.dictation_language_pt,
     "en-US" to R.string.dictation_language_en,
 )
+
+/** Settings' scroll position across activity recreates; reset whenever the page is left for real. */
+object SettingsScroll {
+    @Volatile var y = 0
+
+    /** Records the position the user left the page at; never while a restore is holding (those scrolls are not the user). */
+    fun record(restoring: Boolean, position: Int) {
+        if (!restoring) y = position
+    }
+    private var recreating = false
+
+    /** The position to restore into a view created after a recreate, else 0. */
+    fun takeWanted(): Int = (if (recreating) y else 0).also { recreating = false; if (it == 0) y = 0 }
+
+    fun onViewDestroyed(changingConfigurations: Boolean) {
+        recreating = changingConfigurations
+        if (!changingConfigurations) y = 0
+    }
+}

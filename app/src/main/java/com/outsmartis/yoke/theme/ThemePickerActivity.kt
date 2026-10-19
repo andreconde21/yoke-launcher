@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.outsmartis.yoke.R
 import com.outsmartis.yoke.data.Prefs
 import com.outsmartis.yoke.helper.getColorFromAttr
+import com.outsmartis.yoke.helper.hideStatusBar
+import com.outsmartis.yoke.helper.showStatusBar
 
 /**
  * Lists System default, every Omarchy theme and "Follow my Omarchy PC", each in
@@ -87,6 +89,8 @@ class ThemePickerActivity : AppCompatActivity() {
             setBackgroundColor(theme?.background ?: getColorFromAttr(R.attr.primaryColorInverseTrans90))
         }
         setContentView(scroll)
+        if (Prefs(this).showStatusBar) window.showStatusBar() else window.hideStatusBar()
+        ThemeFade.reveal(this)
         ThemeApplier.applyWindow(this)
         // Only the title takes the theme here; rows carry their own palette.
         theme?.let { title.setTextColor(it.foreground) }
@@ -97,7 +101,7 @@ class ThemePickerActivity : AppCompatActivity() {
             }
             font(list)
         }
-        observer = ThemeStore.observeConductore(this) { recreate() }
+        observer = ThemeStore.observeConductore(this) { ThemeFade.recreate(this) }
     }
 
     private fun row(id: String, label: String, preview: YokeTheme?, selectedId: String): View {
@@ -132,7 +136,7 @@ class ThemePickerActivity : AppCompatActivity() {
             setOnClickListener {
                 ThemeStore.setThemeId(this@ThemePickerActivity, id)
                 setResult(Activity.RESULT_OK)
-                recreate()
+                ThemeFade.recreate(this@ThemePickerActivity)
             }
         }
     }
@@ -165,3 +169,4 @@ class ThemePickerActivity : AppCompatActivity() {
         }
     }
 }
+

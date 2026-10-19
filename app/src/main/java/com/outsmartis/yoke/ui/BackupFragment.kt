@@ -15,6 +15,7 @@ import com.outsmartis.yoke.databinding.FragmentBackupBinding
 import com.outsmartis.yoke.helper.YokeDialog
 import com.outsmartis.yoke.helper.createDialog
 import com.outsmartis.yoke.helper.showToast
+import com.outsmartis.yoke.theme.ThemeFade
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,7 +75,7 @@ class BackupFragment : BaseFragment() {
     }
 
     private fun exportTo(uri: Uri) {
-        val ctx = requireContext()
+        val ctx = context?.applicationContext ?: return
         val ok = runCatching {
             ctx.contentResolver.openOutputStream(uri, "wt")?.use { it.write(YokeBackup.export(ctx).toByteArray(Charsets.UTF_8)) } != null
         }.getOrDefault(false)
@@ -94,12 +95,14 @@ class BackupFragment : BaseFragment() {
                     val result = runCatching {
                         val text = read() ?: throw BackupException(getString(R.string.backup_no_vault_copy))
                         YokeBackup.import(ctx.applicationContext, text)
+                        // The import already succeeded; a failed lock screen sync must not report it as failed
+                        runCatching { com.outsmartis.yoke.wallpaper.LockScreenSync.sync(ctx.applicationContext) } // YOK-036
                     }
                     activity?.runOnUiThread {
                         val error = result.exceptionOrNull()
                         if (error == null) {
                             ctx.showToast(R.string.backup_imported)
-                            activity?.recreate()
+                            activity?.let { ThemeFade.recreate(it) }
                         } else {
                             ctx.showToast(getString(R.string.backup_import_failed, error.message ?: "?"))
                         }

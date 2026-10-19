@@ -25,6 +25,7 @@ class Prefs(private val context: Context) {
     private val HOME_BOTTOM_ALIGNMENT = "HOME_BOTTOM_ALIGNMENT"
     private val APP_LABEL_ALIGNMENT = "APP_LABEL_ALIGNMENT"
     private val STATUS_BAR = "STATUS_BAR"
+    private val PENDING_YOKE_LEVEL = "PENDING_YOKE_LEVEL"
     private val DATE_TIME_VISIBILITY = "DATE_TIME_VISIBILITY"
     private val SWIPE_LEFT_ENABLED = "SWIPE_LEFT_ENABLED"
     private val SWIPE_RIGHT_ENABLED = "SWIPE_RIGHT_ENABLED"
@@ -216,6 +217,10 @@ class Prefs(private val context: Context) {
     var appLabelAlignment: Int
         get() = prefs.getInt(APP_LABEL_ALIGNMENT, Gravity.START)
         set(value) = prefs.edit { putInt(APP_LABEL_ALIGNMENT, value).apply() }
+
+    var pendingYokeLevel: Boolean
+        get() = prefs.getBoolean(PENDING_YOKE_LEVEL, false)
+        set(value) = prefs.edit { putBoolean(PENDING_YOKE_LEVEL, value).apply() }
 
     var showStatusBar: Boolean
         get() = prefs.getBoolean(STATUS_BAR, false)

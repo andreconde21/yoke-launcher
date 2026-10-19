@@ -23,11 +23,11 @@ object WeatherRepository {
     @Volatile private var inFlight = false
 
     /** Refresh when due (or [force]d); [onDone] runs on the main thread after a refresh attempt that ran. */
-    fun refreshIfNeeded(context: Context, force: Boolean = false, onDone: () -> Unit) {
+    fun refreshIfNeeded(context: Context, force: Boolean = false, onDone: () -> Unit): Boolean {
         val app = context.applicationContext
         val prefs = WeatherPrefs(app)
-        if (!prefs.enabled || inFlight) return
-        if (!force && !WeatherFormat.needsRefresh(prefs.reading, prefs.units, System.currentTimeMillis())) return
+        if (!prefs.enabled || inFlight) return false
+        if (!force && !WeatherFormat.needsRefresh(prefs.reading, prefs.units, System.currentTimeMillis())) return false
         inFlight = true
         val finish = { inFlight = false; main.post(onDone); Unit }
         val manual = prefs.city?.let { it.latitude to it.longitude }
@@ -36,6 +36,7 @@ object WeatherRepository {
         } else {
             fetchAndStore(prefs, manual, finish)
         }
+        return true
     }
 
     private fun fetchAndStore(prefs: WeatherPrefs, coords: Pair<Double, Double>?, finish: () -> Unit) {
