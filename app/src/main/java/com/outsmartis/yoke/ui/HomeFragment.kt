@@ -227,14 +227,10 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
 
     override fun onLongClick(view: View): Boolean {
         when (view.id) {
-            R.id.homeApp1 -> homeAppLongPressed(1, Constants.FLAG_SET_HOME_APP_1)
-            R.id.homeApp2 -> homeAppLongPressed(2, Constants.FLAG_SET_HOME_APP_2)
-            R.id.homeApp3 -> homeAppLongPressed(3, Constants.FLAG_SET_HOME_APP_3)
-            R.id.homeApp4 -> homeAppLongPressed(4, Constants.FLAG_SET_HOME_APP_4)
-            R.id.homeApp5 -> homeAppLongPressed(5, Constants.FLAG_SET_HOME_APP_5)
-            R.id.homeApp6 -> homeAppLongPressed(6, Constants.FLAG_SET_HOME_APP_6)
-            R.id.homeApp7 -> homeAppLongPressed(7, Constants.FLAG_SET_HOME_APP_7)
-            R.id.homeApp8 -> homeAppLongPressed(8, Constants.FLAG_SET_HOME_APP_8)
+            in homeAppIds -> {
+                val location = homeAppIds.indexOf(view.id) + 1
+                homeAppLongPressed(location, Constants.FLAG_SET_HOME_APP_1 + location - 1)
+            }
             R.id.clock -> {
                 showAppList(Constants.FLAG_SET_CLOCK_APP)
                 prefs.clockAppPackage = ""
@@ -307,14 +303,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val context = requireContext()
         mainTouchListener = getSwipeGestureListener(context)
         binding.mainLayout.setOnTouchListener(mainTouchListener)
-        binding.homeApp1.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp1))
-        binding.homeApp2.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp2))
-        binding.homeApp3.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp3))
-        binding.homeApp4.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp4))
-        binding.homeApp5.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp5))
-        binding.homeApp6.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp6))
-        binding.homeApp7.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp7))
-        binding.homeApp8.setOnTouchListener(getViewSwipeTouchListener(context, binding.homeApp8))
+        for (tv in homeAppViews()) tv.setOnTouchListener(getViewSwipeTouchListener(context, tv))
     }
 
     private fun initClickListeners() {
@@ -338,36 +327,17 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         binding.tvScreenTime.setOnLongClickListener(this)
 
         // These fire only on d-pad/keyboard events; touch is consumed by ViewSwipeTouchListener
-        binding.homeApp1.setOnClickListener(this)
-        binding.homeApp2.setOnClickListener(this)
-        binding.homeApp3.setOnClickListener(this)
-        binding.homeApp4.setOnClickListener(this)
-        binding.homeApp5.setOnClickListener(this)
-        binding.homeApp6.setOnClickListener(this)
-        binding.homeApp7.setOnClickListener(this)
-        binding.homeApp8.setOnClickListener(this)
-        binding.homeApp1.setOnLongClickListener(this)
-        binding.homeApp2.setOnLongClickListener(this)
-        binding.homeApp3.setOnLongClickListener(this)
-        binding.homeApp4.setOnLongClickListener(this)
-        binding.homeApp5.setOnLongClickListener(this)
-        binding.homeApp6.setOnLongClickListener(this)
-        binding.homeApp7.setOnLongClickListener(this)
-        binding.homeApp8.setOnLongClickListener(this)
+        for (tv in homeAppViews()) {
+            tv.setOnClickListener(this)
+            tv.setOnLongClickListener(this)
+        }
     }
 
     private fun setHomeAlignment(horizontalGravity: Int = prefs.homeAlignment) {
         val verticalGravity = if (prefs.homeBottomAlignment) Gravity.BOTTOM else Gravity.CENTER_VERTICAL
         binding.homeAppsLayout.gravity = horizontalGravity or verticalGravity
         binding.dateTimeLayout.gravity = horizontalGravity
-        binding.homeApp1.gravity = horizontalGravity
-        binding.homeApp2.gravity = horizontalGravity
-        binding.homeApp3.gravity = horizontalGravity
-        binding.homeApp4.gravity = horizontalGravity
-        binding.homeApp5.gravity = horizontalGravity
-        binding.homeApp6.gravity = horizontalGravity
-        binding.homeApp7.gravity = horizontalGravity
-        binding.homeApp8.gravity = horizontalGravity
+        for (tv in homeAppViews()) tv.gravity = horizontalGravity
         // Icon only padding depends on the alignment edge
         if (iconPrefs.homeAppStyle == HomeAppStyle.ICON) renderHomeIcons()
     }
@@ -559,10 +529,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val counts = notes?.counts().orEmpty()
         lastIconCounts = counts
         val accent = ThemeStore.current(ctx)?.accentText ?: ctx.getColorFromAttr(R.attr.primaryColor)
-        val views = listOf(
-            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
-            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
-        )
+        val views = homeAppViews()
         for ((i, tv) in views.withIndex()) {
             val slot = i + 1
             val pkg = prefs.getAppPackage(slot)
@@ -851,10 +818,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         val counts = n.counts()
         val accent = ThemeStore.current(requireContext())?.accentText
             ?: requireContext().getColorFromAttr(R.attr.primaryColor)
-        val slots = listOf(
-            binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4,
-            binding.homeApp5, binding.homeApp6, binding.homeApp7, binding.homeApp8,
-        )
+        val slots = homeAppViews()
         for ((i, tv) in slots.withIndex()) {
             val slot = i + 1
             if (tv.text.isEmpty()) continue
@@ -877,62 +841,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
             populateScreenTime()
 
-        val homeAppsNum = prefs.homeAppsNum
-        if (homeAppsNum == 0) return
-
-        binding.homeApp1.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp1, prefs.appName1, prefs.appPackage1, prefs.appUser1, prefs.isShortcut1, prefs.shortcutId1)) {
-            prefs.appName1 = ""
-            prefs.appPackage1 = ""
-        }
-        if (homeAppsNum == 1) return
-
-        binding.homeApp2.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp2, prefs.appName2, prefs.appPackage2, prefs.appUser2, prefs.isShortcut2, prefs.shortcutId2)) {
-            prefs.appName2 = ""
-            prefs.appPackage2 = ""
-        }
-        if (homeAppsNum == 2) return
-
-        binding.homeApp3.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp3, prefs.appName3, prefs.appPackage3, prefs.appUser3, prefs.isShortcut3, prefs.shortcutId3)) {
-            prefs.appName3 = ""
-            prefs.appPackage3 = ""
-        }
-        if (homeAppsNum == 3) return
-
-        binding.homeApp4.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp4, prefs.appName4, prefs.appPackage4, prefs.appUser4, prefs.isShortcut4, prefs.shortcutId4)) {
-            prefs.appName4 = ""
-            prefs.appPackage4 = ""
-        }
-        if (homeAppsNum == 4) return
-
-        binding.homeApp5.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp5, prefs.appName5, prefs.appPackage5, prefs.appUser5, prefs.isShortcut5, prefs.shortcutId5)) {
-            prefs.appName5 = ""
-            prefs.appPackage5 = ""
-        }
-        if (homeAppsNum == 5) return
-
-        binding.homeApp6.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp6, prefs.appName6, prefs.appPackage6, prefs.appUser6, prefs.isShortcut6, prefs.shortcutId6)) {
-            prefs.appName6 = ""
-            prefs.appPackage6 = ""
-        }
-        if (homeAppsNum == 6) return
-
-        binding.homeApp7.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp7, prefs.appName7, prefs.appPackage7, prefs.appUser7, prefs.isShortcut7, prefs.shortcutId7)) {
-            prefs.appName7 = ""
-            prefs.appPackage7 = ""
-        }
-        if (homeAppsNum == 7) return
-
-        binding.homeApp8.visibility = View.VISIBLE
-        if (!setHomeAppText(binding.homeApp8, prefs.appName8, prefs.appPackage8, prefs.appUser8, prefs.isShortcut8, prefs.shortcutId8)) {
-            prefs.appName8 = ""
-            prefs.appPackage8 = ""
+        val views = homeAppViews()
+        for (location in 1..prefs.homeAppsNum.coerceAtMost(views.size)) {
+            val tv = views[location - 1]
+            tv.visibility = View.VISIBLE
+            if (!setHomeAppText(tv, prefs.getAppName(location), prefs.getAppPackage(location), prefs.getAppUser(location),
+                    prefs.getIsShortcut(location), prefs.getShortcutId(location))) {
+                prefs.clearHomeSlotApp(location)
+            }
         }
     }
 
@@ -990,15 +906,14 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     }
 
     private fun hideHomeApps() {
-        binding.homeApp1.visibility = View.GONE
-        binding.homeApp2.visibility = View.GONE
-        binding.homeApp3.visibility = View.GONE
-        binding.homeApp4.visibility = View.GONE
-        binding.homeApp5.visibility = View.GONE
-        binding.homeApp6.visibility = View.GONE
-        binding.homeApp7.visibility = View.GONE
-        binding.homeApp8.visibility = View.GONE
+        for (tv in homeAppViews()) tv.visibility = View.GONE
     }
+
+    /** Home screen slots in order: index 0 is slot 1. */
+    private fun homeAppViews(): List<TextView> = listOf(
+        binding.homeApp1, binding.homeApp2, binding.homeApp3, binding.homeApp4, binding.homeApp5,
+        binding.homeApp6, binding.homeApp7, binding.homeApp8, binding.homeApp9, binding.homeApp10,
+    )
 
     private fun launchAppOrShortcut(
         appName: String,
@@ -1298,5 +1213,11 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private companion object {
         const val MAX_HOLD_MS = 4000L
         const val SETTLE_MS = 150L
+
+        /** View ids of [homeAppViews], same order. */
+        val homeAppIds = listOf(
+            R.id.homeApp1, R.id.homeApp2, R.id.homeApp3, R.id.homeApp4, R.id.homeApp5,
+            R.id.homeApp6, R.id.homeApp7, R.id.homeApp8, R.id.homeApp9, R.id.homeApp10,
+        )
     }
 }

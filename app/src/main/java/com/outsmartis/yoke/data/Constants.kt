@@ -55,6 +55,11 @@ object Constants {
     const val FLAG_SET_HOME_APP_6 = 6
     const val FLAG_SET_HOME_APP_7 = 7
     const val FLAG_SET_HOME_APP_8 = 8
+    const val FLAG_SET_HOME_APP_9 = 9
+    const val FLAG_SET_HOME_APP_10 = 10
+
+    /** Most apps the home screen shows; slots are 1..MAX_HOME_APPS. */
+    const val MAX_HOME_APPS = 10
 
     const val FLAG_SET_CLOCK_APP = 13
     const val FLAG_SET_CALENDAR_APP = 14
