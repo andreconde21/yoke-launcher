@@ -514,7 +514,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
     private fun showHomeAppsNumMenu(anchor: View) {
         anchor.showPopupMenu(
             configure = { menu ->
-                for (num in 0..8) menu.add(Menu.NONE, num, num, num.toString())
+                for (num in 0..Constants.MAX_HOME_APPS) menu.add(Menu.NONE, num, num, num.toString())
             }
         ) { item -> updateHomeAppsNum(item.itemId) }
     }
