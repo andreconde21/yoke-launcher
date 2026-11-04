@@ -128,6 +128,30 @@ object DetailsText {
         }
     }
 
+    /**
+     * The row's second line, as on Conductore's home: "omarchy · Needs input · 5m ago". Conductore's
+     * subtitle holds the machine and the state; the state word stands in when there is none.
+     */
+    fun statusLine(item: DetailsItem, now: Long): String = listOf(
+        item.subtitle?.takeIf { it.isNotEmpty() } ?: when (item.state) {
+            ItemState.NeedsInput, ItemState.Blocked -> "Needs you"
+            ItemState.Working -> "Working"
+            ItemState.Finished -> "Done"
+            ItemState.Idle -> "Idle"
+            ItemState.Unknown -> ""
+        },
+        relativeTime(item.updatedAt, now),
+    ).filter { it.isNotEmpty() }.joinToString(" · ")
+
+    private val GENERIC_QUESTION = Regex(
+        "^\\w+( \\w+)? (is waiting for your input|needs your (permission|attention))",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /** The question worth reading: not the agent's stock notice, which names nothing. */
+    fun question(item: DetailsItem): String? =
+        item.question?.takeUnless { GENERIC_QUESTION.containsMatchIn(it.trim()) }
+
     fun updated(then: Long, now: Long): String =
         relativeTime(then, now).let { if (it.isEmpty()) "" else if (it == "now") "updated now" else "updated $it" }
 }

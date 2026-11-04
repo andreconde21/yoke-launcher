@@ -85,6 +85,8 @@ class DetailsSheet private constructor(
     private val drafts = sharedDrafts
     private val sending = mutableSetOf<String>()
     private val expanded = mutableSetOf<String>()
+    /** Rows with their reply field open; a row with a draft stays open. */
+    private val replying = mutableSetOf<String>()
     private val fields = mutableMapOf<String, EditText>()
     private var lastResult: AppDetailsClient.Result? = null
     private var lastShortcuts: List<ShortcutInfo> = emptyList()
@@ -213,7 +215,7 @@ class DetailsSheet private constructor(
         if (v is ViewGroup) for (i in 0 until v.childCount) applyFont(v.getChildAt(i), f)
     }
 
-    private fun itemRow(item: DetailsItem, compact: Boolean): View {
+    private fun itemRow(item: DetailsItem, compact: Boolean, trailing: View? = null): View {
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -226,22 +228,34 @@ class DetailsSheet private constructor(
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         })
-        if (!compact) item.subtitle?.let {
-            texts.addView(text(it, 13f, secondary).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END })
+        val status = DetailsText.statusLine(item, System.currentTimeMillis())
+        if (status.isNotEmpty()) {
+            texts.addView(text(status, 13f, if (item.state.urgent) attention else secondary).apply {
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
         }
         row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        trailing?.let { row.addView(it) }
         row.addView(stateDot(item.state))
         return row
     }
 
     /** The row (tap = deep link) plus, for contract v2 needsInput/blocked rows, the question and reply controls. */
     private fun itemBlock(item: DetailsItem, compact: Boolean, version: Int, auth: String): View {
-        val row = itemRow(item, compact)
         val ui = ReplyUi.of(item, version)
-        if (ui == ReplyUi.None) return row
+        if (ui == ReplyUi.None) return itemRow(item, compact)
+        val busy = item.id in sending
+        val replyOpen = item.id in replying || !drafts[item.id].isNullOrEmpty()
+        val toggle = if (ui == ReplyUi.TextField && !replyOpen) {
+            chip(context.getString(R.string.details_reply), false, !busy) {
+                replying.add(item.id)
+                repaint()
+            }
+        } else null
         val block = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        block.addView(row)
-        item.question?.let { q ->
+        block.addView(itemRow(item, compact, toggle))
+        DetailsText.question(item)?.let { q ->
             val open = item.id in expanded
             block.addView(text(q, 14f, fg).apply {
                 maxLines = if (open) Int.MAX_VALUE else 6
@@ -253,11 +267,10 @@ class DetailsSheet private constructor(
                 }
             })
         }
-        val busy = item.id in sending
         when (ui) {
             is ReplyUi.Note -> block.addView(text(ui.text, 13f, secondary).apply { setPadding(0, 0, 0, dp(6)) })
             is ReplyUi.Choices -> block.addView(choiceRow(item, ui.options, busy, auth))
-            ReplyUi.TextField -> block.addView(replyRow(item, busy, auth))
+            ReplyUi.TextField -> if (replyOpen) block.addView(replyRow(item, busy, auth))
             ReplyUi.None -> {}
         }
         if (busy) block.addView(text(context.getString(R.string.details_sending), 12f, secondary))
