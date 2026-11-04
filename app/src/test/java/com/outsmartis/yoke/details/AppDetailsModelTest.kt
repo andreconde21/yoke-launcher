@@ -127,4 +127,20 @@ class AppDetailsModelTest {
         assertTrue(o.of(true, false, null, false) is AppDetailsClient.ReplyResult.Failed)
         assertTrue(o.of(false, false, null, false) is AppDetailsClient.ReplyResult.Failed)
     }
+
+    @Test fun statusLineSaysMachineStateAndAge() {
+        val row = DetailsItem("a", "Calendar", "omarchy · Needs input", ItemState.NeedsInput, null, 1_000L, null)
+        assertEquals("omarchy · Needs input · 5m ago", DetailsText.statusLine(row, 301_000L))
+        assertEquals("Needs you · now", DetailsText.statusLine(row.copy(subtitle = null), 1_000L))
+        assertEquals("Done", DetailsText.statusLine(row.copy(state = ItemState.Finished, subtitle = null, updatedAt = 0L), 1L))
+        assertEquals("", DetailsText.statusLine(row.copy(state = ItemState.Unknown, subtitle = null, updatedAt = 0L), 1L))
+    }
+
+    @Test fun stockNoticesAreNotQuestions() {
+        val row = DetailsItem("a", "x", null, ItemState.NeedsInput, null, 1L, null)
+        assertNull(DetailsText.question(row.copy(question = "Claude is waiting for your input")))
+        assertNull(DetailsText.question(row.copy(question = "Claude Code needs your permission to use Bash")))
+        assertEquals("Which database?", DetailsText.question(row.copy(question = "Which database?")))
+        assertNull(DetailsText.question(row))
+    }
 }
