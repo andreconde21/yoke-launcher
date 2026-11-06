@@ -256,6 +256,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.shizukuRow.setText(ShizukuDialog.statusText(ctx))
         binding.vaultRow.setText(R.string.settings_status_checking)
         binding.conductoreRow.setText(R.string.settings_status_checking)
+        populateStatusDots()
         Thread {
             val vault = runCatching { com.outsmartis.yoke.cockpit.CockpitPrefs(ctx).vault(ctx)?.displayName() }.getOrNull()
             val conductore = conductoreStatus(ctx)
@@ -278,6 +279,46 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
                 if ((r.details.summary?.contractVersion ?: 1) >= 2) R.string.settings_status_connected else R.string.settings_status_update_needed
             else -> R.string.settings_status_no_access
         }
+    }
+
+    private fun populateStatusDots() {
+        val n = com.outsmartis.yoke.details.StatusDotPrefs(requireContext()).apps.size
+        binding.statusDotsRow.text = if (n == 0) getString(R.string.off) else getString(R.string.settings_count_apps, n)
+    }
+
+    /** Status dots on home: the apps that serve the details contract, plus quiet mode. Saves on every tap. */
+    private fun pickStatusDots() {
+        val ctx = requireContext()
+        val dots = com.outsmartis.yoke.details.StatusDotPrefs(ctx)
+        Thread {
+            val candidates = com.outsmartis.yoke.details.HomeStatusDots.candidates(ctx)
+            binding.root.post {
+                if (_binding == null) return@post
+                if (candidates.isEmpty()) {
+                    androidx.appcompat.app.AlertDialog.Builder(ctx)
+                        .setTitle(R.string.status_dots_title)
+                        .setMessage(R.string.status_dots_none)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                    return@post
+                }
+                val picked = dots.apps
+                val labels = (candidates.map { it.second } + getString(R.string.status_dots_quiet)).toTypedArray()
+                val checked = (candidates.map { it.first in picked } + dots.onlyWhenSomethingIsWrong).toBooleanArray()
+                androidx.appcompat.app.AlertDialog.Builder(ctx)
+                    .setTitle(R.string.status_dots_title)
+                    .setMultiChoiceItems(labels, checked) { _, which, on ->
+                        if (which == candidates.size) dots.onlyWhenSomethingIsWrong = on
+                        else {
+                            val pkg = candidates[which].first
+                            dots.apps = if (on) dots.apps + pkg else dots.apps - pkg
+                        }
+                        populateStatusDots()
+                    }
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+        }.start()
     }
 
     private fun openConductore() {
@@ -430,6 +471,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
             R.id.aboutYoke -> requireContext().openUrl(Constants.URL_YOKE_GITHUB)
             R.id.vaultRow -> pickVault.launch(null)
             R.id.conductoreRow -> openConductore()
+            R.id.statusDotsRow -> pickStatusDots()
             R.id.secureRow -> findNavController().navigate(R.id.action_settingsFragment_to_grayscaleFragment)
             R.id.accessibilityRow -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             R.id.shizukuRow -> { dialog?.dismiss(); dialog = ShizukuDialog.show(requireContext()) { if (_binding != null) populateConnections() } }
@@ -481,6 +523,7 @@ class SettingsFragment : BaseFragment(), View.OnClickListener, View.OnLongClickL
         binding.backupRow.setOnClickListener(this)
         binding.vaultRow.setOnClickListener(this)
         binding.conductoreRow.setOnClickListener(this)
+        binding.statusDotsRow.setOnClickListener(this)
         binding.secureRow.setOnClickListener(this)
         binding.accessibilityRow.setOnClickListener(this)
         binding.shizukuRow.setOnClickListener(this)

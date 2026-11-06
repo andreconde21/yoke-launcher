@@ -549,4 +549,12 @@ Yoke uses it for two things: the double-tap-to-lock gesture, and, only if Smart 
     <string name="ask_row">Ask “%1$s”</string>
     <string name="ask_copied">Text copied: paste it to ask</string>
     <!-- /YOK-030 -->
+    <string name="settings_status_dots">Status dots</string>
+    <string name="status_dots_title">Status dots on home</string>
+    <string name="status_dots_none">No installed app offers a status dot yet. Install Vigia (Uptime Kuma at a glance) or Conductore.</string>
+    <string name="status_dots_quiet">Only when something is wrong</string>
+    <string name="details_not_set_up">Not set up yet. Open the app to set it up.</string>
+    <string name="details_nothing">Nothing to show</string>
+    <string name="details_view_all_generic">all</string>
+    <string name="details_search_hint_generic">Search</string>
 </resources>

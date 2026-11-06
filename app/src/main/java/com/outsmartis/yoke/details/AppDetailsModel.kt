@@ -48,6 +48,14 @@ data class DetailsSummary(
     val limit7dPct: Int?,
     /** 1 when the provider predates the reply actions (column missing). */
     val contractVersion: Int = 1,
+    /** Contract v4 (status dot): the number on the home dot; null falls back to [attentionCount]. */
+    val badgeCount: Int? = null,
+    /** Contract v4: "ok", "warn", "alert" or "stale"; null is derived from the count. */
+    val badgeLevel: String? = null,
+    /** Contract v4: the provider's own header line ("184 up · 2 down"), replacing the agents wording. */
+    val summaryText: String? = null,
+    /** Contract v4: what the sheet says when there are no rows (or nothing is monitored). */
+    val emptyText: String? = null,
 )
 
 data class AppDetails(val authority: String, val summary: DetailsSummary?, val items: List<DetailsItem>)
@@ -96,6 +104,10 @@ object DetailsMapper {
         limit5hPct = row.int("limit_5h_pct")?.takeIf { it in 0..100 },
         limit7dPct = row.int("limit_7d_pct")?.takeIf { it in 0..100 },
         contractVersion = row.int("contract_version") ?: 1,
+        badgeCount = row.int("badge_count")?.takeIf { it >= 0 },
+        badgeLevel = row.string("badge_level")?.takeIf { it.isNotBlank() },
+        summaryText = row.string("summary_text")?.takeIf { it.isNotBlank() },
+        emptyText = row.string("empty_text")?.takeIf { it.isNotBlank() },
     )
 
     /** Urgent first, then newest first. Stable, so ties keep the provider's order. */
@@ -107,6 +119,7 @@ object DetailsText {
 
     /** "3 agents · 1 needs you · 5h 42% · 7d 10%". Empty when nothing is monitored. */
     fun summaryLine(summary: DetailsSummary?, itemCount: Int): String {
+        summary?.summaryText?.let { return it } // v4 providers word their own header
         if (summary == null || !summary.monitoring) return ""
         val parts = mutableListOf<String>()
         parts += if (itemCount == 1) "1 agent" else "$itemCount agents"

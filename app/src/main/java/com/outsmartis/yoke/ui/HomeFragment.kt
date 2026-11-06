@@ -108,6 +108,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     private lateinit var viewModel: MainViewModel
     private var mainTouchListener: OnSwipeTouchListener? = null
     private var notes: HomeNotifications? = null
+    private var statusDots: com.outsmartis.yoke.details.HomeStatusDots? = null
     private var lastIconCounts: Map<String, Int> = emptyMap()
     private lateinit var iconPrefs: IconRowPrefs
     private var iconRow: IconRowView? = null
@@ -154,6 +155,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         } ?: throw Exception("Invalid Activity")
 
         notes = HomeNotifications(requireContext(), binding.homeNotifications, binding.homeNowPlaying).also { it.bindNowPlaying() }
+        statusDots = com.outsmartis.yoke.details.HomeStatusDots(requireContext(), binding.statusDots)
         NotificationStore.entries.observe(viewLifecycleOwner) {
             renderNotifications()
             // Re-render the icons only when the per-app counts changed (progress updates repost often)
@@ -172,6 +174,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         super.onResume()
         NotificationStore.refresh()
         populateHomeScreen(false)
+        statusDots?.start()
         // The first fetches on a fresh home decide when the held layout transition is released.
         val hold = layoutHold
         layoutHold = null
@@ -1192,6 +1195,7 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
     override fun onPause() {
         super.onPause()
         glanceHandler.removeCallbacks(glanceTick) // YOK-032
+        statusDots?.stop()
     }
 
     override fun onDestroyView() {
@@ -1207,6 +1211,8 @@ class HomeFragment : BaseFragment(), View.OnClickListener, View.OnLongClickListe
         mainTouchListener = null
         notes?.release()
         notes = null
+        statusDots?.stop()
+        statusDots = null
         _binding = null
     }
 

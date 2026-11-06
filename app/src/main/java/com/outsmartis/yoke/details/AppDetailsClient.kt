@@ -80,6 +80,21 @@ class AppDetailsClient(context: Context) {
         }
     }
 
+    sealed class SummaryResult {
+        data class Ok(val summary: DetailsSummary?) : SummaryResult()
+        object Unavailable : SummaryResult()
+    }
+
+    /** Only `/summary`, for the home status dot. Blocking: call off the main thread. */
+    fun loadSummary(authority: String): SummaryResult {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return SummaryResult.Unavailable
+        return try {
+            SummaryResult.Ok(query(authority, "summary") { DetailsMapper.summary(it) }.firstOrNull())
+        } catch (_: RuntimeException) {
+            SummaryResult.Unavailable
+        }
+    }
+
     /** Calls [onChange] on the main thread when the provider reports new data. Pair with [unobserve]. */
     fun observe(authority: String, onChange: () -> Unit): ContentObserver {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
