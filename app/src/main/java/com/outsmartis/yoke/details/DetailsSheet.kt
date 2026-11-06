@@ -153,10 +153,13 @@ class DetailsSheet private constructor(
                 val s = d.summary
                 val summaryText = DetailsText.summaryLine(s, d.items.size)
                 val updated = if (s != null && s.monitoring) DetailsText.updated(s.updatedAt, now) else ""
+                // v4 providers word the header; "updated" still comes from updated_at
                 val head = listOf(summaryText, updated).filter { it.isNotEmpty() }.joinToString(" · ")
                 val rows = when {
-                    s != null && !s.monitoring -> listOf(note(context.getString(R.string.details_not_watching)))
-                    d.items.isEmpty() -> listOf(note(context.getString(R.string.details_no_agents)))
+                    s != null && !s.monitoring -> listOf(note(s.emptyText
+                        ?: context.getString(if (isConductore) R.string.details_not_watching else R.string.details_not_set_up)))
+                    d.items.isEmpty() -> listOf(note(s?.emptyText
+                        ?: context.getString(if (isConductore) R.string.details_no_agents else R.string.details_nothing)))
                     else -> agentsView(d.items, s?.contractVersion ?: 1, d.authority)
                 }
                 render(label, head, rows, null, shortcuts)
@@ -300,7 +303,7 @@ class DetailsSheet private constructor(
     }
 
     private fun searchField(): View = EditText(context, null, 0, R.style.TextSmall).asTextField().apply {
-        hint = context.getString(R.string.details_search_hint)
+        hint = context.getString(if (packageName == CONDUCTORE_PACKAGE) R.string.details_search_hint else R.string.details_search_hint_generic)
         setTextColor(fg)
         setHintTextColor(secondary)
         textSize = 14f
@@ -328,7 +331,7 @@ class DetailsSheet private constructor(
             setPadding(0, dp(2), 0, dp(10))
         }
         val all = filter == DetailsFilter.All
-        bar.addView(text((if (all) "○ " else "● ") + context.getString(if (all) R.string.details_view_all else R.string.details_view_active), 14f, fg).apply {
+        bar.addView(text((if (all) "○ " else "● ") + context.getString(if (!all) R.string.details_view_active else if (packageName == CONDUCTORE_PACKAGE) R.string.details_view_all else R.string.details_view_all_generic), 14f, fg).apply {
             setPadding(0, dp(6), dp(14), dp(6))
             setOnClickListener {
                 sheetPrefs.edit().putString(FILTER_KEY, if (all) DetailsFilter.Active.key else DetailsFilter.All.key).apply()
